@@ -1,1288 +1,940 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>NAI Combo</title>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #0f172a; color: #e2e8f0; min-height: 100vh; min-height: 100dvh;
-  }
-  .header {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border-bottom: 1px solid #1e293b;
-    padding: 12px 16px;
-    position: sticky; top: 0; z-index: 100;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  }
-  .header-inner { display: flex; align-items: center; justify-content: space-between; max-width: 600px; margin: 0 auto; }
-  .logo { font-size: 16px; font-weight: 700; color: #6ee7b7; letter-spacing: -0.02em; }
-  .logo-sub { font-size: 10px; color: #64748b; }
-  .btn-gen {
-    background: linear-gradient(135deg, #6ee7b7, #34d399);
-    color: #0f172a; border: none; border-radius: 10px;
-    padding: 10px 24px; font-weight: 700; font-size: 14px;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .btn-gen:disabled { background: #334155; opacity: 0.6; cursor: wait; }
-  .btn-gen:active:not(:disabled) { transform: scale(0.96); }
-  .content { max-width: 600px; margin: 0 auto; padding: 12px 16px 80px; }
-  .section {
-    background: #1e293b; border-radius: 12px;
-    padding: 16px; margin-bottom: 12px;
-  }
-  .section-label {
-    font-size: 11px; color: #64748b; text-transform: uppercase;
-    letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 600;
-  }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-  .dropzone {
-    border: 2px dashed #475569; border-radius: 12px;
-    padding: 16px; background: #0f172a; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; min-height: 120px; position: relative;
-    overflow: hidden; transition: all 0.2s; text-align: center;
-  }
-  .dropzone.has-image { border: 2px solid #334155; padding: 0; cursor: default; }
-  .dropzone.dragover { border-color: #6ee7b7; background: #1e293b; }
-  .dropzone img { max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 10px; }
-  .dropzone .icon { font-size: 28px; margin-bottom: 4px; opacity: 0.4; }
-  .dropzone .text { color: #94a3b8; font-size: 12px; line-height: 1.4; }
-  .dropzone .sub { font-size: 10px; opacity: 0.6; }
-  .dropzone .clear-btn {
-    position: absolute; top: 6px; right: 6px;
-    background: #ef4444; color: #fff; border: none;
-    border-radius: 50%; width: 24px; height: 24px;
-    cursor: pointer; font-size: 14px; font-weight: 700; line-height: 24px;
-  }
-  input[type="text"], input[type="password"], input[type="number"], textarea, select {
-    width: 100%; background: #0f172a; border: 1px solid #334155;
-    border-radius: 8px; padding: 8px 12px; color: #e2e8f0;
-    font-size: 13px; outline: none; font-family: inherit;
-  }
-  textarea { resize: vertical; }
-  select { appearance: auto; }
-  .slider-wrap { margin-bottom: 12px; }
-  .slider-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; color: #94a3b8; }
-  .slider-val { color: #e2e8f0; font-family: monospace; }
-  input[type="range"] { width: 100%; accent-color: #6ee7b7; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .field-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
-  .ref-type-btns { display: flex; gap: 4px; }
-  .ref-type-btn {
-    flex: 1; padding: 6px 4px; font-size: 10px;
-    background: #0f172a; color: #94a3b8;
-    border: 1px solid #334155; border-radius: 6px;
-    cursor: pointer; font-weight: 400; text-align: center;
-  }
-  .ref-type-btn.active { background: #6ee7b7; color: #0f172a; border-color: #6ee7b7; font-weight: 700; }
-  .checkbox-row { display: flex; gap: 16px; margin-top: 4px; }
-  .checkbox-row label {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; color: #94a3b8; cursor: pointer;
-  }
-  .checkbox-row input { accent-color: #6ee7b7; }
-  .error-box {
-    background: #7f1d1d; border-radius: 10px;
-    padding: 10px 14px; margin-bottom: 12px;
-    font-size: 13px; color: #fca5a5; word-break: break-all;
-  }
-  .log-line {
-    font-size: 11px; color: #64748b; margin-bottom: 12px;
-    font-family: monospace; padding: 0 4px;
-  }
-  .result-img { width: 100%; border-radius: 10px; display: block; }
-  .result-actions { display: flex; gap: 8px; margin-top: 10px; }
-  .result-actions a, .result-actions button {
-    flex: 1; text-align: center; padding: 10px;
-    border-radius: 8px; font-size: 12px; font-weight: 600;
-    cursor: pointer; text-decoration: none; border: none; font-family: inherit;
-  }
-  .btn-save { background: #334155; color: #e2e8f0; }
-  .btn-to-i2i { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb !important; }
-  .btn-to-ref { background: #1a332e; color: #6ee7b7; border: 1px solid #059669 !important; }
-  .token-row { display: flex; gap: 8px; }
-  .btn-show {
-    background: #334155; border: none; border-radius: 8px;
-    padding: 8px 12px; color: #94a3b8; cursor: pointer; font-size: 12px; white-space: nowrap;
-  }
-
-  /* === Prompt Maker === */
-  .pm-toolbar {
-    display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;
-  }
-  .pm-toolbar-btn {
-    background: #334155; border: 1px solid #475569; border-radius: 6px;
-    padding: 4px 10px; font-size: 10px; color: #94a3b8; cursor: pointer;
-    font-family: inherit; white-space: nowrap;
-  }
-  .pm-toolbar-btn.active { background: #ef4444; border-color: #ef4444; color: #fff; }
-  .pm-toolbar-btn.accent { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; }
-  .pm-search {
-    flex: 1; min-width: 80px; background: #0f172a; border: 1px solid #334155;
-    border-radius: 6px; padding: 4px 8px; color: #e2e8f0; font-size: 11px; outline: none;
-  }
-  .pm-tabs {
-    display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px;
-    margin-bottom: 8px; scrollbar-width: none;
-  }
-  .pm-tabs::-webkit-scrollbar { display: none; }
-  .pm-tab {
-    padding: 5px 10px; font-size: 11px; border-radius: 6px;
-    background: #0f172a; color: #94a3b8; border: 1px solid #334155;
-    cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    position: relative;
-  }
-  .pm-tab.active { background: #6ee7b7; color: #0f172a; border-color: #6ee7b7; font-weight: 600; }
-  .pm-tab.delete-mode { border-color: #ef4444; }
-  .pm-tab .tab-x {
-    display: none; margin-left: 4px; font-weight: 700; color: #ef4444;
-  }
-  .pm-tab.delete-mode .tab-x { display: inline; }
-  .pm-add-tab {
-    padding: 5px 10px; font-size: 11px; border-radius: 6px;
-    background: transparent; color: #6ee7b7; border: 1px dashed #6ee7b7;
-    cursor: pointer; white-space: nowrap; flex-shrink: 0;
-  }
-  .pm-buttons {
-    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
-    max-height: 160px; overflow-y: auto;
-  }
-  .pm-btn {
-    padding: 5px 10px; font-size: 11px; border-radius: 6px;
-    background: #0f172a; color: #e2e8f0; border: 1px solid #475569;
-    cursor: pointer; transition: all 0.15s; max-width: 180px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .pm-btn:active { transform: scale(0.95); }
-  .pm-btn.delete-mode { border-color: #ef4444; color: #fca5a5; }
-  .pm-btn.delete-mode:active { background: #ef4444; color: #fff; }
-  .pm-register {
-    display: flex; gap: 6px; margin-bottom: 10px;
-  }
-  .pm-register input {
-    background: #0f172a; border: 1px solid #334155; border-radius: 6px;
-    padding: 6px 8px; color: #e2e8f0; font-size: 11px; outline: none;
-  }
-  .pm-register .pm-name { width: 80px; flex-shrink: 0; }
-  .pm-register .pm-text { flex: 1; min-width: 0; }
-  .pm-register button {
-    background: #6ee7b7; color: #0f172a; border: none; border-radius: 6px;
-    padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
-  }
-  .char-count { font-size: 10px; color: #64748b; text-align: right; margin-top: 2px; }
-
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-    background: #334155; color: #e2e8f0; padding: 8px 16px; border-radius: 8px;
-    font-size: 12px; z-index: 999; opacity: 0; transition: opacity 0.3s;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; }
-  .toast.error { background: #7f1d1d; color: #fca5a5; }
-  .toast.success { background: #14532d; color: #6ee7b7; }
-
-  /* History modal */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-    z-index: 200; justify-content: center; align-items: flex-end;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal {
-    background: #1e293b; border-radius: 16px 16px 0 0; width: 100%;
-    max-width: 600px; max-height: 70vh; overflow-y: auto; padding: 20px 16px;
-  }
-  .modal-header {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-  }
-  .modal-header h3 { font-size: 14px; color: #e2e8f0; }
-  .modal-close {
-    background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;
-  }
-  .history-item {
-    background: #0f172a; border-radius: 8px; padding: 8px 10px;
-    margin-bottom: 6px; font-size: 11px; color: #94a3b8;
-    cursor: pointer; word-break: break-all;
-  }
-  .history-item:active { background: #334155; }
-  .history-item .h-time { font-size: 9px; color: #475569; }
-  .sync-btn {
-    background: none; border: 1px solid #334155; border-radius: 8px;
-    padding: 4px 10px; font-size: 10px; color: #94a3b8; cursor: pointer;
-    font-family: inherit; white-space: nowrap;
-  }
-  .sync-btn.logged-in { border-color: #6ee7b7; color: #6ee7b7; }
-  .sync-status { font-size: 9px; color: #475569; text-align: right; margin-top: 2px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VN Text Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        // グローバルエラーハンドラ（デバッグ用）
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('Global error:', msg, 'at line', line);
+            if (document.getElementById('debugMode')?.checked) {
+                alert('エラー: ' + msg + ' (line ' + line + ')');
+            }
+            return false;
+        };
+        window.onunhandledrejection = function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            if (document.getElementById('debugMode')?.checked) {
+                alert('Promise エラー: ' + e.reason);
+            }
+        };
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: #1a1a1a; color: #eee; min-height: 100vh; }
+        .tabs { display: flex; background: #111; border-bottom: 1px solid #333; }
+        .tab-btn { padding: 12px 24px; background: transparent; border: none; color: #888; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .tab-btn.active { color: #4ecdc4; border-bottom: 2px solid #4ecdc4; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .editor-container { display: flex; height: calc(100vh - 49px); }
+        .preview-area { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 16px; }
+        .control-area { flex: 1; padding: 16px; overflow-y: auto; max-width: 420px; }
+        @media (max-width: 800px) {
+            .editor-container { flex-direction: column-reverse; }
+            .control-area { max-width: 100%; flex: none; max-height: 50vh; }
+            .preview-area { flex: 1; min-height: 300px; }
+        }
+        
+        /* スマホ対応 */
+        @media (max-width: 600px) {
+            .tabs { overflow-x: auto; }
+            .tab-btn { padding: 10px 16px; font-size: 12px; white-space: nowrap; }
+            .editor-container { flex-direction: column; height: auto; min-height: calc(100vh - 45px); }
+            .preview-area { height: 50vh; min-height: 280px; flex: none; padding: 8px; order: 1; }
+            .control-area { flex: 1; padding: 12px; max-width: 100%; max-height: none; overflow-y: visible; order: 2; }
+            .section { padding: 10px; margin-bottom: 10px; }
+            .section-title { font-size: 10px; }
+            input[type="text"], textarea { padding: 8px; font-size: 16px; }
+            textarea { min-height: 60px; }
+            .btn { padding: 12px 14px; font-size: 13px; }
+            .btn-save { padding: 14px; font-size: 14px; }
+            .audio-row { flex-wrap: wrap; }
+            .audio-label { width: 32px; font-size: 10px; }
+            .audio-file { font-size: 10px; padding: 6px; }
+            .cmd-input { font-size: 11px; min-height: 50px; }
+            .cmd-help { font-size: 8px; }
+            .scenes-container { padding: 12px; height: auto; min-height: calc(100vh - 45px); }
+            .scenes-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .mode-toggle { justify-content: center; }
+            .scene-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .scene-card { border-radius: 6px; }
+            .scene-info { padding: 6px; }
+            .scene-name { font-size: 11px; }
+            .scene-text { font-size: 9px; }
+            .scene-actions { opacity: 1; bottom: 4px; right: 4px; }
+            .scene-btn { width: 28px; height: 28px; font-size: 12px; }
+            .preview-nav { padding: 8px; gap: 8px; }
+            .nav-btn { font-size: 24px; padding: 12px 16px; }
+            .preview-info { font-size: 12px; padding: 8px; }
+            .modal { padding: 16px; width: 95%; }
+            .modal-title { font-size: 14px; }
+            .history-item { padding: 10px; }
+            .history-date { font-size: 12px; }
+            .history-info { font-size: 10px; }
+            .choice-option { flex-wrap: wrap; }
+            .choice-option input { min-width: 100px; }
+            .choice-option select { flex: 1; min-width: 80px; }
+        }
+        
+        /* 極小スマホ対応 */
+        @media (max-width: 380px) {
+            .tab-btn { padding: 8px 12px; font-size: 11px; }
+            .preview-area { height: 45vh; min-height: 240px; }
+            .scene-grid { grid-template-columns: repeat(2, 1fr); }
+            .btn { padding: 10px 12px; font-size: 12px; }
+        }
+        .preview-canvas { position: relative; background: #000; aspect-ratio: var(--project-ratio, 832/1216); height: 100%; max-width: 100%; container-type: inline-size; overflow: hidden; }
+        .preview-bg { position: absolute; inset: 0; }
+        .preview-bg img { width: 100%; height: 100%; object-fit: cover; }
+        .flash-overlay { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 10; }
+        .flash-overlay.active { animation: flash 0.15s ease-out; }
+        @keyframes flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+        .preview-canvas.shake { animation: shake 0.3s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+        .text-display { position: absolute; bottom: 5%; left: 4%; right: 4%; z-index: 5; }
+        .text-display.nvl-mode { top: 0; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; justify-content: flex-start; padding: 3% 4%; overflow-y: auto; }
+        .nvl-mode .char-name { font-size: 3.5cqw; margin-bottom: 1%; }
+        .nvl-mode .dialogue { font-size: 2.8cqw; line-height: 1.7; }
+        .char-name { font-size: 4cqw; font-weight: 700; color: #fff; text-shadow: 0 0 4px #000, 0 0 4px #000, 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000; margin-bottom: 2%; }
+        .dialogue { font-size: 3.2cqw; line-height: 1.6; color: #fff; text-shadow: 0 0 4px #000, 0 0 4px #000, 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000; white-space: pre-wrap; }
+        .section { background: #252525; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .section-title { font-size: 11px; color: #666; margin-bottom: 8px; text-transform: uppercase; }
+        input[type="text"], textarea { width: 100%; background: #333; border: none; border-radius: 4px; padding: 10px; color: #eee; font-family: inherit; font-size: 14px; margin-bottom: 8px; }
+        textarea { min-height: 80px; resize: vertical; }
+        textarea.nvl-expand { min-height: 240px; }
+        input:focus, textarea:focus { outline: 1px solid #4ecdc4; }
+        .btn { padding: 10px 16px; border: none; border-radius: 4px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .btn-primary { background: #4ecdc4; color: #000; width: 100%; }
+        .btn-save { background: #e94560; color: #fff; width: 100%; padding: 14px; font-size: 14px; }
+        .btn-cancel { background: #444; color: #aaa; width: 100%; margin-top: 8px; }
+        .btn-zip { background: #6c5ce7; color: #fff; }
+        .audio-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .audio-label { font-size: 11px; font-weight: 700; color: #4ecdc4; width: 36px; }
+        .audio-file { flex: 1; background: #333; border: none; border-radius: 4px; padding: 8px; color: #888; font-size: 11px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .audio-file.loaded { color: #4ecdc4; }
+        .audio-play { width: 28px; height: 28px; background: #4ecdc4; border: none; border-radius: 4px; color: #000; cursor: pointer; }
+        .audio-play:disabled { opacity: 0.3; }
+        .cmd-input { font-family: monospace; font-size: 12px; min-height: 60px; }
+        .cmd-help { font-size: 9px; color: #666; margin-top: 4px; line-height: 1.5; }
+        .cmd-help code { background: #333; padding: 1px 4px; border-radius: 2px; color: #4ecdc4; }
+        .overlay-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .overlay-item { position: relative; width: 48px; height: 48px; background: #333; border-radius: 4px; overflow: hidden; cursor: pointer; }
+        .overlay-item img { width: 100%; height: 100%; object-fit: cover; }
+        .overlay-item .overlay-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 7px; padding: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+        .overlay-item .overlay-del { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; background: #e94560; border-radius: 50%; font-size: 10px; line-height: 14px; text-align: center; cursor: pointer; display: none; }
+        .overlay-item:hover .overlay-del { display: block; }
+        .cmd-section { margin-bottom: 8px; }
+        .cmd-section-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #333; border-radius: 4px; cursor: pointer; font-size: 11px; color: #aaa; }
+        .cmd-section-header:hover { background: #3a3a3a; }
+        .cmd-section-header .arrow { transition: transform 0.2s; }
+        .cmd-section-header.open .arrow { transform: rotate(90deg); }
+        .cmd-section-content { display: none; padding: 8px; background: #2a2a2a; border-radius: 0 0 4px 4px; margin-top: -4px; }
+        .cmd-section-header.open + .cmd-section-content { display: block; }
+        .cmd-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 10px; }
+        .cmd-row code { flex: 1; background: #333; padding: 4px 6px; border-radius: 3px; color: #4ecdc4; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cmd-row .cmd-copy { width: 22px; height: 22px; background: #444; border: none; border-radius: 3px; color: #888; font-size: 10px; cursor: pointer; flex-shrink: 0; }
+        .cmd-row .cmd-copy:hover { background: #4ecdc4; color: #000; }
+        .cmd-row .cmd-copy:active { transform: scale(0.95); }
+        .cmd-desc { font-size: 9px; color: #666; margin-left: 26px; margin-bottom: 6px; }
+        .char-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+        .char-slot { position: absolute; bottom: 0; display: flex; align-items: flex-end; justify-content: center; }
+        .char-slot[data-slot="left"] { left: 20%; transform: translateX(-50%); }
+        .char-slot[data-slot="center"] { left: 50%; transform: translateX(-50%); }
+        .char-slot[data-slot="right"] { left: 80%; transform: translateX(-50%); }
+        .char-slot img { max-height: 90%; max-width: none; transition: opacity 0.3s; }
+        .char-slot img.flip { transform: scaleX(-1); }
+        .editor-overlay-container { position: absolute; inset: 0; z-index: 15; pointer-events: none; overflow: hidden; }
+        .editor-overlay-item { position: absolute; pointer-events: none; transform: translate(-50%,-50%); }
+        .editor-overlay-item img { max-width: none; max-height: none; }
+        .scenes-container { padding: 16px; height: calc(100vh - 49px); overflow-y: auto; }
+        .scenes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+        .scene-count { font-size: 14px; color: #888; }
+        .mode-toggle { display: flex; gap: 4px; background: #111; padding: 4px; border-radius: 6px; }
+        .mode-btn { padding: 6px 14px; background: transparent; border: none; border-radius: 4px; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .mode-btn.active { background: #4ecdc4; color: #000; }
+        .btn-clear { background: #e94560; color: #fff; font-size: 11px; padding: 6px 12px; }
+        .scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+        .scene-card { background: #252525; border-radius: 8px; overflow: hidden; cursor: grab; position: relative; }
+        .scene-card.dragging { opacity: 0.4; }
+        .scene-card.drag-over { outline: 2px solid #4ecdc4; }
+        .scene-card.is-choice { outline: 2px solid #f39c12; }
+        .scene-thumb { aspect-ratio: var(--project-ratio, 832/1216); background: #333; position: relative; }
+        .scene-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .scene-info { padding: 8px; }
+        .scene-name { font-size: 12px; font-weight: 700; color: #4ecdc4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .scene-text { font-size: 10px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .scene-label { font-size: 9px; color: #f39c12; margin-top: 2px; }
+        .scene-num { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+        .scene-choice-badge { position: absolute; top: 6px; right: 6px; background: #f39c12; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; }
+        .scene-actions { position: absolute; bottom: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; }
+        .scene-card:hover .scene-actions { opacity: 1; }
+        .scene-btn { width: 24px; height: 24px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .scene-edit { background: #4ecdc4; color: #000; }
+        .scene-del { background: #e94560; color: #fff; }
+        .preview-mode { display: none; position: fixed; inset: 0; z-index: 1000; background: #000; }
+        .preview-mode.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .preview-exit-zone { width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; color: #555; font-size: 12px; }
+        .preview-nav { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px; min-height: 0; overflow: hidden; }
+        .nav-btn { background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 32px; padding: 16px 24px; cursor: pointer; border-radius: 8px; }
+        .nav-btn:hover { background: rgba(255,255,255,0.2); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .preview-frame { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .preview-frame .preview-canvas { width: 100%; max-width: calc((100vh - 140px) * var(--project-width, 832) / var(--project-height, 1216)); height: auto; aspect-ratio: var(--project-ratio, 832/1216); }
+        .preview-info { padding: 12px; color: #888; font-size: 14px; }
+        .empty-msg { text-align: center; padding: 60px; color: #666; }
+        .hidden { display: none !important; }
+        @media (max-width: 600px) {
+            .preview-exit-zone { height: 50px; font-size: 11px; }
+            .preview-nav { padding: 8px; gap: 8px; flex-direction: column; }
+            .nav-btn { font-size: 20px; padding: 10px 14px; }
+            .preview-frame { padding: 4px; width: 100%; }
+            .preview-frame .preview-canvas { width: 90%; max-width: none; height: auto; }
+            .preview-info { padding: 8px; font-size: 12px; }
+        }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .modal { background: #252525; border-radius: 12px; padding: 20px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #4ecdc4; }
+        .modal-close { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #888; font-size: 20px; cursor: pointer; }
+        .history-item { background: #333; border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .history-item:hover { background: #444; }
+        .history-date { font-size: 13px; color: #fff; }
+        .history-info { font-size: 11px; color: #888; margin-top: 4px; }
+        .no-history { text-align: center; color: #666; padding: 20px; }
+        .btn-history { background: #f39c12; color: #000; font-size: 11px; padding: 6px 12px; }
+        .choice-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .choice-toggle input { width: 18px; height: 18px; }
+        .choice-toggle label { font-size: 13px; color: #f39c12; font-weight: 700; }
+        .choice-options { background: #1a1a1a; border-radius: 4px; padding: 10px; margin-bottom: 8px; }
+        .choice-option { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .choice-option input { flex: 1; margin: 0; }
+        .choice-option-id { font-size: 11px; color: #f39c12; font-weight: 700; min-width: 40px; }
+        .choice-option select { background: #333; border: none; border-radius: 4px; padding: 6px; color: #eee; font-size: 11px; }
+        .add-choice-btn { background: #f39c12; color: #000; font-size: 11px; padding: 6px 12px; }
+        .remove-choice-btn { background: #e94560; color: #fff; width: 24px; height: 24px; font-size: 14px; padding: 0; }
+        .label-input { background: #2a2a2a; border: 1px dashed #f39c12; }
+        .chapter-item { display: flex; gap: 12px; align-items: center; padding: 12px; background: #252525; border-radius: 8px; margin-bottom: 8px; }
+        .chapter-num { font-size: 14px; font-weight: 700; color: #4ecdc4; min-width: 30px; }
+        .chapter-scene-select { flex: 1; background: #333; border: none; border-radius: 4px; padding: 8px; color: #eee; font-size: 13px; }
+        .chapter-comment { flex: 2; background: #333; border: none; border-radius: 4px; padding: 8px; color: #eee; font-size: 13px; }
+        .chapter-thumb { width: 60px; height: 88px; background: #111; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+        .chapter-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .choice-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3cqw; z-index: 20; pointer-events: none; }
+        .choice-btn { background: linear-gradient(135deg, #333 0%, #222 100%); border: 2px solid #f39c12; color: #fff; padding: 3cqw 6cqw; font-size: 3.5cqw; font-weight: 700; border-radius: 1cqw; cursor: pointer; min-width: 60%; text-align: center; transition: all 0.2s; pointer-events: auto; }
+        .choice-btn:hover { background: #f39c12; color: #000; }
+    </style>
 </head>
 <body>
-
-<div class="header">
-  <div class="header-inner">
-    <div>
-      <div class="logo">NAI Combo</div>
-      <div class="logo-sub">img2img + Precise Ref + Prompt Maker — v9.2</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <button class="sync-btn" id="syncBtn" onclick="handleAuth()">ログイン</button>
-      <button class="btn-gen" id="btnGenerate" onclick="generate()">Generate</button>
-    </div>
-  </div>
+<div class="tabs">
+    <button class="tab-btn active" data-tab="editor">エディタ</button>
+    <button class="tab-btn" data-tab="scenes">シーン一覧</button>
+    <button class="tab-btn" data-tab="chapters">チャプター</button>
 </div>
 
-<div class="content">
-  <!-- Token -->
-  <div class="section">
-    <div class="section-label">API Token</div>
-    <div class="token-row">
-      <input type="password" id="token" placeholder="pst-xxxx... (Persistent API Token)">
-      <button class="btn-show" onclick="toggleToken()">Show</button>
+<div id="editorTab" class="tab-content active">
+    <div class="editor-container">
+        <div class="preview-area">
+            <div class="preview-canvas" id="editorCanvas">
+                <div class="preview-bg" id="editorBg"></div>
+                <div class="char-layer" id="editorCharLayer">
+                    <div class="char-slot" data-slot="left"></div>
+                    <div class="char-slot" data-slot="center"></div>
+                    <div class="char-slot" data-slot="right"></div>
+                </div>
+                <div class="flash-overlay" id="editorFlash"></div>
+                <div class="editor-overlay-container" id="editorOverlayContainer"></div>
+                <div class="text-display">
+                    <div class="char-name" id="editorName"></div>
+                    <div class="dialogue" id="editorText">画像を選択してください</div>
+                </div>
+            </div>
+        </div>
+        <div class="control-area">
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:8px;">v0.5.0 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div class="section">
+                <div class="section-title">プロジェクト</div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-zip" id="loadZip" style="flex:1">📁 ZIP読込</button>
+                    <button class="btn btn-zip" id="saveZip" style="flex:1">💾 ZIP保存</button>
+                </div>
+                <input type="file" id="zipInput" accept=".zip" class="hidden">
+            </div>
+            <div class="section">
+                <div class="section-title">背景画像</div>
+                <button class="audio-file" id="imgBtn" style="width:100%">画像を選択</button>
+                <input type="file" id="imgInput" accept="image/*" class="hidden">
+            </div>
+            <div class="section">
+                <div class="section-title">テキストモード</div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn" id="modeADV" style="flex:1;background:#4ecdc4;color:#000">ADV（下部）</button>
+                    <button class="btn" id="modeNVL" style="flex:1;background:#333;color:#888">NVL（全画面）</button>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">画面切り替え効果</div>
+                <select id="transitionSelect" style="width:100%;background:#333;border:none;border-radius:4px;padding:10px;color:#eee;font-size:14px;">
+                    <option value="none">なし</option>
+                    <option value="fade">フェード</option>
+                    <option value="fadeBlack">暗転フェード</option>
+                    <option value="fadeWhite">ホワイトアウト</option>
+                    <option value="slideLeft">スライド（左）</option>
+                    <option value="slideRight">スライド（右）</option>
+                    <option value="slideUp">スライド（上）</option>
+                    <option value="slideDown">スライド（下）</option>
+                </select>
+            </div>
+            <div class="section">
+                <div class="section-title">ラベル（ジャンプ先として使用）</div>
+                <input type="text" id="labelInput" class="label-input" placeholder="例: ルートB開始">
+            </div>
+            <div class="section">
+                <div class="section-title">テキスト</div>
+                <input type="text" id="nameInput" placeholder="キャラクター名">
+                <textarea id="textInput" placeholder="セリフ"></textarea>
+            </div>
+            <div class="section">
+                <div class="section-title">選択肢</div>
+                <div class="choice-toggle">
+                    <input type="checkbox" id="isChoiceCheck">
+                    <label for="isChoiceCheck">このシーンは選択肢</label>
+                </div>
+                <div id="choiceEditor" class="hidden">
+                    <div class="choice-options" id="choiceOptions"></div>
+                    <button class="btn add-choice-btn" id="addChoiceBtn">＋ 選択肢を追加</button>
+                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #333">
+                        <div class="choice-toggle">
+                            <input type="checkbox" id="isTimedCheck">
+                            <label for="isTimedCheck" style="color:#e94560">⏱ 時間制限あり</label>
+                        </div>
+                        <div id="timedOptions" class="hidden" style="margin-top:8px">
+                            <div style="display:flex;gap:8px;margin-bottom:8px">
+                                <input type="number" id="timedSeconds" placeholder="秒数" min="1" max="300" value="10" style="width:70px">
+                                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa"><input type="checkbox" id="showTimerCheck" checked> タイマー表示</label>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-bottom:8px">
+                                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa"><input type="checkbox" id="forceProgressCheck" checked> 時間切れで自動進行</label>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <span style="font-size:11px;color:#888">時間切れ時:</span>
+                                <select id="timeoutGoto" style="flex:1;background:#333;border:none;border-radius:4px;padding:6px;color:#eee;font-size:11px">
+                                    <option value="">→ 次へ</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">SE（効果音）</div>
+                <div id="seList"></div>
+                <button class="btn btn-primary" id="addSeBtn" style="width:100%">＋ SE追加</button>
+                <input type="file" id="seInput" class="hidden">
+            </div>
+            <div class="section">
+                <div class="section-title">BGM</div>
+                <div id="bgmList"></div>
+                <button class="btn btn-primary" id="addBgmBtn" style="width:100%">＋ BGM追加</button>
+                <input type="file" id="bgmInput" class="hidden">
+            </div>
+            <div class="section">
+                <div class="section-title">オーバーレイ</div>
+                <div class="overlay-list" id="overlayList"></div>
+                <button class="btn btn-primary" id="addOverlayBtn" style="width:100%">＋ 画像追加</button>
+                <input type="file" id="overlayInput" accept="image/*" multiple class="hidden">
+            </div>
+            <div class="section">
+                <div class="section-title">立ち絵</div>
+                <div class="overlay-list" id="charList"></div>
+                <button class="btn btn-primary" id="addCharBtn" style="width:100%">＋ 立ち絵追加</button>
+                <input type="file" id="charInput" accept="image/*" multiple class="hidden">
+            </div>
+            <button class="btn btn-save" id="saveBtn">＋ 新規シーン追加</button>
+            <button class="btn btn-cancel hidden" id="cancelBtn">キャンセル</button>
+            <button class="btn" id="exportPngBtn" style="background:#6c5ce7;color:#fff;width:100%;margin-top:8px">📷 PNGとして保存</button>
+            
+            <div class="section" style="margin-top:12px">
+                <div class="section-title">コマンド</div>
+                <textarea id="cmdInput" class="cmd-input" placeholder="1SE2,@FLASH"></textarea>
+                <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ 実行</button>
+                
+                <div class="cmd-section">
+                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                        <span class="arrow">▶</span> SE・BGM・FX
+                    </div>
+                    <div class="cmd-section-content">
+                        <div class="cmd-row"><code>SE:se01</code><button class="cmd-copy" data-cmd="SE:se01">📋</button></div>
+                        <div class="cmd-desc">SE再生（1回）</div>
+                        <div class="cmd-row"><code>SE:se01:3</code><button class="cmd-copy" data-cmd="SE:se01:3">📋</button></div>
+                        <div class="cmd-desc">SE再生（3回リピート）</div>
+                        <div class="cmd-row"><code>SE:se01:0</code><button class="cmd-copy" data-cmd="SE:se01:0">📋</button></div>
+                        <div class="cmd-desc">SE無限ループ</div>
+                        <div class="cmd-row"><code>SE:STOP:se01</code><button class="cmd-copy" data-cmd="SE:STOP:se01">📋</button></div>
+                        <div class="cmd-desc">特定SEの停止</div>
+                        <div class="cmd-row"><code>SE:STOP</code><button class="cmd-copy" data-cmd="SE:STOP">📋</button></div>
+                        <div class="cmd-desc">全SE停止</div>
+                        <div class="cmd-row"><code>BGM:bgm01</code><button class="cmd-copy" data-cmd="BGM:bgm01">📋</button></div>
+                        <div class="cmd-desc">BGM再生</div>
+                        <div class="cmd-row"><code>BGM:STOP</code><button class="cmd-copy" data-cmd="BGM:STOP">📋</button></div>
+                        <div class="cmd-desc">BGM停止</div>
+                        <div class="cmd-row"><code>FLASH</code><button class="cmd-copy" data-cmd="FLASH">📋</button></div>
+                        <div class="cmd-desc">白フラッシュ</div>
+                        <div class="cmd-row"><code>FLASH3</code><button class="cmd-copy" data-cmd="FLASH3">📋</button></div>
+                        <div class="cmd-desc">3回連続フラッシュ</div>
+                        <div class="cmd-row"><code>SHAKE</code><button class="cmd-copy" data-cmd="SHAKE">📋</button></div>
+                        <div class="cmd-desc">画面振動</div>
+                    </div>
+                </div>
+                
+                <div class="cmd-section">
+                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                        <span class="arrow">▶</span> フラグ分岐
+                    </div>
+                    <div class="cmd-section-content">
+                        <div class="cmd-row"><code>SETFLAG:フラグ名</code><button class="cmd-copy" data-cmd="SETFLAG:フラグ名">📋</button></div>
+                        <div class="cmd-desc">フラグをONにする</div>
+                        <div class="cmd-row"><code>IFFLAG:フラグ名:SKIP</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:SKIP">📋</button></div>
+                        <div class="cmd-desc">フラグONならこのシーンをスキップ</div>
+                        <div class="cmd-row"><code>IFFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:GOTO:ラベル">📋</button></div>
+                        <div class="cmd-desc">フラグONならラベルへジャンプ</div>
+                        <div class="cmd-row"><code>NOTFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="NOTFLAG:フラグ名:GOTO:ラベル">📋</button></div>
+                        <div class="cmd-desc">フラグOFFならラベルへジャンプ</div>
+                        <div class="cmd-row"><code>FROM:A-1:SKIP</code><button class="cmd-copy" data-cmd="FROM:A-1:SKIP">📋</button></div>
+                        <div class="cmd-desc">選択肢A-1から来たらスキップ</div>
+                        <div class="cmd-row"><code>FROM:A-1:GOTO:ラベル</code><button class="cmd-copy" data-cmd="FROM:A-1:GOTO:ラベル">📋</button></div>
+                        <div class="cmd-desc">選択肢A-1から来たらジャンプ</div>
+                    </div>
+                </div>
+                
+                <div class="cmd-section">
+                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                        <span class="arrow">▶</span> カウンター（周回永続）
+                    </div>
+                    <div class="cmd-section-content">
+                        <div class="cmd-row"><code>SETCOUNTER:周回数:0</code><button class="cmd-copy" data-cmd="SETCOUNTER:周回数:0">📋</button></div>
+                        <div class="cmd-desc">カウンターを値にセット</div>
+                        <div class="cmd-row"><code>ADDCOUNTER:周回数:1</code><button class="cmd-copy" data-cmd="ADDCOUNTER:周回数:1">📋</button></div>
+                        <div class="cmd-desc">カウンターに加算（負数で減算）</div>
+                        <div class="cmd-row"><code>RESETCOUNTER:周回数</code><button class="cmd-copy" data-cmd="RESETCOUNTER:周回数">📋</button></div>
+                        <div class="cmd-desc">カウンターを0にリセット</div>
+                        <div class="cmd-row"><code>IFCOUNTER:周回数:>=:3:GOTO:真ED</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:>=:3:GOTO:真ED">📋</button></div>
+                        <div class="cmd-desc">条件を満たせばジャンプ（>=, <=, ==, !=, >, <）</div>
+                        <div class="cmd-row"><code>IFCOUNTER:周回数:==:0:SKIP</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:==:0:SKIP">📋</button></div>
+                        <div class="cmd-desc">条件を満たせばスキップ</div>
+                    </div>
+                </div>
+                
+                <div class="cmd-section">
+                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                        <span class="arrow">▶</span> オーバーレイ
+                    </div>
+                    <div class="cmd-section-content">
+                        <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
+                            透過画像を画面外から出現させる演出<br>
+                            構文: OVERLAY:ファイル:方向:パス:速度:easing:loop
+                        </div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50:500ms">📋</button></div>
+                        <div class="cmd-desc">上から降りてきて中央で停止</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:bottom:100>20:300ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:bottom:100>20:300ms">📋</button></div>
+                        <div class="cmd-desc">下から出てきて20%で停止</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:left:-100>200:400ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:left:-100>200:400ms">📋</button></div>
+                        <div class="cmd-desc">左から右へ貫通</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50|1000>-100:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50|1000>-100:500ms">📋</button></div>
+                        <div class="cmd-desc">出てきて1秒待って戻る</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:→(-100,120):500ms:bounce</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:→(-100,120):500ms:bounce">📋</button></div>
+                        <div class="cmd-desc">左外→右外へバウンド移動</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut">📋</button></div>
+                        <div class="cmd-desc">下から上へ貫通</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms">📋</button></div>
+                        <div class="cmd-desc">左→右へ放物線ジャンプ</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3">📋</button></div>
+                        <div class="cmd-desc">右上へ3回ジャンプ</div>
+                        <div class="cmd-row"><code>OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop">📋</button></div>
+                        <div class="cmd-desc">ふわふわ浮遊</div>
+                        <div class="cmd-row"><code>OVERLAY:CLEAR</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR">📋</button></div>
+                        <div class="cmd-desc">全オーバーレイを消去</div>
+                        <div class="cmd-row"><code>OVERLAY:CLEAR:fade:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR:fade:500ms">📋</button></div>
+                        <div class="cmd-desc">フェードアウトで消去</div>
+                    </div>
+                </div>
+                
+                <div class="cmd-section">
+                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                        <span class="arrow">▶</span> 立ち絵
+                    </div>
+                    <div class="cmd-section-content">
+                        <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
+                            キャラクター立ち絵の表示・非表示<br>
+                            構文: CHAR:スロット:ファイル名[:オプション]
+                        </div>
+                        <div class="cmd-row"><code>CHAR:center:ch001.png</code><button class="cmd-copy" data-cmd="CHAR:center:ch001.png">📋</button></div>
+                        <div class="cmd-desc">中央に表示</div>
+                        <div class="cmd-row"><code>CHAR:left:ch002.png</code><button class="cmd-copy" data-cmd="CHAR:left:ch002.png">📋</button></div>
+                        <div class="cmd-desc">左に表示</div>
+                        <div class="cmd-row"><code>CHAR:right:ch003.png:flip</code><button class="cmd-copy" data-cmd="CHAR:right:ch003.png:flip">📋</button></div>
+                        <div class="cmd-desc">右に反転表示</div>
+                        <div class="cmd-row"><code>CHAR:center:ch001.png:fade:500ms</code><button class="cmd-copy" data-cmd="CHAR:center:ch001.png:fade:500ms">📋</button></div>
+                        <div class="cmd-desc">フェードイン（500ms）</div>
+                        <div class="cmd-row"><code>CHAR:center:HIDE:fade:300ms</code><button class="cmd-copy" data-cmd="CHAR:center:HIDE:fade:300ms">📋</button></div>
+                        <div class="cmd-desc">フェードアウト（300ms）</div>
+                        <div class="cmd-row"><code>CHAR:CLEAR</code><button class="cmd-copy" data-cmd="CHAR:CLEAR">📋</button></div>
+                        <div class="cmd-desc">全スロット消去</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <!-- Image Inputs -->
-  <div class="two-col">
-    <div class="section">
-      <div class="section-label">img2img Source</div>
-      <div class="dropzone" id="i2iZone" onclick="pickFile('i2i')">
-        <div class="icon">📷</div>
-        <div class="text">Pose / Layout<br><span class="sub">Tap or drop</span></div>
-      </div>
-      <input type="file" id="i2iInput" accept="image/*" style="display:none" onchange="onFilePicked('i2i', this)">
-      <div id="i2iControls" style="display:none; margin-top:12px;"></div>
-    </div>
-    <div class="section">
-      <div class="section-label">Precise Reference</div>
-      <div class="dropzone" id="refZone" onclick="pickFile('ref')">
-        <div class="icon">📷</div>
-        <div class="text">Character / Style<br><span class="sub">Tap or drop</span></div>
-      </div>
-      <input type="file" id="refInput" accept="image/*" style="display:none" onchange="onFilePicked('ref', this)">
-      <div id="refControls" style="display:none; margin-top:12px;"></div>
-    </div>
-  </div>
-
-  <!-- Prompt Maker + Prompt -->
-  <div class="section" id="promptSection">
-    <div class="section-label" style="display:flex; justify-content:space-between; align-items:center;">
-      <span>Prompt Maker</span>
-      <div style="display:flex; gap:4px;">
-        <button class="pm-toolbar-btn" id="btnHistory" onclick="openHistory()">履歴</button>
-        <button class="pm-toolbar-btn accent" id="btnIO" onclick="toggleIO()">I/O</button>
-      </div>
-    </div>
-
-    <!-- Search -->
-    <div class="pm-toolbar">
-      <input class="pm-search" id="pmSearch" type="text" placeholder="🔍 検索..." oninput="renderPmButtons()">
-      <button class="pm-toolbar-btn" id="btnDeleteMode" onclick="toggleDeleteMode()">削除</button>
-    </div>
-
-    <!-- Category tabs -->
-    <div class="pm-tabs" id="pmTabs"></div>
-
-    <!-- Prompt buttons -->
-    <div class="pm-buttons" id="pmButtons"></div>
-
-    <!-- Register -->
-    <div class="pm-register">
-      <input class="pm-name" id="regName" placeholder="名前">
-      <input class="pm-text" id="regText" placeholder="プロンプトを入力">
-      <button onclick="registerButton()">登録</button>
-    </div>
-
-    <!-- I/O panel (hidden) -->
-    <div id="ioPanel" style="display:none; margin-bottom:10px;">
-      <div style="display:flex; gap:6px;">
-        <button class="pm-toolbar-btn accent" onclick="exportJSON()">Export JSON</button>
-        <button class="pm-toolbar-btn accent" onclick="document.getElementById('importFile').click()">Import JSON</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
-      </div>
-    </div>
-
-    <!-- Prompt textarea -->
-    <div class="section-label" style="margin-top:4px;">Prompt</div>
-    <textarea id="prompt" rows="4" placeholder="1girl, black hair, yellow eyes, horse ears, idol costume, stage, spotlight, cowboy shot, masterpiece, best quality"></textarea>
-    <div class="char-count" id="promptCharCount">0</div>
-
-    <div class="section-label" style="margin-top:8px;">Negative Prompt</div>
-    <textarea id="negPrompt" rows="2" placeholder="lowres, bad anatomy, worst quality..."></textarea>
-  </div>
-
-  <!-- Settings -->
-  <div class="section">
-    <div class="section-label">Settings</div>
-    <div class="grid-2">
-      <div>
-        <div class="field-label">Model</div>
-        <select id="model">
-          <option value="nai-diffusion-4-5-full" selected>V4.5 Full</option>
-          <option value="nai-diffusion-4-5-curated">V4.5 Curated</option>
-          <option value="nai-diffusion-4-curated-preview">V4 Curated</option>
-          <option value="nai-diffusion-4-full">V4 Full</option>
-        </select>
-      </div>
-      <div>
-        <div class="field-label">Resolution</div>
-        <select id="resolution">
-          <option value="832,1216" selected>Portrait (832×1216)</option>
-          <option value="1216,832">Landscape (1216×832)</option>
-          <option value="1024,1024">Square (1024×1024)</option>
-          <option value="512,768">Small Portrait</option>
-          <option value="768,512">Small Landscape</option>
-          <option value="1024,1536">Large Portrait</option>
-          <option value="1536,1024">Large Landscape</option>
-        </select>
-      </div>
-      <div>
-        <div class="field-label">Sampler</div>
-        <select id="sampler">
-          <option value="k_euler_ancestral" selected>k_euler_ancestral</option>
-          <option value="k_euler">k_euler</option>
-          <option value="k_dpmpp_2s_ancestral">k_dpmpp_2s_ancestral</option>
-          <option value="k_dpmpp_2m">k_dpmpp_2m</option>
-          <option value="k_dpmpp_sde">k_dpmpp_sde</option>
-        </select>
-      </div>
-      <div>
-        <div class="field-label">Seed (0=random)</div>
-        <input type="number" id="seed" value="0">
-      </div>
-    </div>
-    <div class="slider-wrap">
-      <div class="slider-header"><span>Steps</span><span class="slider-val" id="stepsVal">28</span></div>
-      <input type="range" id="steps" min="1" max="50" value="28" oninput="document.getElementById('stepsVal').textContent=this.value">
-    </div>
-    <div class="slider-wrap">
-      <div class="slider-header"><span>Prompt Guidance</span><span class="slider-val" id="guidanceVal">5.0</span></div>
-      <input type="range" id="guidance" min="0" max="10" step="0.1" value="5" oninput="document.getElementById('guidanceVal').textContent=parseFloat(this.value).toFixed(1)">
-    </div>
-    <div class="checkbox-row">
-      <label><input type="checkbox" id="qualityToggle" checked> Quality Tags</label>
-      <label><input type="checkbox" id="varietyBoost"> Variety+</label>
-    </div>
-  </div>
-
-  <div id="errorBox" class="error-box" style="display:none;"></div>
-  <div id="debugSection" style="display:none; margin-bottom:12px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-      <span style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.08em;">Debug Log</span>
-      <button onclick="copyDebug()" style="background:#334155; border:none; border-radius:6px; padding:6px 12px; color:#6ee7b7; cursor:pointer; font-size:11px; font-weight:600;">Copy</button>
-    </div>
-    <pre id="debugLog" style="background:#0c1524; border:1px solid #1e293b; border-radius:8px; padding:10px; font-size:10px; color:#94a3b8; overflow-x:auto; white-space:pre-wrap; word-break:break-all; max-height:300px; overflow-y:auto;"></pre>
-  </div>
-  <div id="logLine" class="log-line" style="display:none;"></div>
-
-  <!-- Result -->
-  <div id="resultSection" class="section" style="display:none;">
-    <div class="section-label">Result</div>
-    <img id="resultImg" class="result-img" alt="Generated">
-    <div class="result-actions">
-      <a id="saveLink" class="btn-save" download>Save</a>
-      <button class="btn-to-i2i" onclick="resultToI2i()">→ i2i</button>
-      <button class="btn-to-ref" onclick="resultToRef()">→ Ref</button>
-    </div>
-  </div>
 </div>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<!-- History modal -->
-<div class="modal-overlay" id="historyModal" onclick="if(event.target===this)closeHistory()">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>プロンプト履歴 (最新100件)</h3>
-      <button class="modal-close" onclick="closeHistory()">×</button>
+<div id="scenesTab" class="tab-content">
+    <div class="scenes-container">
+        <div class="scenes-header">
+            <span class="scene-count" id="sceneCount">0 シーン</span>
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="editMode">編集</button>
+                <button class="mode-btn" id="previewModeBtn">プレビュー</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-history" id="historyBtn">📜 履歴</button>
+                <button class="btn" id="dedupeBtn" style="background:#f39c12;color:#000;font-size:11px;padding:6px 12px">🔍 重複チェック</button>
+                <button class="btn" id="exportAllPngBtn" style="background:#6c5ce7;color:#fff;font-size:11px;padding:6px 12px">📷 全PNG</button>
+                <button class="btn btn-clear" id="clearAll">全削除</button>
+            </div>
+        </div>
+        <div class="scene-grid" id="sceneGrid"></div>
+        <div class="preview-mode" id="previewView">
+            <div class="preview-exit-zone" id="previewExitZone">↑ ダブルタップで終了</div>
+            <div class="preview-nav">
+                <button class="nav-btn" id="prevBtn">‹</button>
+                <div class="preview-frame">
+                    <div class="preview-canvas" id="previewCanvas">
+                        <div class="preview-bg" id="previewBgEl"></div>
+                        <div class="char-layer" id="previewCharLayer">
+                            <div class="char-slot" data-slot="left"></div>
+                            <div class="char-slot" data-slot="center"></div>
+                            <div class="char-slot" data-slot="right"></div>
+                        </div>
+                        <div class="flash-overlay" id="previewFlash"></div>
+                        <div class="editor-overlay-container" id="previewOverlayContainer"></div>
+                        <div class="text-display">
+                            <div class="char-name" id="previewName"></div>
+                            <div class="dialogue" id="previewText"></div>
+                        </div>
+                        <div class="choice-overlay hidden" id="choiceOverlay"></div>
+                    </div>
+                </div>
+                <button class="nav-btn" id="nextBtn">›</button>
+            </div>
+            <div class="preview-info" id="previewInfo">0 / 0</div>
+            <div id="debugLog" class="hidden" style="position:absolute;bottom:40px;left:10px;right:10px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.9);color:#0f0;font-size:10px;font-family:monospace;padding:8px;border:1px solid #0f0;"></div>
+        </div>
+        <div class="empty-msg" id="emptyMsg">シーンがありません</div>
     </div>
-    <div id="historyList"></div>
-  </div>
+</div>
+
+<div id="chaptersTab" class="tab-content">
+    <div class="scenes-container" style="padding:16px">
+        <div class="section-title" style="margin-bottom:16px">チャプター設定（途中再生用）</div>
+        <p style="font-size:12px;color:#888;margin-bottom:16px">プレイヤーのトップメニューで選択できるチャプターを設定します。シーンを選んでコメントをつけてください。</p>
+        <div id="chapterList"></div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn" id="addChapterBtn" style="background:#4ecdc4;color:#000">＋ チャプター追加</button>
+            <button class="btn" id="removeChapterBtn" style="background:#e74c3c;color:#fff">－ 末尾を削除</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="historyModal">
+    <div class="modal">
+        <div class="modal-title">📜 履歴から復元</div>
+        <div id="historyList"></div>
+        <button class="btn btn-cancel" id="closeHistoryBtn" style="margin-top:12px">閉じる</button>
+    </div>
 </div>
 
 <script>
-// ===========================
-// Firebase
-// ===========================
-const firebaseConfig = {
-  apiKey: "AIzaSyDBG_r1boPvLrl-wVSIIv-CgCUk0EJrqSw",
-  authDomain: "pmake-e037a.firebaseapp.com",
-  projectId: "pmake-e037a",
-  storageBucket: "pmake-e037a.firebasestorage.app",
-  messagingSenderId: "716873851866",
-  appId: "1:716873851866:web:4a892b109a83de3aec96e3",
+// ===== VN Text Editor v0.5.0 =====
+// Change log: Character sprite (立ち絵) system added
+
+// ===== IndexedDB Auto Save =====
+const DB_NAME = 'vn-editor-db';
+const DB_VERSION = 3;
+const MAX_HISTORY = 5;
+let db = null;
+
+async function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => { console.error('DB error:', request.error); reject(request.error); };
+        request.onsuccess = () => { db = request.result; resolve(db); };
+        request.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains('project')) database.createObjectStore('project', { keyPath: 'id' });
+            if (!database.objectStoreNames.contains('images')) database.createObjectStore('images', { keyPath: 'id' });
+            if (!database.objectStoreNames.contains('history')) database.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
+            if (!database.objectStoreNames.contains('audio')) database.createObjectStore('audio', { keyPath: 'id' });
+        };
+    });
+}
+
+async function saveToIndexedDB() {
+    if (!db) await initDB();
+    try {
+        const tx1 = db.transaction('project', 'readwrite');
+        tx1.objectStore('project').put({
+            id: 'main',
+            scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })),
+            imageCounter, choiceCounter, seCounter, bgmCounter, overlayCounter, charCounter, projectWidth, projectHeight
+        });
+        await new Promise((res, rej) => { tx1.oncomplete = res; tx1.onerror = () => rej(tx1.error); });
+        for (const [filename, data] of Object.entries(imageBlobs)) {
+            if (data.file || data.blob) {
+                try { const tx2 = db.transaction('images', 'readwrite'); tx2.objectStore('images').put({ id: filename, blob: data.file || data.blob, hash: data.hash || null }); await new Promise((res, rej) => { tx2.oncomplete = res; tx2.onerror = () => rej(tx2.error); }); } catch (e) { console.warn(`Image save error for ${filename}:`, e); }
+            }
+        }
+        for (const [name, data] of Object.entries(seAudios)) { if (data.blob) { try { const tx = db.transaction('audio', 'readwrite'); tx.objectStore('audio').put({ id: name, blob: data.blob, filename: data.filename, type: 'se' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`SE save error for ${name}:`, e); } } }
+        for (const [name, data] of Object.entries(bgmAudios)) { if (data.blob) { try { const tx = db.transaction('audio', 'readwrite'); tx.objectStore('audio').put({ id: name, blob: data.blob, filename: data.filename, type: 'bgm' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`BGM save error for ${name}:`, e); } } }
+        for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'overlay' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Overlay save error for ${filename}:`, e); } } }
+        for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'char' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Char save error for ${filename}:`, e); } } }
+    } catch (e) { console.error('Auto save error:', e); alert('保存エラー: ' + e.message); }
+}
+
+async function saveToHistory() { if (!db) await initDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
+
+async function getHistoryList() { if (!db) await initDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
+
+async function restoreFromHistory(historyId) { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
+
+async function loadFromIndexedDB() { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
+
+let isSaving = false, pendingSave = false;
+async function autoSave() { if (isSaving) { pendingSave = true; return; } isSaving = true; try { await saveToIndexedDB(); } catch (e) { console.error('Auto save failed:', e); } finally { isSaving = false; } if (pendingSave) { pendingSave = false; setTimeout(autoSave, 100); } }
+let lastHistorySave = 0; const HISTORY_INTERVAL = 60000;
+async function throttledHistorySave() { const now = Date.now(); if (now - lastHistorySave >= HISTORY_INTERVAL) { lastHistorySave = now; try { await saveToHistory(); } catch (e) {} } }
+function saveWithHistory() { autoSave(); throttledHistorySave(); }
+
+// ===== State =====
+let scenes = [], imageBlobs = {}, overlayBlobs = {}, charBlobs = {}, editingId = null, currentBgFile = null, currentBgUrl = null, previewIndex = 0, imageCounter = 0, overlayCounter = 0, charCounter = 0, choiceCounter = 0, currentChoices = [], currentTextMode = 'adv', chapters = [], saveTimer = null;
+let charSlots = { left: null, center: null, right: null };
+let projectWidth = 832, projectHeight = 1216, resolutionLocked = false;
+let flags = {}, lastChoiceId = null;
+const seAudios = {}, bgmAudios = {};
+let currentBgm = null, loopingSe = {};
+
+function applyProjectResolution(w, h) { projectWidth = w; projectHeight = h; resolutionLocked = true; const ratio = `${w}/${h}`; document.documentElement.style.setProperty('--project-ratio', ratio); document.documentElement.style.setProperty('--project-width', w); document.documentElement.style.setProperty('--project-height', h); document.querySelectorAll('.preview-canvas').forEach(el => el.style.aspectRatio = ratio); document.querySelectorAll('.scene-thumb').forEach(el => el.style.aspectRatio = ratio); const styleEl = document.getElementById('dynamicResolutionStyle'); if (styleEl) styleEl.remove(); const s = document.createElement('style'); s.id = 'dynamicResolutionStyle'; s.textContent = `.preview-frame .preview-canvas { max-width: calc((100vh - 140px) * ${w} / ${h}) !important; aspect-ratio: ${ratio} !important; } .scene-thumb { aspect-ratio: ${ratio} !important; } .gallery-item { aspect-ratio: ${ratio} !important; }`; document.head.appendChild(s); }
+
+const $ = id => document.getElementById(id);
+const editorCanvas = $('editorCanvas'), editorBg = $('editorBg'), editorFlash = $('editorFlash');
+const editorName = $('editorName'), editorText = $('editorText');
+const nameInput = $('nameInput'), textInput = $('textInput'), cmdInput = $('cmdInput'), labelInput = $('labelInput');
+const imgBtn = $('imgBtn'), imgInput = $('imgInput'), saveBtn = $('saveBtn'), cancelBtn = $('cancelBtn');
+const isChoiceCheck = $('isChoiceCheck'), choiceEditor = $('choiceEditor'), choiceOptions = $('choiceOptions');
+const modeADVBtn = $('modeADV'), modeNVLBtn = $('modeNVL');
+const sceneGrid = $('sceneGrid'), sceneCount = $('sceneCount'), emptyMsg = $('emptyMsg');
+const editModeBtn = $('editMode'), previewModeBtn = $('previewModeBtn'), previewView = $('previewView');
+const previewCanvas = $('previewCanvas'), previewBgEl = $('previewBgEl'), previewFlash = $('previewFlash');
+const previewName = $('previewName'), previewText = $('previewText'), previewInfo = $('previewInfo');
+const prevBtn = $('prevBtn'), nextBtn = $('nextBtn'), choiceOverlay = $('choiceOverlay');
+
+document.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); btn.classList.add('active'); $(btn.dataset.tab + 'Tab').classList.add('active'); if (btn.dataset.tab === 'chapters') renderChapters(); }; });
+
+function renderChapters() { const list = $('chapterList'); list.innerHTML = ''; chapters.forEach((ch, i) => { const item = document.createElement('div'); item.className = 'chapter-item'; const scene = scenes[ch.sceneIndex]; const thumbUrl = scene?.bgUrl || ''; item.innerHTML = `<span class="chapter-num">${i+1}</span><div class="chapter-thumb">${thumbUrl?`<img src="${thumbUrl}">`:''}${'</div>'}<select class="chapter-scene-select" data-idx="${i}"><option value="-1">シーンを選択...</option>${scenes.map((s,si) => `<option value="${si}" ${ch.sceneIndex===si?'selected':''}>#${si+1} ${s.name||s.text?.slice(0,15)||'(空)'}</option>`).join('')}</select><input type="text" class="chapter-comment" data-idx="${i}" value="${ch.comment||''}" placeholder="チャプター名（例: 第1章 はじまり）">`; item.querySelector('.chapter-scene-select').onchange = e => { chapters[i].sceneIndex = parseInt(e.target.value); renderChapters(); saveWithHistory(); }; item.querySelector('.chapter-comment').oninput = e => { chapters[i].comment = e.target.value; saveWithHistory(); }; list.appendChild(item); }); }
+$('addChapterBtn').onclick = () => { chapters.push({ sceneIndex: -1, comment: '' }); renderChapters(); saveWithHistory(); };
+$('removeChapterBtn').onclick = () => { if (chapters.length > 0) { chapters.pop(); renderChapters(); saveWithHistory(); } };
+
+nameInput.oninput = () => { editorName.textContent = nameInput.value; editorName.style.display = nameInput.value ? 'block' : 'none'; };
+textInput.oninput = () => { editorText.textContent = textInput.value; };
+imgBtn.onclick = () => imgInput.click();
+
+async function compressImage(file) { return new Promise((resolve) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; canvas.getContext('2d').drawImage(img, 0, 0); canvas.toBlob((blob) => { URL.revokeObjectURL(img.src); resolve({ blob, originalWidth: img.width, originalHeight: img.height }); }, 'image/jpeg', 0.85); }; img.src = URL.createObjectURL(file); }); }
+async function hashBlob(blob) { const buffer = await blob.arrayBuffer(); const hashBuffer = await crypto.subtle.digest('SHA-256', buffer); return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join(''); }
+let imageHashes = {};
+function findExistingImage(hash) { return imageHashes[hash] || null; }
+
+imgInput.onchange = async e => { const file = e.target.files[0]; if (!file) return; imgBtn.textContent = '圧縮中...'; try { const { blob: compressedBlob, originalWidth, originalHeight } = await compressImage(file); const compressedSize = (compressedBlob.size / 1024).toFixed(0); if (!resolutionLocked) applyProjectResolution(originalWidth, originalHeight); const hash = await hashBlob(compressedBlob); const existingFile = findExistingImage(hash); if (existingFile && imageBlobs[existingFile]) { currentBgFile = existingFile; currentBgUrl = imageBlobs[existingFile].url; editorBg.innerHTML = `<img src="${currentBgUrl}">`; imgBtn.textContent = existingFile + ' (再利用)'; imgBtn.classList.add('loaded'); } else { imageCounter++; const filename = String(imageCounter).padStart(3, '0') + '.jpg'; const url = URL.createObjectURL(compressedBlob); imageBlobs[filename] = { url, blob: compressedBlob, hash }; imageHashes[hash] = filename; currentBgFile = filename; currentBgUrl = url; editorBg.innerHTML = `<img src="${url}">`; imgBtn.textContent = filename + ` (${compressedSize}KB)`; imgBtn.classList.add('loaded'); } } catch (err) { imageCounter++; const ext = file.name.split('.').pop(); const filename = String(imageCounter).padStart(3, '0') + '.' + ext; const url = URL.createObjectURL(file); imageBlobs[filename] = { url, file }; currentBgFile = filename; currentBgUrl = url; editorBg.innerHTML = `<img src="${url}">`; imgBtn.textContent = filename; imgBtn.classList.add('loaded'); } };
+
+function setTextMode(mode) { currentTextMode = mode; const textDisplay = editorCanvas.querySelector('.text-display'); if (mode === 'nvl') { textDisplay.classList.add('nvl-mode'); textInput.classList.add('nvl-expand'); modeADVBtn.style.background = '#333'; modeADVBtn.style.color = '#888'; modeNVLBtn.style.background = '#4ecdc4'; modeNVLBtn.style.color = '#000'; } else { textDisplay.classList.remove('nvl-mode'); textInput.classList.remove('nvl-expand'); modeADVBtn.style.background = '#4ecdc4'; modeADVBtn.style.color = '#000'; modeNVLBtn.style.background = '#333'; modeNVLBtn.style.color = '#888'; } }
+modeADVBtn.onclick = () => setTextMode('adv');
+modeNVLBtn.onclick = () => setTextMode('nvl');
+
+isChoiceCheck.onchange = () => { choiceEditor.classList.toggle('hidden', !isChoiceCheck.checked); if (isChoiceCheck.checked && currentChoices.length === 0) { addChoice(); addChoice(); } };
+$('isTimedCheck').onchange = () => { $('timedOptions').classList.toggle('hidden', !$('isTimedCheck').checked); updateTimeoutGotoOptions(); };
+function updateTimeoutGotoOptions() { const select = $('timeoutGoto'); const current = select.value; select.innerHTML = '<option value="">→ 次へ</option>' + scenes.map(s => `<option value="${s.label || s.id}">${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join(''); select.value = current; }
+$('addChoiceBtn').onclick = addChoice;
+function addChoice() { choiceCounter++; currentChoices.push({ id: 'A-' + choiceCounter, text: '', goto: '', timerDelta: 0 }); renderChoices(); }
+function renderChoices() { choiceOptions.innerHTML = ''; const isTimed = $('isTimedCheck').checked; currentChoices.forEach((c, i) => { const div = document.createElement('div'); div.className = 'choice-option'; div.innerHTML = `<span class="choice-option-id">${c.id}</span><input type="text" placeholder="選択肢テキスト" value="${c.text}" data-idx="${i}" data-field="text"><select data-idx="${i}" data-field="goto"><option value="">→ 次へ</option>${scenes.map(s => `<option value="${s.label || s.id}" ${c.goto === (s.label || String(s.id)) ? 'selected' : ''}>${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join('')}</select>${isTimed ? `<input type="number" placeholder="±秒" value="${c.timerDelta || 0}" data-idx="${i}" data-field="timerDelta" style="width:50px;font-size:11px" title="タイマー増減(正で増加)">` : ''}<button class="btn remove-choice-btn" data-idx="${i}">×</button>`; choiceOptions.appendChild(div); }); choiceOptions.querySelectorAll('input, select').forEach(el => { el.onchange = el.oninput = () => { const idx = +el.dataset.idx; currentChoices[idx][el.dataset.field] = el.dataset.field === 'timerDelta' ? +el.value : el.value; }; }); choiceOptions.querySelectorAll('.remove-choice-btn').forEach(btn => { btn.onclick = () => { currentChoices.splice(+btn.dataset.idx, 1); renderChoices(); }; }); updateTimeoutGotoOptions(); }
+
+let seCounter = 0;
+function renderSeList() { const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { data.audio.currentTime = 0; data.audio.play(); }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); }
+$('addSeBtn').onclick = () => $('seInput').click();
+$('seInput').onchange = e => { const file = e.target.files[0]; if (!file) return; seCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `se${String(seCounter).padStart(2,'0')}`; seAudios[name] = { audio: new Audio(URL.createObjectURL(file)), url: URL.createObjectURL(file), blob: file, filename: `${name}.${ext}` }; renderSeList(); e.target.value = ''; };
+
+let bgmCounter = 0;
+function renderBgmList() { const list = $('bgmList'); list.innerHTML = ''; Object.entries(bgmAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nBGM:' + name : 'BGM:' + name; }; btns[1].onclick = () => { Object.values(bgmAudios).forEach(d => { d.audio.pause(); d.audio.currentTime = 0; }); data.audio.loop = true; data.audio.play(); currentBgm = name; }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete bgmAudios[name]; if (currentBgm === name) currentBgm = null; renderBgmList(); } }; list.appendChild(row); }); }
+$('addBgmBtn').onclick = () => $('bgmInput').click();
+$('bgmInput').onchange = e => { const file = e.target.files[0]; if (!file) return; bgmCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `bgm${String(bgmCounter).padStart(2,'0')}`; const url = URL.createObjectURL(file); const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob: file, filename: `${name}.${ext}` }; renderBgmList(); e.target.value = ''; };
+
+function doFlash(el) { el.classList.remove('active'); void el.offsetWidth; el.classList.add('active'); }
+function doShake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function renderOverlayList() { const list = $('overlayList'); list.innerHTML = ''; Object.entries(overlayBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const insert = `OVERLAY:${filename}:top:-100>50:500ms:easeOut`; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete overlayBlobs[filename]; renderOverlayList(); } }; list.appendChild(item); }); }
+$('addOverlayBtn').onclick = () => $('overlayInput').click();
+$('overlayInput').onchange = async e => { for (const file of e.target.files) { overlayCounter++; const ext = file.name.split('.').pop(); overlayBlobs[`ov${String(overlayCounter).padStart(3, '0')}.${ext}`] = { url: URL.createObjectURL(file), blob: file }; } renderOverlayList(); e.target.value = ''; };
+
+function renderCharList() { const list = $('charList'); list.innerHTML = ''; Object.entries(charBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const insert = `CHAR:center:${filename}`; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete charBlobs[filename]; renderCharList(); } }; list.appendChild(item); }); }
+$('addCharBtn').onclick = () => $('charInput').click();
+$('charInput').onchange = async e => { for (const file of e.target.files) { charCounter++; const ext = file.name.split('.').pop(); const filename = `ch${String(charCounter).padStart(3, '0')}.${ext}`; charBlobs[filename] = { url: URL.createObjectURL(file), blob: file }; } renderCharList(); e.target.value = ''; };
+
+async function playSE(name, count) { const se = seAudios[name]; if (!se) return; if (count === 0) { se.audio.onended = () => { se.audio.currentTime = 0; se.audio.play(); }; se.audio.currentTime = 0; se.audio.play(); loopingSe[name] = true; return; } se.audio.currentTime = 0; se.audio.play().catch(e => {}); }
+function stopSE(name) { const se = seAudios[name]; if (!se) return; se.audio.pause(); se.audio.currentTime = 0; se.audio.onended = null; delete loopingSe[name]; }
+function stopAllSE() { Object.keys(seAudios).forEach(name => stopSE(name)); }
+function playBGM(name) { if (currentBgm && bgmAudios[currentBgm]) { bgmAudios[currentBgm].audio.pause(); bgmAudios[currentBgm].audio.currentTime = 0; } const bgm = bgmAudios[name]; if (!bgm) return; bgm.audio.loop = true; bgm.audio.play().catch(e => {}); currentBgm = name; }
+function stopBGM() { if (currentBgm && bgmAudios[currentBgm]) { bgmAudios[currentBgm].audio.pause(); bgmAudios[currentBgm].audio.currentTime = 0; } currentBgm = null; }
+
+async function runCmd(cmd, flashEl, shakeEl, isPreview = false) { const origCmd = cmd; cmd = cmd.toUpperCase().trim(); if (cmd.startsWith('@')) cmd = cmd.slice(1); let m;
+m = cmd.match(/^SE:([^:]+)(?::(\d+))?$/); if (m) { playSE(origCmd.trim().split(':')[1].toLowerCase(), m[2] !== undefined ? +m[2] : 1); return null; }
+m = cmd.match(/^SE:STOP(?::(.+))?$/); if (m) { m[1] ? stopSE(m[1].toLowerCase()) : stopAllSE(); return null; }
+m = cmd.match(/^([123])SE(\d+)$/); if (m) { playSE('se0' + m[1], +m[2]); return null; }
+m = cmd.match(/^FLASH(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doFlash(flashEl); if (i < n-1) await sleep(150); } return null; }
+m = cmd.match(/^SHAKE(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doShake(shakeEl); if (i < n-1) await sleep(300); } return null; }
+m = cmd.match(/^BGM:([^:]+)$/); if (m) { playBGM(origCmd.trim().split(':')[1].toLowerCase()); return null; }
+if (cmd === 'BGM:STOP') { stopBGM(); return null; }
+if (!isPreview) return null;
+m = cmd.match(/^SETFLAG:(.+)$/); if (m) { flags[m[1]] = true; return null; }
+m = cmd.match(/^IFFLAG:(.+):SKIP$/); if (m) { if (flags[m[1]]) return 'SKIP'; return null; }
+m = cmd.match(/^IFFLAG:(.+):GOTO:(.+)$/); if (m) { if (flags[m[1]]) return { goto: m[2] }; return null; }
+m = cmd.match(/^NOTFLAG:(.+):GOTO:(.+)$/); if (m) { if (!flags[m[1]]) return { goto: m[2] }; return null; }
+m = cmd.match(/^FROM:(.+):SKIP$/); if (m) { if (lastChoiceId === m[1]) return 'SKIP'; return null; }
+m = cmd.match(/^FROM:(.+):GOTO:(.+)$/); if (m) { if (lastChoiceId === m[1]) return { goto: m[2] }; return null; }
+return null; }
+
+let editorActiveOverlays = {}, editorKeyframeCounter = 0;
+function parseEasing(e) { const map = { linear:'linear', easein:'ease-in', easeout:'ease-out', easeinout:'ease-in-out', bounce:'cubic-bezier(0.68,-0.55,0.265,1.55)' }; return map[(e||'easeout').toLowerCase()] || 'ease-out'; }
+function parseSpeed(s) { if (!s) return 500; if (typeof s === 'number') return s; const str = String(s).toLowerCase(); if (str === 'slow') return 1000; if (str === 'fast') return 200; if (str === 'normal') return 500; return parseInt(str) || 500; }
+
+function runEditorKeyframeOverlay(filename, points, duration, easing, loopCount, options, container) { const imgUrl = overlayBlobs[filename]?.url; if (!imgUrl) return; if (editorActiveOverlays[filename]) { editorActiveOverlays[filename].element.remove(); delete editorActiveOverlays[filename]; } const el = document.createElement('div'); el.className = 'editor-overlay-item'; const flipStr = options.flip ? 'transform:scaleX(-1);' : ''; const scaleStr = options.scale ? 'width:'+options.scale+'%;' : ''; el.innerHTML = `<img src="${imgUrl}" style="${flipStr}${scaleStr}">`; el.dataset.overlayId = filename; container.appendChild(el); editorActiveOverlays[filename] = { element: el }; const animName = `eov_kf_${++editorKeyframeCounter}`; let kfStr = `@keyframes ${animName} {\n`; for (let i = 0; i < points.length; i++) { const pct = points.length === 1 ? 0 : Math.round((i / (points.length - 1)) * 100); kfStr += `  ${pct}% { left:${points[i].x}%; top:${points[i].y}%; }\n`; } kfStr += '}'; const styleEl = document.createElement('style'); styleEl.textContent = kfStr; document.head.appendChild(styleEl); el.style.left = points[0].x + '%'; el.style.top = points[0].y + '%'; const iterStr = loopCount === Infinity ? 'infinite' : String(loopCount); const fillStr = loopCount === Infinity ? 'none' : 'forwards'; el.style.animation = `${animName} ${duration}ms ${easing} ${iterStr} ${fillStr}`; if (loopCount !== Infinity) setTimeout(() => styleEl.remove(), duration * loopCount + 100); }
+
+function parseEditorOverlayNewSyntax(cmd) { const arrowMatch = cmd.match(/^([↑↓→←])\((-?[\d.]+),(-?[\d.]+)\)(?::(.+))?$/); if (arrowMatch) { const dir = arrowMatch[1], a = parseFloat(arrowMatch[2]), b = parseFloat(arrowMatch[3]), rest = arrowMatch[4] || '', restParts = rest.split(':'), speed = parseSpeed(restParts[0]), easing = parseEasing(restParts[1]), loopStr = restParts[2], loopCount = loopStr === 'loop' ? Infinity : (parseInt(loopStr) || 1); let points; if (dir === '↑' || dir === '↓') points = [{ x: 50, y: a }, { x: 50, y: b }]; else points = [{ x: a, y: 50 }, { x: b, y: 50 }]; return { points, speed, easing, loopCount }; }
+const jumpMatch = cmd.match(/^JUMP\((-?[\d.]+),(-?[\d.]+)\),\((-?[\d.]+),(-?[\d.]+)\)(?::(.+))?$/i); if (jumpMatch) { const sx=parseFloat(jumpMatch[1]),sy=parseFloat(jumpMatch[2]),ex=parseFloat(jumpMatch[3]),ey=parseFloat(jumpMatch[4]),rest=jumpMatch[5]||'',restParts=rest.split(':'),speed=parseSpeed(restParts[0]||'800ms'),easing=parseEasing(restParts[1]||'easeinout'),loopStr=restParts[2],loopCount=loopStr==='loop'?Infinity:(parseInt(loopStr)||1); const dx=Math.abs(ex-sx),dy=Math.abs(ey-sy),dist=Math.sqrt(dx*dx+dy*dy),jumpHeight=Math.max(dist*0.3,15),steps=16,points=[]; for(let i=0;i<=steps;i++){const t=i/steps;points.push({x:sx+(ex-sx)*t,y:sy+(ey-sy)*t-4*jumpHeight*t*(1-t)});} return{points,speed,easing,loopCount}; }
+const floatMatch = cmd.match(/^FLOAT\((-?[\d.]+),(-?[\d.]+)\)(?::(.+))?$/i); if (floatMatch) { const x=parseFloat(floatMatch[1]),y=parseFloat(floatMatch[2]),rest=floatMatch[3]||'',restParts=rest.split(':'),speed=parseSpeed(restParts[0]||'2000ms'),easing=parseEasing(restParts[1]||'easeinout'),loopStr=restParts[2],loopCount=loopStr==='loop'?Infinity:(parseInt(loopStr)||1); return{points:[{x,y},{x,y:y-3},{x,y}],speed,easing,loopCount}; }
+return null; }
+
+async function runEditorOverlay(cmd, container) { if (cmd.toUpperCase().startsWith('CLEAR')) { const parts = cmd.slice(5).split(':').filter(p=>p); if (parts.length === 0) { container.innerHTML = ''; editorActiveOverlays = {}; return; } const upperParts = parts.map(p => p.toUpperCase()); const isFade = upperParts.includes('FADE'); const fadeTime = parts.find(p => /^\d+MS$/i.test(p)); const filename = parts.find(p => !['FADE'].includes(p.toUpperCase()) && !/^\d+MS$/i.test(p)); const targets = filename ? [filename] : Object.keys(editorActiveOverlays); for (const id of targets) { const ov = editorActiveOverlays[id]; if (!ov) continue; if (isFade) { ov.element.style.transition = `opacity ${fadeTime ? parseInt(fadeTime) : 300}ms`; ov.element.style.opacity = '0'; await sleep(fadeTime ? parseInt(fadeTime) : 300); } ov.element.remove(); delete editorActiveOverlays[id]; } return; }
+const firstColon = cmd.indexOf(':'); if (firstColon === -1) return; const filename = cmd.slice(0, firstColon), motionStr = cmd.slice(firstColon + 1);
+const parsed = parseEditorOverlayNewSyntax(motionStr); if (parsed) { runEditorKeyframeOverlay(filename, parsed.points, parsed.speed, parsed.easing, parsed.loopCount, {}, container); return; }
+const parts = motionStr.split(':'), direction = (parts[0] || 'top').toLowerCase(), pathStr = parts[1] || '-100>50', speedStr = parts[2], easingStr = parts[3], loopStr = parts[4];
+const pathParts = pathStr.split('>').map(p => { if (p.includes('|')) { const [pos, delay] = p.split('|'); return { pos: parseFloat(pos), delay: parseInt(delay) }; } return { pos: parseFloat(p), delay: 0 }; });
+const speeds = (speedStr || '500ms').split(',').map(s => parseSpeed(s)), easings = (easingStr || 'easeOut').split(',').map(e => parseEasing(e)), loopCount = loopStr === 'loop' ? Infinity : (parseInt(loopStr) || 1);
+const imgUrl = overlayBlobs[filename]?.url; if (!imgUrl) return;
+if (editorActiveOverlays[filename]) { editorActiveOverlays[filename].element.remove(); delete editorActiveOverlays[filename]; }
+const el = document.createElement('div'); el.className = 'editor-overlay-item'; el.innerHTML = `<img src="${imgUrl}">`; el.dataset.overlayId = filename; container.appendChild(el); editorActiveOverlays[filename] = { element: el };
+const setPosition = (percent) => { if (direction === 'top' || direction === 'bottom') { el.style.left = '50%'; el.style.transform = `translateX(-50%) translateY(${percent}%)`; el.style.top = '0'; } else { el.style.top = '50%'; el.style.transform = `translateY(-50%) translateX(${percent}%)`; el.style.left = '0'; } };
+const animate = async () => { for (let i = 0; i < pathParts.length; i++) { const { pos, delay } = pathParts[i], speed = speeds[Math.min(i, speeds.length - 1)], easing = easings[Math.min(i, easings.length - 1)]; if (i === 0) { el.style.transition = 'none'; setPosition(pos); void el.offsetWidth; } else { el.style.transition = `all ${speed}ms ${easing}`; setPosition(pos); await sleep(speed); } if (delay > 0) await sleep(delay); } };
+for (let loop = 0; loop < loopCount; loop++) { if (!editorActiveOverlays[filename]) break; await animate(); } }
+
+async function runCmdWithOverlay(cmd, flashEl, shakeEl, overlayContainer, isPreview = false) { const upperCmd = cmd.toUpperCase().trim(); if (upperCmd.startsWith('OVERLAY:')) { await runEditorOverlay(cmd.trim().slice(8), overlayContainer); return null; } if (upperCmd.startsWith('CHAR:')) { const charLayer = overlayContainer.closest('.preview-canvas').querySelector('.char-layer'); await runCharCmd(cmd.trim().slice(5), charLayer); return null; } return runCmd(cmd, flashEl, shakeEl, isPreview); }
+
+async function runCharCmd(cmd, charLayer) {
+    if (!charLayer) return;
+    const upperCmd = cmd.toUpperCase().trim();
+    // CHAR:CLEAR
+    if (upperCmd === 'CLEAR') { charLayer.querySelectorAll('.char-slot img').forEach(img => img.remove()); charSlots = { left: null, center: null, right: null }; return; }
+    const parts = cmd.split(':');
+    const slot = parts[0].toLowerCase().trim();
+    if (!['left', 'center', 'right'].includes(slot)) return;
+    const filename = parts[1]?.trim();
+    if (!filename) return;
+    const optStr = parts.slice(2).join(':').toLowerCase();
+    const hasFlip = optStr.includes('flip');
+    const fadeMatch = optStr.match(/fade[:\s]*(\d+)\s*ms/i);
+    const fadeTime = fadeMatch ? parseInt(fadeMatch[1]) : 0;
+    const slotEl = charLayer.querySelector(`[data-slot="${slot}"]`);
+    if (!slotEl) return;
+    // HIDE
+    if (filename.toUpperCase() === 'HIDE') {
+        const existingImg = slotEl.querySelector('img');
+        if (existingImg) {
+            if (fadeTime) { existingImg.style.transition = `opacity ${fadeTime}ms`; existingImg.style.opacity = '0'; await sleep(fadeTime); }
+            existingImg.remove();
+        }
+        charSlots[slot] = null;
+        return;
+    }
+    // Show / Replace
+    const imgUrl = charBlobs[filename]?.url;
+    if (!imgUrl) return;
+    const existingImg = slotEl.querySelector('img');
+    if (existingImg) {
+        if (fadeTime) { existingImg.style.transition = `opacity ${fadeTime}ms`; existingImg.style.opacity = '0'; await sleep(fadeTime); }
+        existingImg.remove();
+    }
+    const img = document.createElement('img');
+    img.src = imgUrl;
+    if (hasFlip) img.classList.add('flip');
+    if (fadeTime) { img.style.opacity = '0'; slotEl.appendChild(img); void img.offsetWidth; img.style.transition = `opacity ${fadeTime}ms`; img.style.opacity = '1'; await sleep(fadeTime); }
+    else { slotEl.appendChild(img); }
+    charSlots[slot] = { filename, flip: hasFlip };
+}
+
+function splitCmdLine(line){const parts=[];let cur='',depth=0;for(let i=0;i<line.length;i++){const c=line[i];if(c==='(')depth++;else if(c===')')depth--;if(c===','&&depth===0){if(line[i+1]==='('){cur+=c}else{const t=cur.trim();if(t)parts.push(t);cur=''}}else{cur+=c}}const t=cur.trim();if(t)parts.push(t);return parts}
+
+async function runCmdSequence(str, flashEl, shakeEl, isPreview = false, overlayContainer = null) { if (!str) return null; const lines = str.split('\n').map(l => l.trim()).filter(l => l); for (const line of lines) { const parts = splitCmdLine(line); for (let i = 0; i < parts.length; i++) { const group = [parts[i]]; while (i + 1 < parts.length && parts[i + 1].startsWith('@')) group.push(parts[++i]); const results = await Promise.all(group.map(c => overlayContainer ? runCmdWithOverlay(c, flashEl, shakeEl, overlayContainer, isPreview) : runCmd(c, flashEl, shakeEl, isPreview))); for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && r.goto) return r; } } } return null; }
+
+document.addEventListener('click', e => { if (e.target.classList.contains('cmd-copy')) { const cmd = e.target.dataset.cmd; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; e.target.textContent = '✓'; setTimeout(() => e.target.textContent = '📋', 800); } });
+$('cmdExec').onclick = () => { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; runCmdSequence(cmdInput.value, editorFlash, editorCanvas, false, $('editorOverlayContainer')); };
+
+cmdInput.addEventListener('input', function() { const v = this.value.trim(); if (v === 'annko85069006262') { this.value = ''; this.style.transition = 'background 0.3s, box-shadow 0.3s'; this.style.background = '#2a4a2a'; this.style.boxShadow = '0 0 12px rgba(0,255,0,0.4)'; setTimeout(() => { this.style.background = ''; this.style.boxShadow = ''; }, 800); } });
+
+saveBtn.onclick = () => { const scene = { id: editingId || Date.now(), uuid: editingId ? (scenes.find(s => s.id === editingId)?.uuid || crypto.randomUUID()) : crypto.randomUUID(), name: nameInput.value, text: textInput.value, cmd: cmdInput.value, label: labelInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value }; if (editingId) { const idx = scenes.findIndex(s => s.id === editingId); if (idx >= 0) scenes[idx] = scene; resetEditor(); } else { scenes.push(scene); } renderScenes(); saveWithHistory(); };
+cancelBtn.onclick = resetEditor;
+
+function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); }
+
+function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); document.querySelector('[data-tab="editor"]').click(); }
+
+function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
+
+function renderScenes() { sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
+scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}</div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span><div class="scene-actions"><button class="scene-btn scene-edit">✎</button><button class="scene-btn scene-copy" style="background:#3498db" title="コピー">📋</button><button class="scene-btn" style="background:#6c5ce7" title="PNG出力">📷</button><button class="scene-btn scene-del">✕</button></div>`;
+card.ondragstart = e => { e.dataTransfer.setData('idx', i); card.classList.add('dragging'); }; card.ondragend = () => card.classList.remove('dragging'); card.ondragover = e => { e.preventDefault(); card.classList.add('drag-over'); }; card.ondragleave = () => card.classList.remove('drag-over'); card.ondrop = e => { e.preventDefault(); card.classList.remove('drag-over'); const from = +e.dataTransfer.getData('idx'); if (from !== i) { const [moved] = scenes.splice(from, 1); scenes.splice(i, 0, moved); renderScenes(); saveWithHistory(); } };
+card.querySelector('.scene-edit').onclick = e => { e.stopPropagation(); loadToEditor(s); }; card.querySelector('.scene-copy').onclick = e => { e.stopPropagation(); copySceneToEditor(s); }; card.querySelector('.scene-btn[title="PNG出力"]').onclick = async e => { e.stopPropagation(); await exportSceneToPng(s, i); }; card.querySelector('.scene-del').onclick = e => { e.stopPropagation(); scenes = scenes.filter(x => x.id !== s.id); renderScenes(); saveWithHistory(); }; sceneGrid.appendChild(card); }); }
+
+editModeBtn.onclick = () => { editModeBtn.classList.add('active'); previewModeBtn.classList.remove('active'); sceneGrid.classList.remove('hidden'); previewView.classList.remove('active'); emptyMsg.classList.toggle('hidden', scenes.length > 0); };
+previewModeBtn.onclick = () => { previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; previewIndex = 0; showPreview(); };
+
+function findSceneByLabel(label) { const idx = scenes.findIndex(s => s.label === label || String(s.id) === label); return idx >= 0 ? idx : -1; }
+
+function rebuildCharState(upToIndex, charLayer) {
+    if (!charLayer) return;
+    charLayer.querySelectorAll('.char-slot img').forEach(img => img.remove());
+    charSlots = { left: null, center: null, right: null };
+    for (let i = 0; i <= upToIndex && i < scenes.length; i++) {
+        const cmd = scenes[i].cmd;
+        if (!cmd) continue;
+        const lines = cmd.split('\n').map(l => l.trim()).filter(l => l);
+        for (const line of lines) {
+            const parts = splitCmdLine(line);
+            for (const part of parts) {
+                const p = part.trim();
+                if (!p.toUpperCase().startsWith('CHAR:')) continue;
+                const charParts = p.slice(5).split(':');
+                const upper = p.slice(5).toUpperCase().trim();
+                if (upper === 'CLEAR') { charLayer.querySelectorAll('.char-slot img').forEach(img => img.remove()); charSlots = { left: null, center: null, right: null }; continue; }
+                const slot = charParts[0]?.toLowerCase().trim();
+                if (!['left', 'center', 'right'].includes(slot)) continue;
+                const filename = charParts[1]?.trim();
+                if (!filename) continue;
+                const optStr = charParts.slice(2).join(':').toLowerCase();
+                const hasFlip = optStr.includes('flip');
+                const slotEl = charLayer.querySelector(`[data-slot="${slot}"]`);
+                if (!slotEl) continue;
+                if (filename.toUpperCase() === 'HIDE') { const ex = slotEl.querySelector('img'); if (ex) ex.remove(); charSlots[slot] = null; continue; }
+                const imgUrl = charBlobs[filename]?.url;
+                if (!imgUrl) continue;
+                const ex = slotEl.querySelector('img'); if (ex) ex.remove();
+                const img = document.createElement('img'); img.src = imgUrl; if (hasFlip) img.classList.add('flip');
+                slotEl.appendChild(img);
+                charSlots[slot] = { filename, flip: hasFlip };
+            }
+        }
+    }
+}
+
+async function showPreview() { choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); const s = scenes[previewIndex]; const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } return; } } catch (e) {} previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
+
+function showChoices(choices) { choiceOverlay.innerHTML = ''; choices.forEach(c => { const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.textContent = c.text || c.id; btn.onclick = () => selectChoice(c); choiceOverlay.appendChild(btn); }); choiceOverlay.classList.remove('hidden'); }
+function selectChoice(choice) { lastChoiceId = choice.id; choiceOverlay.classList.add('hidden'); if (choice.goto) { const idx = findSceneByLabel(choice.goto); if (idx >= 0) { previewIndex = idx; showPreview(); return; } } if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } }
+
+let lastUpTime = 0;
+document.onkeydown = e => { if (!previewView.classList.contains('active')) return; if (!choiceOverlay.classList.contains('hidden')) return; if (e.key === 'ArrowLeft' && previewIndex > 0) { previewIndex--; showPreview(); } if (e.key === 'ArrowRight' && previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } if (e.key === 'ArrowUp') { const now = Date.now(); if (now - lastUpTime < 500) { previewView.classList.remove('active'); editModeBtn.click(); } lastUpTime = now; } };
+let lastTapTime = 0;
+$('previewExitZone').addEventListener('touchend', e => { const now = Date.now(); if (now - lastTapTime < 400) { previewView.classList.remove('active'); editModeBtn.click(); } lastTapTime = now; });
+$('previewExitZone').addEventListener('dblclick', () => { previewView.classList.remove('active'); editModeBtn.click(); });
+previewCanvas.addEventListener('click', e => { if (!choiceOverlay.classList.contains('hidden')) return; if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } });
+prevBtn.onclick = () => { if (previewIndex > 0) { previewIndex--; showPreview(); } };
+nextBtn.onclick = () => { if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } };
+
+$('dedupeBtn').onclick = async () => { const hashMap = {}, fileHashes = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.blob || data.file) { const blob = data.blob || data.file; const hash = data.hash || await hashBlob(blob); fileHashes[filename] = hash; if (!hashMap[hash]) hashMap[hash] = []; hashMap[hash].push(filename); } } const duplicates = Object.entries(hashMap).filter(([h, files]) => files.length > 1); if (duplicates.length === 0) { alert('重複画像はありませんでした'); return; } let mergedCount = 0; for (const [hash, files] of duplicates) { files.sort((a, b) => (parseInt(a) || 999) - (parseInt(b) || 999)); const keepFile = files[0], removeFiles = files.slice(1); if (confirm(`重複画像を検出:\n保持: ${keepFile}\n削除: ${removeFiles.join(', ')}\n\n統合しますか？`)) { for (const scene of scenes) { if (removeFiles.includes(scene.bg)) { scene.bg = keepFile; scene.bgUrl = imageBlobs[keepFile]?.url || null; } } for (const rf of removeFiles) { if (imageBlobs[rf]?.url) URL.revokeObjectURL(imageBlobs[rf].url); delete imageBlobs[rf]; const h = fileHashes[rf]; if (h && imageHashes[h] === rf) imageHashes[h] = keepFile; } mergedCount += removeFiles.length; } } if (mergedCount > 0) { renderScenes(); await saveToIndexedDB(); alert(`${mergedCount}件の重複画像を統合しました`); } };
+
+$('clearAll').onclick = async () => { if (!confirm('全削除しますか？')) return; scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; Object.values(seAudios).forEach(d => URL.revokeObjectURL(d.url)); Object.values(bgmAudios).forEach(d => { d.audio.pause(); URL.revokeObjectURL(d.url); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); seCounter = 0; bgmCounter = 0; currentBgm = null; charSlots = { left: null, center: null, right: null }; document.querySelectorAll('.char-slot img').forEach(img => img.remove()); renderScenes(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); if (db) { const tx = db.transaction(['project', 'images'], 'readwrite'); tx.objectStore('project').clear(); tx.objectStore('images').clear(); } };
+
+// ★ FIX: scale: 1 → scale: 2 for high quality PNG export
+$('exportAllPngBtn').onclick = async () => {
+    if (scenes.length === 0) { alert('シーンがありません'); return; }
+    const zip = new JSZip();
+    const imgFolder = zip.folder('scenes');
+    for (let i = 0; i < scenes.length; i++) {
+        const scene = scenes[i];
+        const container = document.createElement('div');
+        container.style.cssText = `position:fixed;left:-9999px;top:0;width:${projectWidth}px;height:${projectHeight}px;`;
+        container.innerHTML = `<div class="preview-canvas" style="width:${projectWidth}px;height:${projectHeight}px;position:relative;background:#000;overflow:hidden;"><div class="preview-bg" style="position:absolute;inset:0;">${scene.bgUrl ? `<img src="${scene.bgUrl}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div><div class="text-display ${scene.textMode === 'nvl' ? 'nvl-mode' : ''}" style="position:absolute;${scene.textMode === 'nvl' ? 'inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-start;padding:3% 4%;' : 'bottom:5%;left:4%;right:4%;'}">${scene.name ? `<div class="char-name" style="font-size:${scene.textMode === 'nvl' ? '29px' : '33px'};font-weight:700;color:#fff;text-shadow:0 0 4px #000,0 0 4px #000,2px 2px 4px #000,-2px -2px 4px #000,2px -2px 4px #000,-2px 2px 4px #000;margin-bottom:${scene.textMode === 'nvl' ? '1%' : '2%'};">${scene.name}</div>` : ''}<div class="dialogue" style="font-size:${scene.textMode === 'nvl' ? '25px' : '27px'};line-height:${scene.textMode === 'nvl' ? '2' : '1.6'};color:#fff;text-shadow:0 0 4px #000,0 0 4px #000,2px 2px 4px #000,-2px -2px 4px #000,2px -2px 4px #000,-2px 2px 4px #000;white-space:pre-wrap;">${scene.text || ''}</div></div></div>`;
+        document.body.appendChild(container);
+        try {
+            const canvas = await html2canvas(container.querySelector('.preview-canvas'), {
+                scale: 2,
+                useCORS: true, allowTaint: true, backgroundColor: '#000',
+                width: projectWidth, height: projectHeight
+            });
+            const dataUrl = canvas.toDataURL('image/png');
+            imgFolder.file(`scene-${String(i + 1).padStart(3, '0')}.png`, dataUrl.split(',')[1], { base64: true });
+        } catch (err) { console.error(err); } finally { document.body.removeChild(container); }
+    }
+    try { const content = await zip.generateAsync({ type: 'blob' }); const url = URL.createObjectURL(content); const a = document.createElement('a'); a.href = url; a.download = 'scenes-png.zip'; a.click(); URL.revokeObjectURL(url); } catch (err) { alert('ZIP作成エラー: ' + err.message); }
 };
 
-firebase.initializeApp(firebaseConfig);
-const fbAuth = firebase.auth();
-const fbDb = firebase.firestore();
-let fbUser = null;
-let fbSyncDebounce = null;
+const historyModal = $('historyModal'), historyList = $('historyList');
+$('historyBtn').onclick = async () => { const list = await getHistoryList(); if (list.length === 0) { historyList.innerHTML = '<div class="no-history">履歴がありません</div>'; } else { historyList.innerHTML = list.map(h => `<div class="history-item" data-id="${h.id}"><div class="history-date">${h.date}</div><div class="history-info">${h.sceneCount} シーン</div></div>`).join(''); historyList.querySelectorAll('.history-item').forEach(item => { item.onclick = async () => { if (!confirm('この履歴に復元しますか？現在のデータは上書きされます。')) return; const success = await restoreFromHistory(+item.dataset.id); if (success) { historyModal.classList.add('hidden'); alert('復元しました！'); } else { alert('復元に失敗しました'); } }; }); } historyModal.classList.remove('hidden'); };
+$('closeHistoryBtn').onclick = () => historyModal.classList.add('hidden');
+historyModal.onclick = e => { if (e.target === historyModal) historyModal.classList.add('hidden'); };
 
-fbAuth.onAuthStateChanged(async (user) => {
-  fbUser = user;
-  const btn = document.getElementById('syncBtn');
-  if (user) {
-    btn.textContent = user.displayName?.split(' ')[0] || '同期中';
-    btn.classList.add('logged-in');
-    // Pull from Firestore on login
-    await pullFromFirestore();
-  } else {
-    btn.textContent = 'ログイン';
-    btn.classList.remove('logged-in');
-  }
-});
+$('loadZip').onclick = () => $('zipInput').click();
+$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {};
+const imgFolder = zip.folder('images'); if (imgFolder) { const files = []; imgFolder.forEach((p, f) => { if (!f.dir) files.push({ p, f }); }); for (const { p, f } of files) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); if (p.startsWith('ov')) { overlayBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > overlayCounter) overlayCounter = num; } else if (p.startsWith('ch')) { charBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > charCounter) charCounter = num; } else { const hash = await hashBlob(blob); imageBlobs[p] = { url, blob, hash }; imageHashes[hash] = p; const num = parseInt(p.split('.')[0]); if (!isNaN(num) && num > imageCounter) imageCounter = num; } } }
+const audioFolder = zip.folder('audio'); if (audioFolder) { const audioFiles = []; audioFolder.forEach((p, f) => { if (!f.dir) audioFiles.push({ p, f }); }); for (const { p, f } of audioFiles) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); const name = p.split('.')[0].toLowerCase(); if (name.startsWith('se')) { seAudios[name] = { audio: new Audio(url), url, blob, filename: p }; const num = parseInt(name.slice(2)); if (!isNaN(num) && num > seCounter) seCounter = num; } else if (name.startsWith('bgm')) { const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob, filename: p }; const num = parseInt(name.slice(3)); if (!isNaN(num) && num > bgmCounter) bgmCounter = num; } } }
+const dataFile = zip.file('data.json'); if (dataFile) { const data = JSON.parse(await dataFile.async('string')); scenes = (data.scenes || []).map(s => ({ ...s, uuid: s.uuid || crypto.randomUUID(), bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); chapters = data.chapters || []; if (data.projectWidth && data.projectHeight) applyProjectResolution(data.projectWidth, data.projectHeight); else { resolutionLocked = false; const firstBg = scenes.find(s => s.bg); if (firstBg && imageBlobs[firstBg.bg]) { const img = new Image(); img.onload = () => { if (!resolutionLocked) applyProjectResolution(img.width, img.height); }; img.src = imageBlobs[firstBg.bg].url; } } scenes.forEach(s => { if (s.choices) s.choices.forEach(c => { const m = c.id.match(/^A-(\d+)$/); if (m && +m[1] > choiceCounter) choiceCounter = +m[1]; }); }); }
+renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}`); } catch (err) { alert('読み込みエラー: ' + err.message); } };
 
-async function handleAuth() {
-  if (fbUser) {
-    if (confirm('ログアウトしますか？')) {
-      await fbAuth.signOut();
-      showToast('ログアウトしました');
-    }
-  } else {
+function getExt(filename) { return filename.split('.').pop() || 'mp3'; }
+$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); const content = await zip.generateAsync({ type: 'blob' }); const url = URL.createObjectURL(content); const a = document.createElement('a'); a.href = url; a.download = 'vn-project.zip'; a.click(); URL.revokeObjectURL(url); } catch (err) { alert('保存エラー: ' + err.message); } };
+
+window.addEventListener('beforeunload', () => { clearTimeout(saveTimer); saveToIndexedDB(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(saveTimer); saveToIndexedDB(); throttledHistorySave(); } });
+
+// ★ FIX: scale: 1 → scale: 2 for high quality PNG export
+async function exportSceneToPng(scene, index) {
+    const container = document.createElement('div');
+    container.style.cssText = `position:fixed;left:-9999px;top:0;width:${projectWidth}px;height:${projectHeight}px;`;
+    container.innerHTML = `<div class="preview-canvas" style="width:${projectWidth}px;height:${projectHeight}px;position:relative;background:#000;overflow:hidden;"><div class="preview-bg" style="position:absolute;inset:0;">${scene.bgUrl ? `<img src="${scene.bgUrl}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div><div class="text-display ${scene.textMode === 'nvl' ? 'nvl-mode' : ''}" style="position:absolute;${scene.textMode === 'nvl' ? 'inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-start;padding:3% 4%;' : 'bottom:5%;left:4%;right:4%;'}">${scene.name ? `<div class="char-name" style="font-size:${scene.textMode === 'nvl' ? '29px' : '33px'};font-weight:700;color:#fff;text-shadow:0 0 4px #000,0 0 4px #000,2px 2px 4px #000,-2px -2px 4px #000,2px -2px 4px #000,-2px 2px 4px #000;margin-bottom:${scene.textMode === 'nvl' ? '1%' : '2%'};">${scene.name}</div>` : ''}<div class="dialogue" style="font-size:${scene.textMode === 'nvl' ? '25px' : '27px'};line-height:${scene.textMode === 'nvl' ? '2' : '1.6'};color:#fff;text-shadow:0 0 4px #000,0 0 4px #000,2px 2px 4px #000,-2px -2px 4px #000,2px -2px 4px #000,-2px 2px 4px #000;white-space:pre-wrap;">${scene.text || ''}</div></div></div>`;
+    document.body.appendChild(container);
     try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await fbAuth.signInWithPopup(provider);
-      showToast('ログインしました', 'success');
-    } catch (e) {
-      // Popup blocked on mobile - try redirect
-      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await fbAuth.signInWithRedirect(provider);
-      } else {
-        showToast('ログインエラー: ' + e.message, 'error');
-      }
-    }
-  }
+        const canvas = await html2canvas(container.querySelector('.preview-canvas'), {
+            scale: 2,
+            useCORS: true, allowTaint: true, backgroundColor: '#000',
+            width: projectWidth, height: projectHeight
+        });
+        const link = document.createElement('a');
+        link.download = `scene-${String(index + 1).padStart(3, '0')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch (err) { alert('PNG出力エラー: ' + err.message); } finally { document.body.removeChild(container); }
 }
 
-// Push PM data to Firestore (debounced)
-function syncToFirestore() {
-  if (!fbUser) return;
-  clearTimeout(fbSyncDebounce);
-  fbSyncDebounce = setTimeout(async () => {
+$('exportPngBtn').onclick = async () => {
     try {
-      const docRef = fbDb.collection('users').doc(fbUser.uid).collection('nai-combo').doc('promptMaker');
-      await docRef.set({
-        tabs: pmTabs,
-        buttons: pmButtons,
-        history: pmHistory,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-    } catch (e) {
-      console.error('Firestore sync error:', e);
-    }
-  }, 2000);
-}
-
-// Pull PM data from Firestore
-async function pullFromFirestore() {
-  if (!fbUser) return;
-  try {
-    const docRef = fbDb.collection('users').doc(fbUser.uid).collection('nai-combo').doc('promptMaker');
-    const snap = await docRef.get();
-    if (!snap.exists) {
-      // First time - push local data up
-      syncToFirestore();
-      showToast('初回同期: ローカルデータをアップロード', 'success');
-      return;
-    }
-
-    const remote = snap.data();
-    const remoteTabs = remote.tabs || [];
-    const remoteButtons = remote.buttons || {};
-    const remoteHistory = remote.history || [];
-
-    // Merge strategy: remote wins if it has more tabs/buttons
-    const localTotal = Object.values(pmButtons).reduce((s, a) => s + a.length, 0);
-    const remoteTotal = Object.values(remoteButtons).reduce((s, a) => s + a.length, 0);
-
-    if (remoteTabs.length > 0 && (remoteTotal >= localTotal || pmTabs.length <= 1)) {
-      pmTabs = remoteTabs;
-      pmButtons = remoteButtons;
-      if (remoteHistory.length > pmHistory.length) pmHistory = remoteHistory;
-      pmActiveTab = pmTabs[0]?.id || 'default';
-
-      // Save to local
-      savePmDataLocal();
-      renderPmTabs();
-      renderPmButtons();
-      showToast('クラウドから同期しました', 'success');
-    } else {
-      // Local has more - push up
-      syncToFirestore();
-      showToast('ローカルデータをアップロード', 'success');
-    }
-  } catch (e) {
-    console.error('Firestore pull error:', e);
-    showToast('同期エラー', 'error');
-  }
-}
-
-// ===========================
-// IndexedDB
-// ===========================
-const DB_NAME = 'nai-combo';
-const DB_VERSION = 2;
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
-      if (!db.objectStoreNames.contains('pm_tabs')) db.createObjectStore('pm_tabs');
-      if (!db.objectStoreNames.contains('pm_buttons')) db.createObjectStore('pm_buttons');
-      if (!db.objectStoreNames.contains('pm_history')) db.createObjectStore('pm_history');
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbGet(store, key) {
-  const db = await openDB();
-  const tx = db.transaction(store, 'readonly');
-  const req = tx.objectStore(store).get(key);
-  return new Promise(r => { req.onsuccess = () => r(req.result); req.onerror = () => r(null); });
-}
-
-async function dbSet(store, key, val) {
-  const db = await openDB();
-  const tx = db.transaction(store, 'readwrite');
-  tx.objectStore(store).put(val, key);
-  return new Promise((r, j) => { tx.oncomplete = r; tx.onerror = j; });
-}
-
-// ===========================
-// State
-// ===========================
-let i2iFile = null, refFile = null, resultBlobUrl = null;
-let currentRefMode = 'precise';
-let currentRefType = 'character';
-
-// Prompt Maker state
-let pmTabs = [{ id: 'default', name: '基本' }];
-let pmButtons = { default: [] };
-let pmActiveTab = 'default';
-let pmDeleteMode = false;
-let pmHistory = [];
-let pmHistoryTimer = null;
-
-// ===========================
-// Init
-// ===========================
-(async () => {
-  // Load token
-  const savedToken = await dbGet('settings', 'apiToken');
-  if (savedToken) document.getElementById('token').value = savedToken;
-
-  // Load PM data
-  const savedTabs = await dbGet('settings', 'pmTabs');
-  const savedButtons = await dbGet('settings', 'pmButtons');
-  const savedHistory = await dbGet('settings', 'pmHistory');
-  const savedActiveTab = await dbGet('settings', 'pmActiveTab');
-
-  if (savedTabs) pmTabs = savedTabs;
-  if (savedButtons) pmButtons = savedButtons;
-  if (savedHistory) pmHistory = savedHistory;
-  if (savedActiveTab && pmTabs.find(t => t.id === savedActiveTab)) pmActiveTab = savedActiveTab;
-
-  renderPmTabs();
-  renderPmButtons();
-  updateCharCount();
-})();
-
-// Auto-save token
-document.getElementById('token').addEventListener('input', function() {
-  dbSet('settings', 'apiToken', this.value.trim());
-});
-
-// Auto-save prompt history (1s debounce)
-document.getElementById('prompt').addEventListener('input', function() {
-  updateCharCount();
-  clearTimeout(pmHistoryTimer);
-  pmHistoryTimer = setTimeout(() => saveHistory(this.value.trim()), 1000);
-});
-
-function updateCharCount() {
-  const len = document.getElementById('prompt').value.length;
-  document.getElementById('promptCharCount').textContent = len + '文字';
-}
-
-// ===========================
-// Prompt Maker — Tabs
-// ===========================
-function renderPmTabs() {
-  const c = document.getElementById('pmTabs');
-  c.innerHTML = pmTabs.map(t => {
-    const cls = 'pm-tab' + (t.id === pmActiveTab ? ' active' : '') + (pmDeleteMode ? ' delete-mode' : '');
-    return `<div class="${cls}" data-id="${t.id}"><span class="tab-label">${t.name}</span><span class="tab-x">×</span></div>`;
-  }).join('') + '<button class="pm-add-tab" id="pmAddTab">+</button>';
-
-  c.querySelectorAll('.pm-tab').forEach(el => {
-    const id = el.dataset.id;
-    // Click
-    el.addEventListener('click', (e) => {
-      if (pmDeleteMode && e.target.classList.contains('tab-x')) {
-        deletePmTab(id); return;
-      }
-      pmActiveTab = id;
-      dbSet('settings', 'pmActiveTab', id);
-      renderPmTabs();
-      renderPmButtons();
-    });
-    // Long press to rename
-    let pt = null;
-    el.addEventListener('touchstart', () => { pt = setTimeout(() => { pt = 'fired'; renamePmTab(id); }, 600); }, { passive: true });
-    el.addEventListener('touchend', () => { if (pt !== 'fired') clearTimeout(pt); });
-    el.addEventListener('touchmove', () => { if (pt !== 'fired') clearTimeout(pt); });
-  });
-
-  document.getElementById('pmAddTab')?.addEventListener('click', addPmTab);
-}
-
-function addPmTab() {
-  const name = prompt('タブ名:');
-  if (!name) return;
-  const id = 'tab_' + Date.now();
-  pmTabs.push({ id, name });
-  pmButtons[id] = [];
-  pmActiveTab = id;
-  savePmData();
-  renderPmTabs();
-  renderPmButtons();
-}
-
-function deletePmTab(id) {
-  if (pmTabs.length <= 1) { showToast('最後のタブは削除できません', 'error'); return; }
-  if (!confirm(pmTabs.find(t => t.id === id)?.name + ' を削除？')) return;
-  pmTabs = pmTabs.filter(t => t.id !== id);
-  delete pmButtons[id];
-  if (pmActiveTab === id) pmActiveTab = pmTabs[0].id;
-  savePmData();
-  renderPmTabs();
-  renderPmButtons();
-}
-
-function renamePmTab(id) {
-  const tab = pmTabs.find(t => t.id === id);
-  if (!tab) return;
-  const name = prompt('タブ名:', tab.name);
-  if (name === null) return;
-  tab.name = name || tab.name;
-  savePmData();
-  renderPmTabs();
-}
-
-// ===========================
-// Prompt Maker — Buttons
-// ===========================
-function renderPmButtons() {
-  const c = document.getElementById('pmButtons');
-  const search = document.getElementById('pmSearch').value.toLowerCase();
-  const buttons = (pmButtons[pmActiveTab] || []).filter(b =>
-    !search || b.label.toLowerCase().includes(search) || b.text.toLowerCase().includes(search)
-  );
-
-  c.innerHTML = buttons.length === 0
-    ? '<div style="color:#475569;font-size:11px;padding:8px;">ボタンなし</div>'
-    : buttons.map((b, i) => {
-        const cls = 'pm-btn' + (pmDeleteMode ? ' delete-mode' : '');
-        return `<div class="${cls}" data-idx="${i}" title="${b.text}">${b.label}</div>`;
-      }).join('');
-
-  c.querySelectorAll('.pm-btn').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.dataset.idx);
-      if (pmDeleteMode) {
-        deletePmButton(idx);
-      } else {
-        insertPmButton(idx);
-      }
-    });
-  });
-}
-
-function insertPmButton(idx) {
-  const search = document.getElementById('pmSearch').value.toLowerCase();
-  const buttons = (pmButtons[pmActiveTab] || []).filter(b =>
-    !search || b.label.toLowerCase().includes(search) || b.text.toLowerCase().includes(search)
-  );
-  const btn = buttons[idx];
-  if (!btn) return;
-
-  const editor = document.getElementById('prompt');
-  const start = editor.selectionStart;
-  const end = editor.selectionEnd;
-  const val = editor.value;
-  const text = btn.text;
-
-  let insert = text;
-  if (val && start === val.length) {
-    // Append at end
-    if (!val.endsWith(', ') && !val.endsWith(',')) insert = ', ' + text;
-  } else if (start > 0) {
-    // Insert at cursor
-    if (!val[start - 1]?.match(/[,\s]/)) insert = ', ' + text;
-  }
-
-  editor.value = val.substring(0, start) + insert + val.substring(end);
-  const newPos = start + insert.length;
-  editor.setSelectionRange(newPos, newPos);
-  editor.focus();
-  updateCharCount();
-  showToast(btn.label, 'success');
-}
-
-function registerButton() {
-  const nameEl = document.getElementById('regName');
-  const textEl = document.getElementById('regText');
-  const text = textEl.value.trim();
-  if (!text) { showToast('プロンプトを入力', 'error'); return; }
-
-  const label = nameEl.value.trim() || (text.length > 20 ? text.substring(0, 20) + '…' : text);
-  if (!pmButtons[pmActiveTab]) pmButtons[pmActiveTab] = [];
-  pmButtons[pmActiveTab].push({ label, text });
-  savePmData();
-  renderPmButtons();
-  nameEl.value = '';
-  textEl.value = '';
-  showToast('登録しました', 'success');
-}
-
-function deletePmButton(idx) {
-  const search = document.getElementById('pmSearch').value.toLowerCase();
-  const allButtons = pmButtons[pmActiveTab] || [];
-  const filtered = allButtons.filter(b =>
-    !search || b.label.toLowerCase().includes(search) || b.text.toLowerCase().includes(search)
-  );
-  const target = filtered[idx];
-  if (!target) return;
-  const realIdx = allButtons.indexOf(target);
-  if (realIdx >= 0) {
-    allButtons.splice(realIdx, 1);
-    savePmData();
-    renderPmButtons();
-    showToast('削除しました');
-  }
-}
-
-function toggleDeleteMode() {
-  pmDeleteMode = !pmDeleteMode;
-  document.getElementById('btnDeleteMode').classList.toggle('active', pmDeleteMode);
-  renderPmTabs();
-  renderPmButtons();
-}
-
-// ===========================
-// Prompt Maker — I/O
-// ===========================
-function toggleIO() {
-  const p = document.getElementById('ioPanel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-function exportJSON() {
-  const data = { tabs: pmTabs, buttons: pmButtons };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'nai-combo-prompts.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('エクスポートしました', 'success');
-}
-
-function importJSON(input) {
-  const file = input.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (data.tabs && data.buttons) {
-        pmTabs = data.tabs;
-        pmButtons = data.buttons;
-        pmActiveTab = pmTabs[0]?.id || 'default';
-        savePmData();
-        renderPmTabs();
-        renderPmButtons();
-        showToast('インポートしました', 'success');
-      } else {
-        showToast('無効なJSON形式', 'error');
-      }
-    } catch { showToast('JSON解析エラー', 'error'); }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
-
-// ===========================
-// Prompt Maker — History
-// ===========================
-function saveHistory(text) {
-  if (!text) return;
-  if (pmHistory.length > 0 && pmHistory[0].text === text) return;
-  pmHistory.unshift({ text, time: new Date().toISOString() });
-  if (pmHistory.length > 100) pmHistory.length = 100;
-  dbSet('settings', 'pmHistory', pmHistory);
-  syncToFirestore();
-}
-
-function openHistory() {
-  const list = document.getElementById('historyList');
-  list.innerHTML = pmHistory.length === 0
-    ? '<div style="color:#475569;font-size:12px;">履歴なし</div>'
-    : pmHistory.map((h, i) => {
-        const d = new Date(h.time);
-        const ts = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-        const preview = h.text.length > 100 ? h.text.substring(0, 100) + '…' : h.text;
-        return `<div class="history-item" data-idx="${i}"><div class="h-time">${ts}</div>${preview}</div>`;
-      }).join('');
-
-  list.querySelectorAll('.history-item').forEach(el => {
-    el.addEventListener('click', () => {
-      document.getElementById('prompt').value = pmHistory[parseInt(el.dataset.idx)].text;
-      updateCharCount();
-      closeHistory();
-      showToast('履歴から復元', 'success');
-    });
-  });
-
-  document.getElementById('historyModal').classList.add('show');
-}
-
-function closeHistory() {
-  document.getElementById('historyModal').classList.remove('show');
-}
-
-// ===========================
-// Prompt Maker — Save
-// ===========================
-function savePmDataLocal() {
-  dbSet('settings', 'pmTabs', pmTabs);
-  dbSet('settings', 'pmButtons', pmButtons);
-  dbSet('settings', 'pmActiveTab', pmActiveTab);
-}
-
-function savePmData() {
-  savePmDataLocal();
-  syncToFirestore();
-}
-
-// ===========================
-// Toast
-// ===========================
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
-  setTimeout(() => t.classList.remove('show'), 1500);
-}
-
-// ===========================
-// File handling (unchanged from v9)
-// ===========================
-function pickFile(which) {
-  const zone = document.getElementById(which + 'Zone');
-  if (zone.classList.contains('has-image')) return;
-  document.getElementById(which + 'Input').click();
-}
-
-function onFilePicked(which, input) {
-  const f = input.files?.[0];
-  if (f) setImage(which, f);
-  input.value = '';
-}
-
-function setImage(which, file) {
-  if (which === 'i2i') i2iFile = file; else refFile = file;
-  const zone = document.getElementById(which + 'Zone');
-  const url = URL.createObjectURL(file);
-  zone.innerHTML = `<img src="${url}" alt=""><button class="clear-btn" onclick="event.stopPropagation(); clearImage('${which}')">×</button>`;
-  zone.classList.add('has-image');
-  if (which === 'i2i') showI2iControls(true);
-  if (which === 'ref') showRefControls(true);
-}
-
-function clearImage(which) {
-  if (which === 'i2i') i2iFile = null; else refFile = null;
-  const zone = document.getElementById(which + 'Zone');
-  zone.innerHTML = `<div class="icon">📷</div><div class="text">${which==='i2i'?'Pose / Layout':'Character / Style'}<br><span class="sub">Tap or drop</span></div>`;
-  zone.classList.remove('has-image');
-  if (which === 'i2i') showI2iControls(false);
-  if (which === 'ref') showRefControls(false);
-}
-
-function showI2iControls(show) {
-  const el = document.getElementById('i2iControls');
-  el.style.display = show ? 'block' : 'none';
-  if (show && !el.innerHTML) {
-    el.innerHTML = `
-      <div class="slider-wrap">
-        <div class="slider-header"><span>Strength</span><span class="slider-val" id="strVal">0.60</span></div>
-        <input type="range" id="strength" min="0.01" max="0.99" step="0.01" value="0.60" oninput="document.getElementById('strVal').textContent=parseFloat(this.value).toFixed(2)">
-      </div>
-      <div class="slider-wrap">
-        <div class="slider-header"><span>Noise</span><span class="slider-val" id="noiseVal">0.00</span></div>
-        <input type="range" id="noise" min="0" max="0.99" step="0.01" value="0" oninput="document.getElementById('noiseVal').textContent=parseFloat(this.value).toFixed(2)">
-      </div>`;
-  }
-}
-
-function showRefControls(show) {
-  const el = document.getElementById('refControls');
-  el.style.display = show ? 'block' : 'none';
-  if (show && !el.innerHTML) {
-    el.innerHTML = `
-      <div style="margin-bottom:10px;">
-        <div class="field-label">Mode</div>
-        <div class="ref-type-btns" id="refModeBtns">
-          <div class="ref-type-btn active" onclick="setRefMode('precise')">精密参照</div>
-          <div class="ref-type-btn" onclick="setRefMode('vibe')">ポーション</div>
-        </div>
-      </div>
-      <div id="preciseControls">
-        <div style="margin-bottom:10px;">
-          <div class="field-label">Type</div>
-          <div class="ref-type-btns" id="refTypeBtns">
-            <div class="ref-type-btn active" data-type="character" onclick="setRefType(this,'character')">Character</div>
-            <div class="ref-type-btn" data-type="style" onclick="setRefType(this,'style')">Style</div>
-            <div class="ref-type-btn" data-type="character&style" onclick="setRefType(this,'character&style')">Char+Style</div>
-          </div>
-        </div>
-        <div class="slider-wrap">
-          <div class="slider-header"><span>Strength</span><span class="slider-val" id="refStrVal">0.60</span></div>
-          <input type="range" id="refStrength" min="0.01" max="1" step="0.01" value="0.60" oninput="document.getElementById('refStrVal').textContent=parseFloat(this.value).toFixed(2)">
-        </div>
-        <div class="slider-wrap">
-          <div class="slider-header"><span>Fidelity</span><span class="slider-val" id="refFidVal">0.50</span></div>
-          <input type="range" id="refFidelity" min="0" max="1" step="0.01" value="0.50" oninput="document.getElementById('refFidVal').textContent=parseFloat(this.value).toFixed(2)">
-        </div>
-      </div>
-      <div id="vibeControls" style="display:none;">
-        <div class="slider-wrap">
-          <div class="slider-header"><span>Info Extracted</span><span class="slider-val" id="vibeInfoVal">0.70</span></div>
-          <input type="range" id="vibeInfoExtracted" min="0.01" max="1" step="0.01" value="0.70" oninput="document.getElementById('vibeInfoVal').textContent=parseFloat(this.value).toFixed(2)">
-        </div>
-        <div class="slider-wrap">
-          <div class="slider-header"><span>Strength</span><span class="slider-val" id="vibeStrVal">0.60</span></div>
-          <input type="range" id="vibeStrength" min="0.01" max="1" step="0.01" value="0.60" oninput="document.getElementById('vibeStrVal').textContent=parseFloat(this.value).toFixed(2)">
-        </div>
-        <div style="font-size:10px;color:#64748b;margin-top:4px;">encode-vibe API経由でエンコード後に生成</div>
-      </div>`;
-  }
-}
-
-function setRefMode(mode) {
-  currentRefMode = mode;
-  document.querySelectorAll('#refModeBtns .ref-type-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('preciseControls').style.display = mode === 'precise' ? 'block' : 'none';
-  document.getElementById('vibeControls').style.display = mode === 'vibe' ? 'block' : 'none';
-}
-
-function setRefType(el, type) {
-  currentRefType = type;
-  document.querySelectorAll('#refTypeBtns .ref-type-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// Drag & Drop
-['i2iZone','refZone'].forEach(id => {
-  const el = document.getElementById(id);
-  const which = id.replace('Zone','');
-  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('dragover'); });
-  el.addEventListener('dragleave', () => el.classList.remove('dragover'));
-  el.addEventListener('drop', e => {
-    e.preventDefault(); el.classList.remove('dragover');
-    const f = e.dataTransfer?.files?.[0];
-    if (f && f.type.startsWith('image/')) setImage(which.replace('Zone',''), f);
-  });
-});
-
-// Token toggle
-function toggleToken() {
-  const inp = document.getElementById('token');
-  const btn = inp.nextElementSibling;
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
-  else { inp.type = 'password'; btn.textContent = 'Show'; }
-}
-
-// ===========================
-// Helpers
-// ===========================
-function fileToBase64(file) {
-  return new Promise(resolve => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result.split(',')[1]);
-    r.readAsDataURL(file);
-  });
-}
-
-function setLog(msg) {
-  const el = document.getElementById('logLine');
-  el.style.display = msg ? 'block' : 'none';
-  el.textContent = msg;
-}
-
-function setError(msg) {
-  const el = document.getElementById('errorBox');
-  el.style.display = msg ? 'block' : 'none';
-  el.textContent = msg;
-  if (msg) {
-    const dl = document.getElementById('debugLog');
-    if (dl) dl.textContent += '\n\n--- ERROR ---\n' + msg;
-  }
-}
-
-function copyDebug() {
-  navigator.clipboard.writeText(document.getElementById('debugLog').textContent).catch(() => {});
-}
-
-// ===========================
-// crop and resize for Precise Reference (1024x1536)
-// ===========================
-async function cropAndResize(base64Img, targetW = 1024, targetH = 1536) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = targetW;
-      canvas.height = targetH;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, targetW, targetH);
-      const scale = Math.min(targetW / img.width, targetH / img.height);
-      const sw = img.width * scale;
-      const sh = img.height * scale;
-      const sx = (targetW - sw) / 2;
-      const sy = (targetH - sh) / 2;
-      ctx.drawImage(img, sx, sy, sw, sh);
-      resolve(canvas.toDataURL('image/png').split(',')[1]);
-    };
-    img.src = 'data:image/png;base64,' + base64Img;
-  });
-}
-
-// ===========================
-// encode-vibe
-// ===========================
-async function encodeVibe(token, base64Img, infoExtracted, model) {
-  const resp = await fetch('https://image.novelai.net/ai/encode-vibe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ image: base64Img, information_extracted: infoExtracted, model }),
-  });
-  if (!resp.ok) throw new Error(`encode-vibe ${resp.status}: ${await resp.text()}`);
-  const buf = await resp.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-// ===========================
-// Generate
-// ===========================
-async function generate() {
-  const token = document.getElementById('token').value.trim();
-  const promptText = document.getElementById('prompt').value.trim();
-
-  if (!token) { setError('API token required'); return; }
-  if (!promptText && !refFile) { setError('Prompt or reference image required'); return; }
-
-  const btn = document.getElementById('btnGenerate');
-  btn.disabled = true; btn.textContent = 'Generating...';
-  setError(''); setLog('Building request...');
-  document.getElementById('resultSection').style.display = 'none';
-
-  try {
-    const res = document.getElementById('resolution').value.split(',').map(Number);
-    const [w, h] = res;
-    const action = i2iFile ? 'img2img' : 'generate';
-    const seedVal = parseInt(document.getElementById('seed').value) || 0;
-    const useSeed = seedVal === 0 ? Math.floor(Math.random() * 4294967295) : seedVal;
-
-    const inputPrompt = promptText || '1girl';
-    const negText = document.getElementById('negPrompt').value || 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry';
-
-    const model = document.getElementById('model').value;
-    const params = {
-      width: w, height: h,
-      scale: parseFloat(document.getElementById('guidance').value),
-      sampler: document.getElementById('sampler').value,
-      steps: parseInt(document.getElementById('steps').value),
-      seed: useSeed,
-      n_samples: 1,
-      ucPreset: 0,
-      qualityToggle: document.getElementById('qualityToggle').checked,
-      dynamic_thresholding: false,
-      noise_schedule: model.includes('4-5') ? 'native' : 'karras',
-      cfg_rescale: 0,
-      add_original_image: true,
-      sm: false, sm_dyn: false,
-      legacy: false, legacy_v3_extend: false,
-      skip_cfg_above_sigma: null,
-      variety_boost: document.getElementById('varietyBoost').checked,
-      params_version: 3,
-      negative_prompt: negText,
-      characterPrompts: [],
-      use_coords: false,
-      v4_prompt: { caption: { base_caption: inputPrompt, char_captions: [] }, use_coords: false, use_order: true },
-      v4_negative_prompt: { caption: { base_caption: negText, char_captions: [] }, use_coords: false, use_order: true },
-      reference_image_multiple: [],
-      reference_information_extracted_multiple: [],
-      reference_strength_multiple: [],
-      normalize_reference_strength_multiple: false,
-      prefer_brownian: true,
-      deliberate_euler_ancestral_bug: false,
-      controlnet_strength: 1,
-    };
-
-    // img2img
-    if (i2iFile) {
-      params.image = await fileToBase64(i2iFile);
-      params.strength = parseFloat(document.getElementById('strength')?.value || 0.6);
-      params.noise = parseFloat(document.getElementById('noise')?.value || 0);
-      params.extra_noise_seed = useSeed;
-      setLog('Encoded img2img source...');
-    }
-
-    // Reference
-    if (refFile) {
-      const refB64 = await fileToBase64(refFile);
-
-      if (currentRefMode === 'precise') {
-        setLog('Resizing reference to 1024x1536...');
-        const resizedB64 = await cropAndResize(refB64, 1024, 1536);
-        const fidelity = parseFloat(document.getElementById('refFidelity')?.value || 0.5);
-        const strength = parseFloat(document.getElementById('refStrength')?.value || 0.6);
-
-        params.director_reference_images = [resizedB64];
-        params.director_reference_descriptions = [{
-          caption: { base_caption: currentRefType, char_captions: [] },
-          legacy_uc: false,
-        }];
-        params.director_reference_information_extracted = [1.0];
-        params.director_reference_secondary_strength_values = [1 - fidelity];
-        params.director_reference_strength_values = [strength];
-        setLog(`Precise Reference (${currentRefType}, str=${strength}, fid=${fidelity})`);
-      } else {
-        const vibeInfo = parseFloat(document.getElementById('vibeInfoExtracted')?.value || 0.7);
-        const vibeStr = parseFloat(document.getElementById('vibeStrength')?.value || 0.6);
-        setLog('Encoding vibe...');
-        const encodedVibe = await encodeVibe(token, refB64, vibeInfo, model);
-        params.reference_image_multiple = [encodedVibe];
-        params.reference_information_extracted_multiple = [vibeInfo];
-        params.reference_strength_multiple = [vibeStr];
-        setLog(`Vibe encoded (info=${vibeInfo}, str=${vibeStr})`);
-      }
-    }
-
-    const body = { input: inputPrompt, model, action, parameters: params };
-
-    // Debug
-    const debugBody = JSON.parse(JSON.stringify(body));
-    if (debugBody.parameters.image) debugBody.parameters.image = '(base64 ' + body.parameters.image.length + ' chars)';
-    if (debugBody.parameters.reference_image_multiple?.length)
-      debugBody.parameters.reference_image_multiple = body.parameters.reference_image_multiple.map(x => '(b64 ' + x.length + ')');
-    if (debugBody.parameters.director_reference_images?.length)
-      debugBody.parameters.director_reference_images = body.parameters.director_reference_images.map(x => '(b64 ' + x.length + ')');
-    document.getElementById('debugLog').textContent = JSON.stringify(debugBody, null, 2);
-    document.getElementById('debugSection').style.display = 'block';
-    setLog(`Sending ${action} request...`);
-
-    const resp = await fetch('https://image.novelai.net/ai/generate-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(body),
-    });
-
-    if (!resp.ok) throw new Error(`API ${resp.status}: ${await resp.text()}`);
-
-    setLog('Decoding response...');
-    const ct = resp.headers.get('content-type') || '';
-    const blob = await resp.blob();
-    const buf = await blob.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-
-    const first8 = Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2,'0')).join(' ');
-    document.getElementById('debugLog').textContent += `\n\n--- RESPONSE ---\nContent-Type: ${ct}\nSize: ${bytes.length} bytes\nFirst 8: ${first8}`;
-
-    let pngBlob;
-    if (bytes[0] === 0x50 && bytes[1] === 0x4B) {
-      const fnLen = bytes[26] | (bytes[27] << 8);
-      const exLen = bytes[28] | (bytes[29] << 8);
-      const comprMethod = bytes[8] | (bytes[9] << 8);
-      const dataStart = 30 + fnLen + exLen;
-
-      if (comprMethod === 8) {
-        let dataEnd = bytes.length;
-        for (let i = dataStart; i < bytes.length - 4; i++) {
-          if (bytes[i]===0x50 && bytes[i+1]===0x4B && (bytes[i+2]===0x01 || bytes[i+2]===0x07)) { dataEnd = i; break; }
-        }
-        const ds = new DecompressionStream('deflate-raw');
-        const wr = ds.writable.getWriter();
-        wr.write(bytes.slice(dataStart, dataEnd));
-        wr.close();
-        const rd = ds.readable.getReader();
-        const chunks = [];
-        while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
-        const total = chunks.reduce((a, c) => a + c.length, 0);
-        const result = new Uint8Array(total);
-        let off = 0;
-        for (const c of chunks) { result.set(c, off); off += c.length; }
-        pngBlob = new Blob([result], { type: 'image/png' });
-      } else if (comprMethod === 0) {
-        const comprSize = bytes[18] | (bytes[19] << 8) | (bytes[20] << 16) | (bytes[21] << 24);
-        pngBlob = new Blob([bytes.slice(dataStart, comprSize > 0 ? dataStart + comprSize : undefined)], { type: 'image/png' });
-      } else {
-        throw new Error(`Unknown ZIP compression: ${comprMethod}`);
-      }
-    } else {
-      let pngStart = -1;
-      for (let i = 0; i < bytes.length - 4; i++) {
-        if (bytes[i]===0x89 && bytes[i+1]===0x50 && bytes[i+2]===0x4E && bytes[i+3]===0x47) { pngStart = i; break; }
-      }
-      pngBlob = pngStart >= 0 ? new Blob([bytes.slice(pngStart)], { type: 'image/png' }) : blob;
-    }
-
-    if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
-    resultBlobUrl = URL.createObjectURL(pngBlob);
-
-    document.getElementById('resultImg').src = resultBlobUrl;
-    document.getElementById('saveLink').href = resultBlobUrl;
-    document.getElementById('saveLink').download = `nai_${useSeed}.png`;
-    document.getElementById('resultSection').style.display = 'block';
-    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
-    setLog(`Done! Seed: ${useSeed}`);
-
-  } catch (e) {
-    setError(e.message);
-    setLog('');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Generate';
-  }
-}
-
-// Result reuse
-function resultToI2i() {
-  if (!resultBlobUrl) return;
-  fetch(resultBlobUrl).then(r => r.blob()).then(b => setImage('i2i', new File([b], 'result.png', { type: 'image/png' })));
-}
-function resultToRef() {
-  if (!resultBlobUrl) return;
-  fetch(resultBlobUrl).then(r => r.blob()).then(b => setImage('ref', new File([b], 'result.png', { type: 'image/png' })));
-}
+        const canvas = await html2canvas(editorCanvas, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#000' });
+        const link = document.createElement('a');
+        link.download = `scene-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch (err) { alert('PNG出力エラー: ' + err.message); }
+};
+
+(async () => { await initDB(); await loadFromIndexedDB(); renderScenes(); })();
 </script>
 </body>
 </html>
