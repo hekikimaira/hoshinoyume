@@ -33,7 +33,7 @@
         .tab-content.active { display: block; }
         .editor-container { display: flex; height: calc(100vh - 49px); }
         .preview-area { flex: 1; display: flex; align-items: center; justify-content: center; background: #111; padding: 16px; }
-        .control-area { flex: 1; padding: 16px; overflow-y: auto; max-width: 420px; }
+        .control-area { flex: 1; padding: 8px; padding-bottom: 0; overflow-y: auto; max-width: 420px; }
         @media (max-width: 800px) {
             .editor-container { flex-direction: column-reverse; }
             .control-area { max-width: 100%; flex: none; max-height: 50vh; }
@@ -46,8 +46,10 @@
             .tab-btn { padding: 10px 16px; font-size: 12px; white-space: nowrap; }
             .editor-container { flex-direction: column; height: auto; min-height: calc(100vh - 45px); }
             .preview-area { height: 50vh; min-height: 280px; flex: none; padding: 8px; order: 1; }
-            .control-area { flex: 1; padding: 12px; max-width: 100%; max-height: none; overflow-y: visible; order: 2; }
-            .section { padding: 10px; margin-bottom: 10px; }
+            .control-area { flex: 1; padding: 8px; padding-bottom: 0; max-width: 100%; max-height: none; overflow-y: visible; order: 2; }
+            .section { margin-bottom: 6px; }
+            .section-header { padding: 10px; }
+            .section-body { padding: 0 10px 10px; }
             .section-title { font-size: 10px; }
             input[type="text"], textarea { padding: 8px; font-size: 16px; }
             textarea { min-height: 60px; }
@@ -102,8 +104,17 @@
         .nvl-mode .dialogue { font-size: 2.8cqw; line-height: 1.7; }
         .char-name { font-size: 4cqw; font-weight: 700; color: #fff; text-shadow: 0 0 4px #000, 0 0 4px #000, 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000; margin-bottom: 2%; }
         .dialogue { font-size: 3.2cqw; line-height: 1.6; color: #fff; text-shadow: 0 0 4px #000, 0 0 4px #000, 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000; white-space: pre-wrap; }
-        .section { background: #252525; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .section { background: #252525; border-radius: 8px; padding: 0; margin-bottom: 8px; overflow: hidden; }
+        .section-header { display: flex; align-items: center; gap: 6px; padding: 10px 12px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 700; color: #aaa; transition: background 0.15s; }
+        .section-header:hover { background: #2a2a2a; }
+        .section-header .arrow { font-size: 10px; transition: transform 0.2s; color: #4ecdc4; }
+        .section.open .section-header .arrow { transform: rotate(90deg); }
+        .section-header .section-icon { font-size: 13px; }
+        .section-body { display: none; padding: 0 12px 12px; }
+        .section.open .section-body { display: block; }
         .section-title { font-size: 11px; color: #666; margin-bottom: 8px; text-transform: uppercase; }
+        .save-bar { position: sticky; bottom: 0; background: #1a1a1a; border-top: 1px solid #333; padding: 10px 12px; z-index: 10; display: flex; flex-direction: column; gap: 6px; }
+        .save-bar .btn { margin: 0; }
         input[type="text"], textarea { width: 100%; background: #333; border: none; border-radius: 4px; padding: 10px; color: #eee; font-family: inherit; font-size: 14px; margin-bottom: 8px; }
         textarea { min-height: 80px; resize: vertical; }
         textarea.nvl-expand { min-height: 240px; }
@@ -254,237 +265,273 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:8px;">v0.5.0 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
-            <div class="section">
-                <div class="section-title">プロジェクト</div>
-                <div style="display:flex;gap:8px">
-                    <button class="btn btn-zip" id="loadZip" style="flex:1">📁 ZIP読込</button>
-                    <button class="btn btn-zip" id="saveZip" style="flex:1">💾 ZIP保存</button>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.0 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+
+            <!-- プロジェクト -->
+            <div class="section" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">📁</span> プロジェクト
                 </div>
-                <input type="file" id="zipInput" accept=".zip" class="hidden">
-            </div>
-            <div class="section">
-                <div class="section-title">背景画像</div>
-                <button class="audio-file" id="imgBtn" style="width:100%">画像を選択</button>
-                <input type="file" id="imgInput" accept="image/*" class="hidden">
-            </div>
-            <div class="section">
-                <div class="section-title">テキストモード</div>
-                <div style="display:flex;gap:8px">
-                    <button class="btn" id="modeADV" style="flex:1;background:#4ecdc4;color:#000">ADV（下部）</button>
-                    <button class="btn" id="modeNVL" style="flex:1;background:#333;color:#888">NVL（全画面）</button>
+                <div class="section-body">
+                    <div style="display:flex;gap:8px">
+                        <button class="btn btn-zip" id="loadZip" style="flex:1">📁 ZIP読込</button>
+                        <button class="btn btn-zip" id="saveZip" style="flex:1">💾 ZIP保存</button>
+                    </div>
+                    <input type="file" id="zipInput" accept=".zip" class="hidden">
                 </div>
             </div>
-            <div class="section">
-                <div class="section-title">画面切り替え効果</div>
-                <select id="transitionSelect" style="width:100%;background:#333;border:none;border-radius:4px;padding:10px;color:#eee;font-size:14px;">
-                    <option value="none">なし</option>
-                    <option value="fade">フェード</option>
-                    <option value="fadeBlack">暗転フェード</option>
-                    <option value="fadeWhite">ホワイトアウト</option>
-                    <option value="slideLeft">スライド（左）</option>
-                    <option value="slideRight">スライド（右）</option>
-                    <option value="slideUp">スライド（上）</option>
-                    <option value="slideDown">スライド（下）</option>
-                </select>
-            </div>
-            <div class="section">
-                <div class="section-title">ラベル（ジャンプ先として使用）</div>
-                <input type="text" id="labelInput" class="label-input" placeholder="例: ルートB開始">
-            </div>
-            <div class="section">
-                <div class="section-title">テキスト</div>
-                <input type="text" id="nameInput" placeholder="キャラクター名">
-                <textarea id="textInput" placeholder="セリフ"></textarea>
-            </div>
-            <div class="section">
-                <div class="section-title">選択肢</div>
-                <div class="choice-toggle">
-                    <input type="checkbox" id="isChoiceCheck">
-                    <label for="isChoiceCheck">このシーンは選択肢</label>
+
+            <!-- テキスト（デフォルト開） -->
+            <div class="section open" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">✏️</span> テキスト
                 </div>
-                <div id="choiceEditor" class="hidden">
-                    <div class="choice-options" id="choiceOptions"></div>
-                    <button class="btn add-choice-btn" id="addChoiceBtn">＋ 選択肢を追加</button>
-                    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #333">
-                        <div class="choice-toggle">
-                            <input type="checkbox" id="isTimedCheck">
-                            <label for="isTimedCheck" style="color:#e94560">⏱ 時間制限あり</label>
-                        </div>
-                        <div id="timedOptions" class="hidden" style="margin-top:8px">
-                            <div style="display:flex;gap:8px;margin-bottom:8px">
-                                <input type="number" id="timedSeconds" placeholder="秒数" min="1" max="300" value="10" style="width:70px">
-                                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa"><input type="checkbox" id="showTimerCheck" checked> タイマー表示</label>
+                <div class="section-body">
+                    <div style="display:flex;gap:8px;margin-bottom:8px">
+                        <button class="btn" id="modeADV" style="flex:1;background:#4ecdc4;color:#000">ADV</button>
+                        <button class="btn" id="modeNVL" style="flex:1;background:#333;color:#888">NVL</button>
+                    </div>
+                    <input type="text" id="nameInput" placeholder="キャラクター名">
+                    <textarea id="textInput" placeholder="セリフ"></textarea>
+                    <input type="text" id="labelInput" class="label-input" placeholder="ラベル（例: ルートB開始）" style="margin-top:4px">
+                </div>
+            </div>
+
+            <!-- 背景・効果 -->
+            <div class="section" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">🖼</span> 背景・効果
+                </div>
+                <div class="section-body">
+                    <div class="section-title">背景画像</div>
+                    <button class="audio-file" id="imgBtn" style="width:100%">画像を選択</button>
+                    <input type="file" id="imgInput" accept="image/*" class="hidden">
+                    <div class="section-title" style="margin-top:10px">画面切り替え</div>
+                    <select id="transitionSelect" style="width:100%;background:#333;border:none;border-radius:4px;padding:10px;color:#eee;font-size:14px;">
+                        <option value="none">なし</option>
+                        <option value="fade">フェード</option>
+                        <option value="fadeBlack">暗転フェード</option>
+                        <option value="fadeWhite">ホワイトアウト</option>
+                        <option value="slideLeft">スライド（左）</option>
+                        <option value="slideRight">スライド（右）</option>
+                        <option value="slideUp">スライド（上）</option>
+                        <option value="slideDown">スライド（下）</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 選択肢 -->
+            <div class="section" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">🔀</span> 選択肢
+                </div>
+                <div class="section-body">
+                    <div class="choice-toggle">
+                        <input type="checkbox" id="isChoiceCheck">
+                        <label for="isChoiceCheck">このシーンは選択肢</label>
+                    </div>
+                    <div id="choiceEditor" class="hidden">
+                        <div class="choice-options" id="choiceOptions"></div>
+                        <button class="btn add-choice-btn" id="addChoiceBtn">＋ 選択肢を追加</button>
+                        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #333">
+                            <div class="choice-toggle">
+                                <input type="checkbox" id="isTimedCheck">
+                                <label for="isTimedCheck" style="color:#e94560">⏱ 時間制限あり</label>
                             </div>
-                            <div style="display:flex;gap:8px;margin-bottom:8px">
-                                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa"><input type="checkbox" id="forceProgressCheck" checked> 時間切れで自動進行</label>
+                            <div id="timedOptions" class="hidden" style="margin-top:8px">
+                                <div style="display:flex;gap:8px;margin-bottom:8px">
+                                    <input type="number" id="timedSeconds" placeholder="秒数" min="1" max="300" value="10" style="width:70px">
+                                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa"><input type="checkbox" id="showTimerCheck" checked> タイマー表示</label>
+                                </div>
+                                <div style="display:flex;gap:8px;margin-bottom:8px">
+                                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#aaa"><input type="checkbox" id="forceProgressCheck" checked> 時間切れで自動進行</label>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <span style="font-size:11px;color:#888">時間切れ時:</span>
+                                    <select id="timeoutGoto" style="flex:1;background:#333;border:none;border-radius:4px;padding:6px;color:#eee;font-size:11px">
+                                        <option value="">→ 次へ</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div style="display:flex;gap:8px;align-items:center">
-                                <span style="font-size:11px;color:#888">時間切れ時:</span>
-                                <select id="timeoutGoto" style="flex:1;background:#333;border:none;border-radius:4px;padding:6px;color:#eee;font-size:11px">
-                                    <option value="">→ 次へ</option>
-                                </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サウンド -->
+            <div class="section" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">🎵</span> サウンド
+                </div>
+                <div class="section-body">
+                    <div class="section-title">SE（効果音）</div>
+                    <div id="seList"></div>
+                    <button class="btn btn-primary" id="addSeBtn" style="width:100%">＋ SE追加</button>
+                    <input type="file" id="seInput" class="hidden">
+                    <div class="section-title" style="margin-top:10px">BGM</div>
+                    <div id="bgmList"></div>
+                    <button class="btn btn-primary" id="addBgmBtn" style="width:100%">＋ BGM追加</button>
+                    <input type="file" id="bgmInput" class="hidden">
+                </div>
+            </div>
+
+            <!-- 画像素材 -->
+            <div class="section" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">🎨</span> 画像素材
+                </div>
+                <div class="section-body">
+                    <div class="section-title">オーバーレイ</div>
+                    <div class="overlay-list" id="overlayList"></div>
+                    <button class="btn btn-primary" id="addOverlayBtn" style="width:100%">＋ 画像追加</button>
+                    <input type="file" id="overlayInput" accept="image/*" multiple class="hidden">
+                    <div class="section-title" style="margin-top:10px">立ち絵</div>
+                    <div class="overlay-list" id="charList"></div>
+                    <button class="btn btn-primary" id="addCharBtn" style="width:100%">＋ 立ち絵追加</button>
+                    <input type="file" id="charInput" accept="image/*" multiple class="hidden">
+                </div>
+            </div>
+
+            <!-- コマンド -->
+            <div class="section" data-accordion>
+                <div class="section-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="arrow">▶</span><span class="section-icon">⚡</span> コマンド
+                </div>
+                <div class="section-body">
+                    <textarea id="cmdInput" class="cmd-input" placeholder="1SE2,@FLASH"></textarea>
+                    <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ 実行</button>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> SE・BGM・FX
+                        </div>
+                        <div class="cmd-section-content">
+                            <div class="cmd-row"><code>SE:se01</code><button class="cmd-copy" data-cmd="SE:se01">📋</button></div>
+                            <div class="cmd-desc">SE再生（1回）</div>
+                            <div class="cmd-row"><code>SE:se01:3</code><button class="cmd-copy" data-cmd="SE:se01:3">📋</button></div>
+                            <div class="cmd-desc">SE再生（3回リピート）</div>
+                            <div class="cmd-row"><code>SE:se01:0</code><button class="cmd-copy" data-cmd="SE:se01:0">📋</button></div>
+                            <div class="cmd-desc">SE無限ループ</div>
+                            <div class="cmd-row"><code>SE:STOP:se01</code><button class="cmd-copy" data-cmd="SE:STOP:se01">📋</button></div>
+                            <div class="cmd-desc">特定SEの停止</div>
+                            <div class="cmd-row"><code>SE:STOP</code><button class="cmd-copy" data-cmd="SE:STOP">📋</button></div>
+                            <div class="cmd-desc">全SE停止</div>
+                            <div class="cmd-row"><code>BGM:bgm01</code><button class="cmd-copy" data-cmd="BGM:bgm01">📋</button></div>
+                            <div class="cmd-desc">BGM再生</div>
+                            <div class="cmd-row"><code>BGM:STOP</code><button class="cmd-copy" data-cmd="BGM:STOP">📋</button></div>
+                            <div class="cmd-desc">BGM停止</div>
+                            <div class="cmd-row"><code>FLASH</code><button class="cmd-copy" data-cmd="FLASH">📋</button></div>
+                            <div class="cmd-desc">白フラッシュ</div>
+                            <div class="cmd-row"><code>FLASH3</code><button class="cmd-copy" data-cmd="FLASH3">📋</button></div>
+                            <div class="cmd-desc">3回連続フラッシュ</div>
+                            <div class="cmd-row"><code>SHAKE</code><button class="cmd-copy" data-cmd="SHAKE">📋</button></div>
+                            <div class="cmd-desc">画面振動</div>
+                        </div>
+                    </div>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> フラグ分岐
+                        </div>
+                        <div class="cmd-section-content">
+                            <div class="cmd-row"><code>SETFLAG:フラグ名</code><button class="cmd-copy" data-cmd="SETFLAG:フラグ名">📋</button></div>
+                            <div class="cmd-desc">フラグをONにする</div>
+                            <div class="cmd-row"><code>IFFLAG:フラグ名:SKIP</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:SKIP">📋</button></div>
+                            <div class="cmd-desc">フラグONならこのシーンをスキップ</div>
+                            <div class="cmd-row"><code>IFFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:GOTO:ラベル">📋</button></div>
+                            <div class="cmd-desc">フラグONならラベルへジャンプ</div>
+                            <div class="cmd-row"><code>NOTFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="NOTFLAG:フラグ名:GOTO:ラベル">📋</button></div>
+                            <div class="cmd-desc">フラグOFFならラベルへジャンプ</div>
+                            <div class="cmd-row"><code>FROM:A-1:SKIP</code><button class="cmd-copy" data-cmd="FROM:A-1:SKIP">📋</button></div>
+                            <div class="cmd-desc">選択肢A-1から来たらスキップ</div>
+                            <div class="cmd-row"><code>FROM:A-1:GOTO:ラベル</code><button class="cmd-copy" data-cmd="FROM:A-1:GOTO:ラベル">📋</button></div>
+                            <div class="cmd-desc">選択肢A-1から来たらジャンプ</div>
+                        </div>
+                    </div>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> カウンター（周回永続）
+                        </div>
+                        <div class="cmd-section-content">
+                            <div class="cmd-row"><code>SETCOUNTER:周回数:0</code><button class="cmd-copy" data-cmd="SETCOUNTER:周回数:0">📋</button></div>
+                            <div class="cmd-desc">カウンターを値にセット</div>
+                            <div class="cmd-row"><code>ADDCOUNTER:周回数:1</code><button class="cmd-copy" data-cmd="ADDCOUNTER:周回数:1">📋</button></div>
+                            <div class="cmd-desc">カウンターに加算（負数で減算）</div>
+                            <div class="cmd-row"><code>RESETCOUNTER:周回数</code><button class="cmd-copy" data-cmd="RESETCOUNTER:周回数">📋</button></div>
+                            <div class="cmd-desc">カウンターを0にリセット</div>
+                            <div class="cmd-row"><code>IFCOUNTER:周回数:>=:3:GOTO:真ED</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:>=:3:GOTO:真ED">📋</button></div>
+                            <div class="cmd-desc">条件を満たせばジャンプ</div>
+                            <div class="cmd-row"><code>IFCOUNTER:周回数:==:0:SKIP</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:==:0:SKIP">📋</button></div>
+                            <div class="cmd-desc">条件を満たせばスキップ</div>
+                        </div>
+                    </div>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> オーバーレイ
+                        </div>
+                        <div class="cmd-section-content">
+                            <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
+                                透過画像を画面外から出現させる演出<br>
+                                構文: OVERLAY:ファイル:方向:パス:速度:easing:loop
                             </div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50:500ms">📋</button></div>
+                            <div class="cmd-desc">上から降りてきて中央で停止</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:bottom:100>20:300ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:bottom:100>20:300ms">📋</button></div>
+                            <div class="cmd-desc">下から出てきて20%で停止</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:left:-100>200:400ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:left:-100>200:400ms">📋</button></div>
+                            <div class="cmd-desc">左から右へ貫通</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50|1000>-100:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50|1000>-100:500ms">📋</button></div>
+                            <div class="cmd-desc">出てきて1秒待って戻る</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:→(-100,120):500ms:bounce</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:→(-100,120):500ms:bounce">📋</button></div>
+                            <div class="cmd-desc">左外→右外へバウンド移動</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut">📋</button></div>
+                            <div class="cmd-desc">下から上へ貫通</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms">📋</button></div>
+                            <div class="cmd-desc">左→右へ放物線ジャンプ</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3">📋</button></div>
+                            <div class="cmd-desc">右上へ3回ジャンプ</div>
+                            <div class="cmd-row"><code>OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop">📋</button></div>
+                            <div class="cmd-desc">ふわふわ浮遊</div>
+                            <div class="cmd-row"><code>OVERLAY:CLEAR</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR">📋</button></div>
+                            <div class="cmd-desc">全オーバーレイを消去</div>
+                            <div class="cmd-row"><code>OVERLAY:CLEAR:fade:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR:fade:500ms">📋</button></div>
+                            <div class="cmd-desc">フェードアウトで消去</div>
+                        </div>
+                    </div>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> 立ち絵
+                        </div>
+                        <div class="cmd-section-content">
+                            <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
+                                キャラクター立ち絵の表示・非表示<br>
+                                構文: CHAR:スロット:ファイル名[:オプション]
+                            </div>
+                            <div class="cmd-row"><code>CHAR:center:ch001.png</code><button class="cmd-copy" data-cmd="CHAR:center:ch001.png">📋</button></div>
+                            <div class="cmd-desc">中央に表示</div>
+                            <div class="cmd-row"><code>CHAR:left:ch002.png</code><button class="cmd-copy" data-cmd="CHAR:left:ch002.png">📋</button></div>
+                            <div class="cmd-desc">左に表示</div>
+                            <div class="cmd-row"><code>CHAR:right:ch003.png:flip</code><button class="cmd-copy" data-cmd="CHAR:right:ch003.png:flip">📋</button></div>
+                            <div class="cmd-desc">右に反転表示</div>
+                            <div class="cmd-row"><code>CHAR:center:ch001.png:fade:500ms</code><button class="cmd-copy" data-cmd="CHAR:center:ch001.png:fade:500ms">📋</button></div>
+                            <div class="cmd-desc">フェードイン（500ms）</div>
+                            <div class="cmd-row"><code>CHAR:center:HIDE:fade:300ms</code><button class="cmd-copy" data-cmd="CHAR:center:HIDE:fade:300ms">📋</button></div>
+                            <div class="cmd-desc">フェードアウト（300ms）</div>
+                            <div class="cmd-row"><code>CHAR:CLEAR</code><button class="cmd-copy" data-cmd="CHAR:CLEAR">📋</button></div>
+                            <div class="cmd-desc">全スロット消去</div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="section">
-                <div class="section-title">SE（効果音）</div>
-                <div id="seList"></div>
-                <button class="btn btn-primary" id="addSeBtn" style="width:100%">＋ SE追加</button>
-                <input type="file" id="seInput" class="hidden">
-            </div>
-            <div class="section">
-                <div class="section-title">BGM</div>
-                <div id="bgmList"></div>
-                <button class="btn btn-primary" id="addBgmBtn" style="width:100%">＋ BGM追加</button>
-                <input type="file" id="bgmInput" class="hidden">
-            </div>
-            <div class="section">
-                <div class="section-title">オーバーレイ</div>
-                <div class="overlay-list" id="overlayList"></div>
-                <button class="btn btn-primary" id="addOverlayBtn" style="width:100%">＋ 画像追加</button>
-                <input type="file" id="overlayInput" accept="image/*" multiple class="hidden">
-            </div>
-            <div class="section">
-                <div class="section-title">立ち絵</div>
-                <div class="overlay-list" id="charList"></div>
-                <button class="btn btn-primary" id="addCharBtn" style="width:100%">＋ 立ち絵追加</button>
-                <input type="file" id="charInput" accept="image/*" multiple class="hidden">
-            </div>
-            <button class="btn btn-save" id="saveBtn">＋ 新規シーン追加</button>
-            <button class="btn btn-cancel hidden" id="cancelBtn">キャンセル</button>
-            <button class="btn" id="exportPngBtn" style="background:#6c5ce7;color:#fff;width:100%;margin-top:8px">📷 PNGとして保存</button>
-            
-            <div class="section" style="margin-top:12px">
-                <div class="section-title">コマンド</div>
-                <textarea id="cmdInput" class="cmd-input" placeholder="1SE2,@FLASH"></textarea>
-                <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ 実行</button>
-                
-                <div class="cmd-section">
-                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                        <span class="arrow">▶</span> SE・BGM・FX
-                    </div>
-                    <div class="cmd-section-content">
-                        <div class="cmd-row"><code>SE:se01</code><button class="cmd-copy" data-cmd="SE:se01">📋</button></div>
-                        <div class="cmd-desc">SE再生（1回）</div>
-                        <div class="cmd-row"><code>SE:se01:3</code><button class="cmd-copy" data-cmd="SE:se01:3">📋</button></div>
-                        <div class="cmd-desc">SE再生（3回リピート）</div>
-                        <div class="cmd-row"><code>SE:se01:0</code><button class="cmd-copy" data-cmd="SE:se01:0">📋</button></div>
-                        <div class="cmd-desc">SE無限ループ</div>
-                        <div class="cmd-row"><code>SE:STOP:se01</code><button class="cmd-copy" data-cmd="SE:STOP:se01">📋</button></div>
-                        <div class="cmd-desc">特定SEの停止</div>
-                        <div class="cmd-row"><code>SE:STOP</code><button class="cmd-copy" data-cmd="SE:STOP">📋</button></div>
-                        <div class="cmd-desc">全SE停止</div>
-                        <div class="cmd-row"><code>BGM:bgm01</code><button class="cmd-copy" data-cmd="BGM:bgm01">📋</button></div>
-                        <div class="cmd-desc">BGM再生</div>
-                        <div class="cmd-row"><code>BGM:STOP</code><button class="cmd-copy" data-cmd="BGM:STOP">📋</button></div>
-                        <div class="cmd-desc">BGM停止</div>
-                        <div class="cmd-row"><code>FLASH</code><button class="cmd-copy" data-cmd="FLASH">📋</button></div>
-                        <div class="cmd-desc">白フラッシュ</div>
-                        <div class="cmd-row"><code>FLASH3</code><button class="cmd-copy" data-cmd="FLASH3">📋</button></div>
-                        <div class="cmd-desc">3回連続フラッシュ</div>
-                        <div class="cmd-row"><code>SHAKE</code><button class="cmd-copy" data-cmd="SHAKE">📋</button></div>
-                        <div class="cmd-desc">画面振動</div>
-                    </div>
-                </div>
-                
-                <div class="cmd-section">
-                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                        <span class="arrow">▶</span> フラグ分岐
-                    </div>
-                    <div class="cmd-section-content">
-                        <div class="cmd-row"><code>SETFLAG:フラグ名</code><button class="cmd-copy" data-cmd="SETFLAG:フラグ名">📋</button></div>
-                        <div class="cmd-desc">フラグをONにする</div>
-                        <div class="cmd-row"><code>IFFLAG:フラグ名:SKIP</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:SKIP">📋</button></div>
-                        <div class="cmd-desc">フラグONならこのシーンをスキップ</div>
-                        <div class="cmd-row"><code>IFFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:GOTO:ラベル">📋</button></div>
-                        <div class="cmd-desc">フラグONならラベルへジャンプ</div>
-                        <div class="cmd-row"><code>NOTFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="NOTFLAG:フラグ名:GOTO:ラベル">📋</button></div>
-                        <div class="cmd-desc">フラグOFFならラベルへジャンプ</div>
-                        <div class="cmd-row"><code>FROM:A-1:SKIP</code><button class="cmd-copy" data-cmd="FROM:A-1:SKIP">📋</button></div>
-                        <div class="cmd-desc">選択肢A-1から来たらスキップ</div>
-                        <div class="cmd-row"><code>FROM:A-1:GOTO:ラベル</code><button class="cmd-copy" data-cmd="FROM:A-1:GOTO:ラベル">📋</button></div>
-                        <div class="cmd-desc">選択肢A-1から来たらジャンプ</div>
-                    </div>
-                </div>
-                
-                <div class="cmd-section">
-                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                        <span class="arrow">▶</span> カウンター（周回永続）
-                    </div>
-                    <div class="cmd-section-content">
-                        <div class="cmd-row"><code>SETCOUNTER:周回数:0</code><button class="cmd-copy" data-cmd="SETCOUNTER:周回数:0">📋</button></div>
-                        <div class="cmd-desc">カウンターを値にセット</div>
-                        <div class="cmd-row"><code>ADDCOUNTER:周回数:1</code><button class="cmd-copy" data-cmd="ADDCOUNTER:周回数:1">📋</button></div>
-                        <div class="cmd-desc">カウンターに加算（負数で減算）</div>
-                        <div class="cmd-row"><code>RESETCOUNTER:周回数</code><button class="cmd-copy" data-cmd="RESETCOUNTER:周回数">📋</button></div>
-                        <div class="cmd-desc">カウンターを0にリセット</div>
-                        <div class="cmd-row"><code>IFCOUNTER:周回数:>=:3:GOTO:真ED</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:>=:3:GOTO:真ED">📋</button></div>
-                        <div class="cmd-desc">条件を満たせばジャンプ（>=, <=, ==, !=, >, <）</div>
-                        <div class="cmd-row"><code>IFCOUNTER:周回数:==:0:SKIP</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:==:0:SKIP">📋</button></div>
-                        <div class="cmd-desc">条件を満たせばスキップ</div>
-                    </div>
-                </div>
-                
-                <div class="cmd-section">
-                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                        <span class="arrow">▶</span> オーバーレイ
-                    </div>
-                    <div class="cmd-section-content">
-                        <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
-                            透過画像を画面外から出現させる演出<br>
-                            構文: OVERLAY:ファイル:方向:パス:速度:easing:loop
-                        </div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50:500ms">📋</button></div>
-                        <div class="cmd-desc">上から降りてきて中央で停止</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:bottom:100>20:300ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:bottom:100>20:300ms">📋</button></div>
-                        <div class="cmd-desc">下から出てきて20%で停止</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:left:-100>200:400ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:left:-100>200:400ms">📋</button></div>
-                        <div class="cmd-desc">左から右へ貫通</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50|1000>-100:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50|1000>-100:500ms">📋</button></div>
-                        <div class="cmd-desc">出てきて1秒待って戻る</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:→(-100,120):500ms:bounce</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:→(-100,120):500ms:bounce">📋</button></div>
-                        <div class="cmd-desc">左外→右外へバウンド移動</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut">📋</button></div>
-                        <div class="cmd-desc">下から上へ貫通</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms">📋</button></div>
-                        <div class="cmd-desc">左→右へ放物線ジャンプ</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3">📋</button></div>
-                        <div class="cmd-desc">右上へ3回ジャンプ</div>
-                        <div class="cmd-row"><code>OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop">📋</button></div>
-                        <div class="cmd-desc">ふわふわ浮遊</div>
-                        <div class="cmd-row"><code>OVERLAY:CLEAR</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR">📋</button></div>
-                        <div class="cmd-desc">全オーバーレイを消去</div>
-                        <div class="cmd-row"><code>OVERLAY:CLEAR:fade:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR:fade:500ms">📋</button></div>
-                        <div class="cmd-desc">フェードアウトで消去</div>
-                    </div>
-                </div>
-                
-                <div class="cmd-section">
-                    <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                        <span class="arrow">▶</span> 立ち絵
-                    </div>
-                    <div class="cmd-section-content">
-                        <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
-                            キャラクター立ち絵の表示・非表示<br>
-                            構文: CHAR:スロット:ファイル名[:オプション]
-                        </div>
-                        <div class="cmd-row"><code>CHAR:center:ch001.png</code><button class="cmd-copy" data-cmd="CHAR:center:ch001.png">📋</button></div>
-                        <div class="cmd-desc">中央に表示</div>
-                        <div class="cmd-row"><code>CHAR:left:ch002.png</code><button class="cmd-copy" data-cmd="CHAR:left:ch002.png">📋</button></div>
-                        <div class="cmd-desc">左に表示</div>
-                        <div class="cmd-row"><code>CHAR:right:ch003.png:flip</code><button class="cmd-copy" data-cmd="CHAR:right:ch003.png:flip">📋</button></div>
-                        <div class="cmd-desc">右に反転表示</div>
-                        <div class="cmd-row"><code>CHAR:center:ch001.png:fade:500ms</code><button class="cmd-copy" data-cmd="CHAR:center:ch001.png:fade:500ms">📋</button></div>
-                        <div class="cmd-desc">フェードイン（500ms）</div>
-                        <div class="cmd-row"><code>CHAR:center:HIDE:fade:300ms</code><button class="cmd-copy" data-cmd="CHAR:center:HIDE:fade:300ms">📋</button></div>
-                        <div class="cmd-desc">フェードアウト（300ms）</div>
-                        <div class="cmd-row"><code>CHAR:CLEAR</code><button class="cmd-copy" data-cmd="CHAR:CLEAR">📋</button></div>
-                        <div class="cmd-desc">全スロット消去</div>
-                    </div>
-                </div>
+
+            <!-- 保存バー（下部固定） -->
+            <div class="save-bar">
+                <button class="btn btn-save" id="saveBtn">＋ 新規シーン追加</button>
+                <button class="btn btn-cancel hidden" id="cancelBtn">キャンセル</button>
+                <button class="btn" id="exportPngBtn" style="background:#6c5ce7;color:#fff">📷 PNG保存</button>
             </div>
         </div>
     </div>
