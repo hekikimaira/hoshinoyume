@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VN Text Editor</title>
+    <title>ホシノユメ</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -141,12 +141,12 @@
         .cmd-row .cmd-copy:hover { background: #4ecdc4; color: #000; }
         .cmd-row .cmd-copy:active { transform: scale(0.95); }
         .cmd-desc { font-size: 9px; color: #666; margin-left: 26px; margin-bottom: 6px; }
-        .char-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
-        .char-slot { position: absolute; bottom: 0; display: flex; align-items: flex-end; justify-content: center; }
+        .char-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; width: 100%; height: 100%; }
+        .char-slot { position: absolute; bottom: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
         .char-slot[data-slot="left"] { left: 20%; transform: translateX(-50%); }
         .char-slot[data-slot="center"] { left: 50%; transform: translateX(-50%); }
         .char-slot[data-slot="right"] { left: 80%; transform: translateX(-50%); }
-        .char-slot img { max-height: 90%; max-width: none; transition: opacity 0.3s; }
+        .char-slot img { max-height: 90%; width: auto; transition: opacity 0.3s; }
         .char-slot img.flip { transform: scaleX(-1); }
         .editor-overlay-container { position: absolute; inset: 0; z-index: 15; pointer-events: none; overflow: hidden; }
         .editor-overlay-item { position: absolute; pointer-events: none; transform: translate(-50%,-50%); }
@@ -557,7 +557,7 @@
 </div>
 
 <script>
-// ===== VN Text Editor v0.5.0 =====
+// ===== ホシノユメ v0.5.0 =====
 // Change log: Character sprite (立ち絵) system added
 
 // ===== IndexedDB Auto Save =====
@@ -800,12 +800,14 @@ function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; edito
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
 function renderScenes() { sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
-scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}</div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span><div class="scene-actions"><button class="scene-btn scene-edit">✎</button><button class="scene-btn scene-copy" style="background:#3498db" title="コピー">📋</button><button class="scene-btn" style="background:#6c5ce7" title="PNG出力">📷</button><button class="scene-btn scene-del">✕</button></div>`;
+scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}</div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span><div class="scene-actions"><button class="scene-btn scene-play" style="background:#2ed573;color:#000" title="ここから再生">▶</button><button class="scene-btn scene-edit">✎</button><button class="scene-btn scene-copy" style="background:#3498db" title="コピー">📋</button><button class="scene-btn" style="background:#6c5ce7" title="PNG出力">📷</button><button class="scene-btn scene-del">✕</button></div>`;
 card.ondragstart = e => { e.dataTransfer.setData('idx', i); card.classList.add('dragging'); }; card.ondragend = () => card.classList.remove('dragging'); card.ondragover = e => { e.preventDefault(); card.classList.add('drag-over'); }; card.ondragleave = () => card.classList.remove('drag-over'); card.ondrop = e => { e.preventDefault(); card.classList.remove('drag-over'); const from = +e.dataTransfer.getData('idx'); if (from !== i) { const [moved] = scenes.splice(from, 1); scenes.splice(i, 0, moved); renderScenes(); saveWithHistory(); } };
-card.querySelector('.scene-edit').onclick = e => { e.stopPropagation(); loadToEditor(s); }; card.querySelector('.scene-copy').onclick = e => { e.stopPropagation(); copySceneToEditor(s); }; card.querySelector('.scene-btn[title="PNG出力"]').onclick = async e => { e.stopPropagation(); await exportSceneToPng(s, i); }; card.querySelector('.scene-del').onclick = e => { e.stopPropagation(); scenes = scenes.filter(x => x.id !== s.id); renderScenes(); saveWithHistory(); }; sceneGrid.appendChild(card); }); }
+card.querySelector('.scene-play').onclick = e => { e.stopPropagation(); startPreviewFrom(i); }; card.querySelector('.scene-edit').onclick = e => { e.stopPropagation(); loadToEditor(s); }; card.querySelector('.scene-copy').onclick = e => { e.stopPropagation(); copySceneToEditor(s); }; card.querySelector('.scene-btn[title="PNG出力"]').onclick = async e => { e.stopPropagation(); await exportSceneToPng(s, i); }; card.querySelector('.scene-del').onclick = e => { e.stopPropagation(); scenes = scenes.filter(x => x.id !== s.id); renderScenes(); saveWithHistory(); }; sceneGrid.appendChild(card); }); }
 
 editModeBtn.onclick = () => { editModeBtn.classList.add('active'); previewModeBtn.classList.remove('active'); sceneGrid.classList.remove('hidden'); previewView.classList.remove('active'); emptyMsg.classList.toggle('hidden', scenes.length > 0); };
 previewModeBtn.onclick = () => { previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; previewIndex = 0; showPreview(); };
+
+function startPreviewFrom(idx) { previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; previewIndex = idx; showPreview(); }
 
 function findSceneByLabel(label) { const idx = scenes.findIndex(s => s.label === label || String(s.id) === label); return idx >= 0 ? idx : -1; }
 
