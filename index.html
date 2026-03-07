@@ -884,7 +884,7 @@ saveBtn.onclick = () => {
         const idx = scenes.findIndex(s => s.id === editingId); if (idx >= 0) scenes[idx] = scene;
         resetEditor();
     } else {
-        const chunks = textInput.value.split('@@@').map(c => c.trim()).filter(c => c);
+        const chunks = textInput.value.split(/@@@|＠＠＠/).map(c => c.trim()).filter(c => c);
         if (chunks.length === 0) chunks.push('');
         chunks.forEach((text, i) => {
             scenes.push({ ...baseProps, id: Date.now() + i, uuid: crypto.randomUUID(), text, label: i === 0 ? labelInput.value : '' });
