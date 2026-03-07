@@ -237,6 +237,8 @@
         .choice-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3cqw; z-index: 20; pointer-events: none; }
         .choice-btn { background: linear-gradient(135deg, #333 0%, #222 100%); border: 2px solid #f39c12; color: #fff; padding: 3cqw 6cqw; font-size: 3.5cqw; font-weight: 700; border-radius: 1cqw; cursor: pointer; min-width: 60%; text-align: center; transition: all 0.2s; pointer-events: auto; }
         .choice-btn:hover { background: #f39c12; color: #000; }
+        .pack-overlay { position: fixed; inset: 0; z-index: 3000; background: #000; display: none; }
+        .pack-overlay.active { display: block; }
     </style>
 </head>
 <body>
@@ -589,6 +591,8 @@
     </div>
 </div>
 
+<div class="pack-overlay" id="packOverlay"></div>
+
 <script>
 // ===== ホシノユメ v0.5.0 =====
 // Change log: Character sprite (立ち絵) system added
@@ -657,6 +661,54 @@ let projectWidth = 832, projectHeight = 1216, resolutionLocked = false;
 let flags = {}, lastChoiceId = null;
 const seAudios = {}, bgmAudios = {};
 let currentBgm = null, loopingSe = {};
+
+// ===== Pack System =====
+const packRegistry = {};
+let packScripts = {}; // filename -> source code
+let packResolve = null; // callback for pack completion
+
+function registerPack(name, handler) {
+    packRegistry[name] = handler;
+    console.log(`Pack registered: ${name}`);
+}
+
+function getPackContext() {
+    return {
+        flags, scenes, charBlobs, overlayBlobs, imageBlobs, seAudios, bgmAudios,
+        overlay: $('packOverlay'),
+        setFlag: (name) => { flags[name] = true; },
+        getFlag: (name) => !!flags[name],
+        setCounter: (name, val) => { if (!window._counters) window._counters = {}; window._counters[name] = val; },
+        getCounter: (name) => (window._counters && window._counters[name]) || 0,
+        resolve: (result) => {
+            $('packOverlay').classList.remove('active');
+            $('packOverlay').innerHTML = '';
+            if (packResolve) { packResolve(result); packResolve = null; }
+        }
+    };
+}
+
+async function runPack(name, args) {
+    const pack = packRegistry[name];
+    if (!pack) { console.warn(`Pack not found: ${name}`); return null; }
+    $('packOverlay').classList.add('active');
+    return new Promise((resolve) => {
+        packResolve = resolve;
+        try {
+            pack.onCommand(args, getPackContext());
+        } catch (e) {
+            console.error(`Pack error [${name}]:`, e);
+            $('packOverlay').classList.remove('active');
+            $('packOverlay').innerHTML = '';
+            resolve(null);
+        }
+    });
+}
+
+function loadPackScript(filename, source) {
+    packScripts[filename] = source;
+    try { new Function(source)(); } catch (e) { console.error(`Pack load error [${filename}]:`, e); }
+}
 
 function applyProjectResolution(w, h) { projectWidth = w; projectHeight = h; resolutionLocked = true; const ratio = `${w}/${h}`; document.documentElement.style.setProperty('--project-ratio', ratio); document.documentElement.style.setProperty('--project-width', w); document.documentElement.style.setProperty('--project-height', h); document.querySelectorAll('.preview-canvas').forEach(el => el.style.aspectRatio = ratio); document.querySelectorAll('.scene-thumb').forEach(el => el.style.aspectRatio = ratio); const styleEl = document.getElementById('dynamicResolutionStyle'); if (styleEl) styleEl.remove(); const s = document.createElement('style'); s.id = 'dynamicResolutionStyle'; s.textContent = `.preview-frame .preview-canvas { max-width: calc((100vh - 140px) * ${w} / ${h}) !important; aspect-ratio: ${ratio} !important; } .scene-thumb { aspect-ratio: ${ratio} !important; } .gallery-item { aspect-ratio: ${ratio} !important; }`; document.head.appendChild(s); }
 
@@ -772,7 +824,7 @@ const setPosition = (percent) => { if (direction === 'top' || direction === 'bot
 const animate = async () => { for (let i = 0; i < pathParts.length; i++) { const { pos, delay } = pathParts[i], speed = speeds[Math.min(i, speeds.length - 1)], easing = easings[Math.min(i, easings.length - 1)]; if (i === 0) { el.style.transition = 'none'; setPosition(pos); void el.offsetWidth; } else { el.style.transition = `all ${speed}ms ${easing}`; setPosition(pos); await sleep(speed); } if (delay > 0) await sleep(delay); } };
 for (let loop = 0; loop < loopCount; loop++) { if (!editorActiveOverlays[filename]) break; await animate(); } }
 
-async function runCmdWithOverlay(cmd, flashEl, shakeEl, overlayContainer, isPreview = false) { const upperCmd = cmd.toUpperCase().trim(); if (upperCmd.startsWith('OVERLAY:')) { await runEditorOverlay(cmd.trim().slice(8), overlayContainer); return null; } if (upperCmd.startsWith('CHAR:')) { const charLayer = overlayContainer.closest('.preview-canvas').querySelector('.char-layer'); await runCharCmd(cmd.trim().slice(5), charLayer); return null; } return runCmd(cmd, flashEl, shakeEl, isPreview); }
+async function runCmdWithOverlay(cmd, flashEl, shakeEl, overlayContainer, isPreview = false) { const upperCmd = cmd.toUpperCase().trim(); if (upperCmd.startsWith('OVERLAY:')) { await runEditorOverlay(cmd.trim().slice(8), overlayContainer); return null; } if (upperCmd.startsWith('CHAR:')) { const charLayer = overlayContainer.closest('.preview-canvas').querySelector('.char-layer'); await runCharCmd(cmd.trim().slice(5), charLayer); return null; } if (upperCmd.startsWith('PACK:') && isPreview) { const parts = cmd.trim().slice(5).split(':'); const name = parts[0].toLowerCase(); const args = parts.slice(1); const result = await runPack(name, args); if (result) { if (result.goto) return { goto: result.goto }; if (result.skip) return 'SKIP'; if (result.flag) flags[result.flag] = true; } return null; } return runCmd(cmd, flashEl, shakeEl, isPreview); }
 
 async function runCharCmd(cmd, charLayer) {
     if (!charLayer) return;
@@ -825,7 +877,22 @@ $('cmdExec').onclick = () => { $('editorOverlayContainer').innerHTML = ''; edito
 
 cmdInput.addEventListener('input', function() { const v = this.value.trim(); if (v === 'annko85069006262') { this.value = ''; this.style.transition = 'background 0.3s, box-shadow 0.3s'; this.style.background = '#2a4a2a'; this.style.boxShadow = '0 0 12px rgba(0,255,0,0.4)'; setTimeout(() => { this.style.background = ''; this.style.boxShadow = ''; }, 800); } });
 
-saveBtn.onclick = () => { const scene = { id: editingId || Date.now(), uuid: editingId ? (scenes.find(s => s.id === editingId)?.uuid || crypto.randomUUID()) : crypto.randomUUID(), name: nameInput.value, text: textInput.value, cmd: cmdInput.value, label: labelInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value }; if (editingId) { const idx = scenes.findIndex(s => s.id === editingId); if (idx >= 0) scenes[idx] = scene; resetEditor(); } else { scenes.push(scene); } renderScenes(); saveWithHistory(); };
+saveBtn.onclick = () => {
+    const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value };
+    if (editingId) {
+        const scene = { ...baseProps, id: editingId, uuid: scenes.find(s => s.id === editingId)?.uuid || crypto.randomUUID(), text: textInput.value, label: labelInput.value };
+        const idx = scenes.findIndex(s => s.id === editingId); if (idx >= 0) scenes[idx] = scene;
+        resetEditor();
+    } else {
+        const chunks = textInput.value.split('@@@').map(c => c.trim()).filter(c => c);
+        if (chunks.length === 0) chunks.push('');
+        chunks.forEach((text, i) => {
+            scenes.push({ ...baseProps, id: Date.now() + i, uuid: crypto.randomUUID(), text, label: i === 0 ? labelInput.value : '' });
+        });
+        if (chunks.length > 1) { const n = chunks.length; textInput.value = ''; nameInput.value = baseProps.name; }
+    }
+    renderScenes(); saveWithHistory();
+};
 cancelBtn.onclick = resetEditor;
 
 function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); }
@@ -898,7 +965,7 @@ nextBtn.onclick = () => { if (previewIndex < scenes.length - 1) { previewIndex++
 
 $('dedupeBtn').onclick = async () => { const hashMap = {}, fileHashes = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.blob || data.file) { const blob = data.blob || data.file; const hash = data.hash || await hashBlob(blob); fileHashes[filename] = hash; if (!hashMap[hash]) hashMap[hash] = []; hashMap[hash].push(filename); } } const duplicates = Object.entries(hashMap).filter(([h, files]) => files.length > 1); if (duplicates.length === 0) { alert('重複画像はありませんでした'); return; } let mergedCount = 0; for (const [hash, files] of duplicates) { files.sort((a, b) => (parseInt(a) || 999) - (parseInt(b) || 999)); const keepFile = files[0], removeFiles = files.slice(1); if (confirm(`重複画像を検出:\n保持: ${keepFile}\n削除: ${removeFiles.join(', ')}\n\n統合しますか？`)) { for (const scene of scenes) { if (removeFiles.includes(scene.bg)) { scene.bg = keepFile; scene.bgUrl = imageBlobs[keepFile]?.url || null; } } for (const rf of removeFiles) { if (imageBlobs[rf]?.url) URL.revokeObjectURL(imageBlobs[rf].url); delete imageBlobs[rf]; const h = fileHashes[rf]; if (h && imageHashes[h] === rf) imageHashes[h] = keepFile; } mergedCount += removeFiles.length; } } if (mergedCount > 0) { renderScenes(); await saveToIndexedDB(); alert(`${mergedCount}件の重複画像を統合しました`); } };
 
-$('clearAll').onclick = async () => { if (!confirm('全削除しますか？')) return; scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; Object.values(seAudios).forEach(d => URL.revokeObjectURL(d.url)); Object.values(bgmAudios).forEach(d => { d.audio.pause(); URL.revokeObjectURL(d.url); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); seCounter = 0; bgmCounter = 0; currentBgm = null; charSlots = { left: null, center: null, right: null }; document.querySelectorAll('.char-slot img').forEach(img => img.remove()); renderScenes(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); if (db) { const tx = db.transaction(['project', 'images'], 'readwrite'); tx.objectStore('project').clear(); tx.objectStore('images').clear(); } };
+$('clearAll').onclick = async () => { if (!confirm('全削除しますか？')) return; scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; Object.values(seAudios).forEach(d => URL.revokeObjectURL(d.url)); Object.values(bgmAudios).forEach(d => { d.audio.pause(); URL.revokeObjectURL(d.url); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); seCounter = 0; bgmCounter = 0; currentBgm = null; charSlots = { left: null, center: null, right: null }; document.querySelectorAll('.char-slot img').forEach(img => img.remove()); packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]); renderScenes(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); if (db) { const tx = db.transaction(['project', 'images'], 'readwrite'); tx.objectStore('project').clear(); tx.objectStore('images').clear(); } };
 
 // ★ FIX: scale: 1 → scale: 2 for high quality PNG export
 $('exportAllPngBtn').onclick = async () => {
@@ -930,14 +997,15 @@ $('closeHistoryBtn').onclick = () => historyModal.classList.add('hidden');
 historyModal.onclick = e => { if (e.target === historyModal) historyModal.classList.add('hidden'); };
 
 $('loadZip').onclick = () => $('zipInput').click();
-$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {};
+$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]);
 const imgFolder = zip.folder('images'); if (imgFolder) { const files = []; imgFolder.forEach((p, f) => { if (!f.dir) files.push({ p, f }); }); for (const { p, f } of files) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); if (p.startsWith('ov')) { overlayBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > overlayCounter) overlayCounter = num; } else if (p.startsWith('ch')) { charBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > charCounter) charCounter = num; } else { const hash = await hashBlob(blob); imageBlobs[p] = { url, blob, hash }; imageHashes[hash] = p; const num = parseInt(p.split('.')[0]); if (!isNaN(num) && num > imageCounter) imageCounter = num; } } }
 const audioFolder = zip.folder('audio'); if (audioFolder) { const audioFiles = []; audioFolder.forEach((p, f) => { if (!f.dir) audioFiles.push({ p, f }); }); for (const { p, f } of audioFiles) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); const name = p.split('.')[0].toLowerCase(); if (name.startsWith('se')) { seAudios[name] = { audio: new Audio(url), url, blob, filename: p }; const num = parseInt(name.slice(2)); if (!isNaN(num) && num > seCounter) seCounter = num; } else if (name.startsWith('bgm')) { const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob, filename: p }; const num = parseInt(name.slice(3)); if (!isNaN(num) && num > bgmCounter) bgmCounter = num; } } }
 const dataFile = zip.file('data.json'); if (dataFile) { const data = JSON.parse(await dataFile.async('string')); scenes = (data.scenes || []).map(s => ({ ...s, uuid: s.uuid || crypto.randomUUID(), bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); chapters = data.chapters || []; if (data.projectWidth && data.projectHeight) applyProjectResolution(data.projectWidth, data.projectHeight); else { resolutionLocked = false; const firstBg = scenes.find(s => s.bg); if (firstBg && imageBlobs[firstBg.bg]) { const img = new Image(); img.onload = () => { if (!resolutionLocked) applyProjectResolution(img.width, img.height); }; img.src = imageBlobs[firstBg.bg].url; } } scenes.forEach(s => { if (s.choices) s.choices.forEach(c => { const m = c.id.match(/^A-(\d+)$/); if (m && +m[1] > choiceCounter) choiceCounter = +m[1]; }); }); }
-renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}`); } catch (err) { alert('読み込みエラー: ' + err.message); } };
+packScripts = {}; const packsFolder = zip.folder('packs'); if (packsFolder) { const packFiles = []; packsFolder.forEach((p, f) => { if (!f.dir && p.endsWith('.js')) packFiles.push({ p, f }); }); for (const { p, f } of packFiles) { const source = await f.async('string'); loadPackScript(p, source); } }
+renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}\nPacks: ${Object.keys(packScripts).join(', ') || '(なし)'}`); } catch (err) { alert('読み込みエラー: ' + err.message); } };
 
 function getExt(filename) { return filename.split('.').pop() || 'mp3'; }
-$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); const content = await zip.generateAsync({ type: 'blob' }); const url = URL.createObjectURL(content); const a = document.createElement('a'); a.href = url; a.download = 'vn-project.zip'; a.click(); URL.revokeObjectURL(url); } catch (err) { alert('保存エラー: ' + err.message); } };
+$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); const url = URL.createObjectURL(content); const a = document.createElement('a'); a.href = url; a.download = 'vn-project.zip'; a.click(); URL.revokeObjectURL(url); } catch (err) { alert('保存エラー: ' + err.message); } };
 
 window.addEventListener('beforeunload', () => { clearTimeout(saveTimer); saveToIndexedDB(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(saveTimer); saveToIndexedDB(); throttledHistorySave(); } });
