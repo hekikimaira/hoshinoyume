@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NAI Combo</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a; color: #e2e8f0; min-height: 100vh; min-height: 100dvh;
+  }
+  .header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border-bottom: 1px solid #1e293b;
+    padding: 12px 16px;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; max-width: 600px; margin: 0 auto; }
+  .logo { font-size: 16px; font-weight: 700; color: #6ee7b7; letter-spacing: -0.02em; }
+  .logo-sub { font-size: 10px; color: #64748b; }
+  .btn-gen {
+    background: linear-gradient(135deg, #6ee7b7, #34d399);
+    color: #0f172a; border: none; border-radius: 10px;
+    padding: 10px 24px; font-weight: 700; font-size: 14px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-gen:disabled { background: #334155; opacity: 0.6; cursor: wait; }
+  .btn-gen:active:not(:disabled) { transform: scale(0.96); }
+  .content { max-width: 600px; margin: 0 auto; padding: 12px 16px 80px; }
+  .section {
+    background: #1e293b; border-radius: 12px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .section-label {
+    font-size: 11px; color: #64748b; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 600;
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .dropzone {
+    border: 2px dashed #475569; border-radius: 12px;
+    padding: 16px; background: #0f172a; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 120px; position: relative;
+    overflow: hidden; transition: all 0.2s; text-align: center;
+  }
+  .dropzone.has-image { border: 2px solid #334155; padding: 0; cursor: default; }
+  .dropzone.dragover { border-color: #6ee7b7; background: #1e293b; }
+  .dropzone img { max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 10px; }
+  .dropzone .icon { font-size: 28px; margin-bottom: 4px; opacity: 0.4; }
+  .dropzone .text { color: #94a3b8; font-size: 12px; line-height: 1.4; }
+  .dropzone .sub { font-size: 10px; opacity: 0.6; }
+  .dropzone .clear-btn {
+    position: absolute; top: 6px; right: 6px;
+    background: #ef4444; color: #fff; border: none;
+    border-radius: 50%; width: 24px; height: 24px;
+    cursor: pointer; font-size: 14px; font-weight: 700; line-height: 24px;
+  }
+  input[type="text"], input[type="password"], input[type="number"], textarea, select {
+    width: 100%; background: #0f172a; border: 1px solid #334155;
+    border-radius: 8px; padding: 8px 12px; color: #e2e8f0;
+    font-size: 13px; outline: none; font-family: inherit;
+  }
+  textarea { resize: vertical; }
+  select { appearance: auto; }
+  .slider-wrap { margin-bottom: 12px; }
+  .slider-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; color: #94a3b8; }
+  .slider-val { color: #e2e8f0; font-family: monospace; }
+  input[type="range"] { width: 100%; accent-color: #6ee7b7; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .field-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+  .ref-type-btns { display: flex; gap: 4px; }
+  .ref-type-btn {
+    flex: 1; padding: 6px 4px; font-size: 10px;
+    background: #0f172a; color: #94a3b8;
+    border: 1px solid #334155; border-radius: 6px;
+    cursor: pointer; font-weight: 400; text-align: center;
+  }
+  .ref-type-btn.active { background: #6ee7b7; color: #0f172a; border-color: #6ee7b7; font-weight: 700; }
+  .checkbox-row { display: flex; gap: 16px; margin-top: 4px; }
+  .checkbox-row label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #94a3b8; cursor: pointer;
+  }
+  .checkbox-row input { accent-color: #6ee7b7; }
+  .error-box {
+    background: #7f1d1d; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 12px;
+    font-size: 13px; color: #fca5a5; word-break: break-all;
+  }
+  .log-line {
+    font-size: 11px; color: #64748b; margin-bottom: 12px;
+    font-family: monospace; padding: 0 4px;
+  }
+  .result-img { width: 100%; border-radius: 10px; display: block; }
+  .result-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .result-actions a, .result-actions button {
+    flex: 1; text-align: center; padding: 10px;
+    border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; text-decoration: none; border: none; font-family: inherit;
+  }
+  .btn-save { background: #334155; color: #e2e8f0; }
+  .btn-to-i2i { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb !important; }
+  .btn-to-ref { background: #1a332e; color: #6ee7b7; border: 1px solid #059669 !important; }
+  .token-row { display: flex; gap: 8px; }
+  .btn-show {
+    background: #334155; border: none; border-radius: 8px;
+    padding: 8px 12px; color: #94a3b8; cursor: pointer; font-size: 12px; white-space: nowrap;
+  }
+
+  /* === Prompt Maker === */
+  .pm-toolbar {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .pm-toolbar-btn {
+    background: #334155; border: 1px solid #475569; border-radius: 6px;
+    padding: 4px 10px; font-size: 10px; color: #94a3b8; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .pm-toolbar-btn.active { background: #ef4444; border-color: #ef4444; color: #fff; }
+  .pm-toolbar-btn.accent { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; }
+  .pm-search {
+    flex: 1; min-width: 80px; background: #0f172a; border: 1px solid #334155;
+    border-radius: 6px; padding: 4px 8px; color: #e2e8f0; font-size: 11px; outline: none;
+  }
+  .pm-tabs {
+    display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px;
+    margin-bottom: 8px; scrollbar-width: none;
+  }
+  .pm-tabs::-webkit-scrollbar { display: none; }
+  .pm-tab {
+    padding: 5px 10px; font-size: 11px; border-radius: 6px;
+    background: #0f172a; color: #94a3b8; border: 1px solid #334155;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    position: relative;
+  }
+  .pm-tab.active { background: #6ee7b7; color: #0f172a; border-color: #6ee7b7; font-weight: 600; }
+  .pm-tab.delete-mode { border-color: #ef4444; }
+  .pm-tab .tab-x {
+    display: none; margin-left: 4px; font-weight: 700; color: #ef4444;
+  }
+  .pm-tab.delete-mode .tab-x { display: inline; }
+  .pm-add-tab {
+    padding: 5px 10px; font-size: 11px; border-radius: 6px;
+    background: transparent; color: #6ee7b7; border: 1px dashed #6ee7b7;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  }
+  .pm-buttons {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+    max-height: 160px; overflow-y: auto;
+  }
+  .pm-btn {
+    padding: 5px 10px; font-size: 11px; border-radius: 6px;
+    background: #0f172a; color: #e2e8f0; border: 1px solid #475569;
+    cursor: pointer; transition: all 0.15s; max-width: 180px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .pm-btn:active { transform: scale(0.95); }
+  .pm-btn.delete-mode { border-color: #ef4444; color: #fca5a5; }
+  .pm-btn.delete-mode:active { background: #ef4444; color: #fff; }
+  .pm-register {
+    display: flex; gap: 6px; margin-bottom: 10px;
+  }
+  .pm-register input {
+    background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+    padding: 6px 8px; color: #e2e8f0; font-size: 11px; outline: none;
+  }
+  .pm-register .pm-name { width: 80px; flex-shrink: 0; }
+  .pm-register .pm-text { flex: 1; min-width: 0; }
+  .pm-register button {
+    background: #6ee7b7; color: #0f172a; border: none; border-radius: 6px;
+    padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .char-count { font-size: 10px; color: #64748b; text-align: right; margin-top: 2px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #334155; color: #e2e8f0; padding: 8px 16px; border-radius: 8px;
+    font-size: 12px; z-index: 999; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.error { background: #7f1d1d; color: #fca5a5; }
+  .toast.success { background: #14532d; color: #6ee7b7; }
+
+  /* History modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 200; justify-content: center; align-items: flex-end;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #1e293b; border-radius: 16px 16px 0 0; width: 100%;
+    max-width: 600px; max-height: 70vh; overflow-y: auto; padding: 20px 16px;
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  }
+  .modal-header h3 { font-size: 14px; color: #e2e8f0; }
+  .modal-close {
+    background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer;
+  }
+  .history-item {
+    background: #0f172a; border-radius: 8px; padding: 8px 10px;
+    margin-bottom: 6px; font-size: 11px; color: #94a3b8;
+    cursor: pointer; word-break: break-all;
+  }
+  .history-item:active { background: #334155; }
+  .history-item .h-time { font-size: 9px; color: #475569; }
+  .sync-btn {
+    background: none; border: 1px solid #334155; border-radius: 8px;
+    padding: 4px 10px; font-size: 10px; color: #94a3b8; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .sync-btn.logged-in { border-color: #6ee7b7; color: #6ee7b7; }
+  .sync-status { font-size: 9px; color: #475569; text-align: right; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="logo">NAI Combo</div>
+      <div class="logo-sub">img2img + Precise Ref + Prompt Maker — v9.2</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="sync-btn" id="syncBtn" onclick="handleAuth()">ログイン</button>
+      <button class="btn-gen" id="btnGenerate" onclick="generate()">Generate</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <!-- Token -->
+  <div class="section">
+    <div class="section-label">API Token</div>
+    <div class="token-row">
+      <input type="password" id="token" placeholder="pst-xxxx... (Persistent API Token)">
+      <button class="btn-show" onclick="toggleToken()">Show</button>
+    </div>
+  </div>
+
+  <!-- Image Inputs -->
+  <div class="two-col">
+    <div class="section">
+      <div class="section-label">img2img Source</div>
+      <div class="dropzone" id="i2iZone" onclick="pickFile('i2i')">
+        <div class="icon">📷</div>
+        <div class="text">Pose / Layout<br><span class="sub">Tap or drop</span></div>
+      </div>
+      <input type="file" id="i2iInput" accept="image/*" style="display:none" onchange="onFilePicked('i2i', this)">
+      <div id="i2iControls" style="display:none; margin-top:12px;"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Precise Reference</div>
+      <div class="dropzone" id="refZone" onclick="pickFile('ref')">
+        <div class="icon">📷</div>
+        <div class="text">Character / Style<br><span class="sub">Tap or drop</span></div>
+      </div>
+      <input type="file" id="refInput" accept="image/*" style="display:none" onchange="onFilePicked('ref', this)">
+      <div id="refControls" style="display:none; margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- Prompt Maker + Prompt -->
+  <div class="section" id="promptSection">
+    <div class="section-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Prompt Maker</span>
+      <div style="display:flex; gap:4px;">
+        <button class="pm-toolbar-btn" id="btnHistory" onclick="openHistory()">履歴</button>
+        <button class="pm-toolbar-btn accent" id="btnIO" onclick="toggleIO()">I/O</button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="pm-toolbar">
+      <input class="pm-search" id="pmSearch" type="text" placeholder="🔍 検索..." oninput="renderPmButtons()">
+      <button class="pm-toolbar-btn" id="btnDeleteMode" onclick="toggleDeleteMode()">削除</button>
+    </div>
+
+    <!-- Category tabs -->
+    <div class="pm-tabs" id="pmTabs"></div>
+
+    <!-- Prompt buttons -->
+    <div class="pm-buttons" id="pmButtons"></div>
+
+    <!-- Register -->
+    <div class="pm-register">
+      <input class="pm-name" id="regName" placeholder="名前">
+      <input class="pm-text" id="regText" placeholder="プロンプトを入力">
+      <button onclick="registerButton()">登録</button>
+    </div>
+
+    <!-- I/O panel (hidden) -->
+    <div id="ioPanel" style="display:none; margin-bottom:10px;">
+      <div style="display:flex; gap:6px;">
+        <button class="pm-toolbar-btn accent" onclick="exportJSON()">Export JSON</button>
+        <button class="pm-toolbar-btn accent" onclick="document.getElementById('importFile').click()">Import JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+      </div>
+    </div>
+
+    <!-- Prompt textarea -->
+    <div class="section-label" style="margin-top:4px;">Prompt</div>
+    <textarea id="prompt" rows="4" placeholder="1girl, black hair, yellow eyes, horse ears, idol costume, stage, spotlight, cowboy shot, masterpiece, best quality"></textarea>
+    <div class="char-count" id="promptCharCount">0</div>
+
+    <div class="section-label" style="margin-top:8px;">Negative Prompt</div>
+    <textarea id="negPrompt" rows="2" placeholder="lowres, bad anatomy, worst quality..."></textarea>
+  </div>
+
+  <!-- Settings -->
+  <div class="section">
+    <div class="section-label">Settings</div>
+    <div class="grid-2">
+      <div>
+        <div class="field-label">Model</div>
+        <select id="model">
+          <option value="nai-diffusion-4-5-full" selected>V4.5 Full</option>
+          <option value="nai-diffusion-4-5-curated">V4.5 Curated</option>
+          <option value="nai-diffusion-4-curated-preview">V4 Curated</option>
+          <option value="nai-diffusion-4-full">V4 Full</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">Resolution</div>
+        <select id="resolution">
+          <option value="832,1216" selected>Portrait (832×1216)</option>
+          <option value="1216,832">Landscape (1216×832)</option>
+          <option value="1024,1024">Square (1024×1024)</option>
+          <option value="512,768">Small Portrait</option>
+          <option value="768,512">Small Landscape</option>
+          <option value="1024,1536">Large Portrait</option>
+          <option value="1536,1024">Large Landscape</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">Sampler</div>
+        <select id="sampler">
+          <option value="k_euler_ancestral" selected>k_euler_ancestral</option>
+          <option value="k_euler">k_euler</option>
+          <option value="k_dpmpp_2s_ancestral">k_dpmpp_2s_ancestral</option>
+          <option value="k_dpmpp_2m">k_dpmpp_2m</option>
+          <option value="k_dpmpp_sde">k_dpmpp_sde</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">Seed (0=random)</div>
+        <input type="number" id="seed" value="0">
+      </div>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-header"><span>Steps</span><span class="slider-val" id="stepsVal">28</span></div>
+      <input type="range" id="steps" min="1" max="50" value="28" oninput="document.getElementById('stepsVal').textContent=this.value">
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-header"><span>Prompt Guidance</span><span class="slider-val" id="guidanceVal">5.0</span></div>
+      <input type="range" id="guidance" min="0" max="10" step="0.1" value="5" oninput="document.getElementById('guidanceVal').textContent=parseFloat(this.value).toFixed(1)">
+    </div>
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="qualityToggle" checked> Quality Tags</label>
+      <label><input type="checkbox" id="varietyBoost"> Variety+</label>
+    </div>
+  </div>
+
+  <div id="errorBox" class="error-box" style="display:none;"></div>
+  <div id="debugSection" style="display:none; margin-bottom:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <span style="font-size:11px; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.08em;">Debug Log</span>
+      <button onclick="copyDebug()" style="background:#334155; border:none; border-radius:6px; padding:6px 12px; color:#6ee7b7; cursor:pointer; font-size:11px; font-weight:600;">Copy</button>
+    </div>
+    <pre id="debugLog" style="background:#0c1524; border:1px solid #1e293b; border-radius:8px; padding:10px; font-size:10px; color:#94a3b8; overflow-x:auto; white-space:pre-wrap; word-break:break-all; max-height:300px; overflow-y:auto;"></pre>
+  </div>
+  <div id="logLine" class="log-line" style="display:none;"></div>
+
+  <!-- Result -->
+  <div id="resultSection" class="section" style="display:none;">
+    <div class="section-label">Result</div>
+    <img id="resultImg" class="result-img" alt="Generated">
+    <div class="result-actions">
+      <a id="saveLink" class="btn-save" download>Save</a>
+      <button class="btn-to-i2i" onclick="resultToI2i()">→ i2i</button>
+      <button class="btn-to-ref" onclick="resultToRef()">→ Ref</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- History modal -->
+<div class="modal-overlay" id="historyModal" onclick="if(event.target===this)closeHistory()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>プロンプト履歴 (最新100件)</h3>
+      <button class="modal-close" onclick="closeHistory()">×</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// Firebase
+// ===========================
+const firebaseConfig = {
+  apiKey: "AIzaSyDBG_r1boPvLrl-wVSIIv-CgCUk0EJrqSw",
+  authDomain: "pmake-e037a.firebaseapp.com",
+  projectId: "pmake-e037a",
+  storageBucket: "pmake-e037a.firebasestorage.app",
+  messagingSenderId: "716873851866",
+  appId: "1:716873851866:web:4a892b109a83de3aec96e3",
+};
+
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb = firebase.firestore();
+let fbUser = null;
+let fbSyncDebounce = null;
+
+fbAuth.onAuthStateChanged(async (user) => {
+  fbUser = user;
+  const btn = document.getElementById('syncBtn');
+  if (user) {
+    btn.textContent = user.displayName?.split(' ')[0] || '同期中';
+    btn.classList.add('logged-in');
+    // Pull from Firestore on login
+    await pullFromFirestore();
+  } else {
+    btn.textContent = 'ログイン';
+    btn.classList.remove('logged-in');
+  }
+});
+
+async function handleAuth() {
+  if (fbUser) {
+    if (confirm('ログアウトしますか？')) {
+      await fbAuth.signOut();
+      showToast('ログアウトしました');
+    }
+  } else {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await fbAuth.signInWithPopup(provider);
+      showToast('ログインしました', 'success');
+    } catch (e) {
+      // Popup blocked on mobile - try redirect
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await fbAuth.signInWithRedirect(provider);
+      } else {
+        showToast('ログインエラー: ' + e.message, 'error');
+      }
+    }
+  }
+}
+
+// Push PM data to Firestore (debounced)
+function syncToFirestore() {
+  if (!fbUser) return;
+  clearTimeout(fbSyncDebounce);
+  fbSyncDebounce = setTimeout(async () => {
+    try {
+      const docRef = fbDb.collection('users').doc(fbUser.uid).collection('nai-combo').doc('promptMaker');
+      await docRef.set({
+        tabs: pmTabs,
+        buttons: pmButtons,
+        history: pmHistory,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } catch (e) {
+      console.error('Firestore sync error:', e);
+    }
+  }, 2000);
+}
+
+// Pull PM data from Firestore
+async function pullFromFirestore() {
+  if (!fbUser) return;
+  try {
+    const docRef = fbDb.collection('users').doc(fbUser.uid).collection('nai-combo').doc('promptMaker');
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      // First time - push local data up
+      syncToFirestore();
+      showToast('初回同期: ローカルデータをアップロード', 'success');
+      return;
+    }
+
+    const remote = snap.data();
+    const remoteTabs = remote.tabs || [];
+    const remoteButtons = remote.buttons || {};
+    const remoteHistory = remote.history || [];
+
+    // Merge strategy: remote wins if it has more tabs/buttons
+    const localTotal = Object.values(pmButtons).reduce((s, a) => s + a.length, 0);
+    const remoteTotal = Object.values(remoteButtons).reduce((s, a) => s + a.length, 0);
+
+    if (remoteTabs.length > 0 && (remoteTotal >= localTotal || pmTabs.length <= 1)) {
+      pmTabs = remoteTabs;
+      pmButtons = remoteButtons;
+      if (remoteHistory.length > pmHistory.length) pmHistory = remoteHistory;
+      pmActiveTab = pmTabs[0]?.id || 'default';
+
+      // Save to local
+      savePmDataLocal();
+      renderPmTabs();
+      renderPmButtons();
+      showToast('クラウドから同期しました', 'success');
+    } else {
+      // Local has more - push up
+      syncToFirestore();
+      showToast('ローカルデータをアップロード', 'success');
+    }
+  } catch (e) {
+    console.error('Firestore pull error:', e);
+    showToast('同期エラー', 'error');
+  }
+}
+
+// ===========================
+// IndexedDB
+// ===========================
+const DB_NAME = 'nai-combo';
+const DB_VERSION = 2;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
+      if (!db.objectStoreNames.contains('pm_tabs')) db.createObjectStore('pm_tabs');
+      if (!db.objectStoreNames.contains('pm_buttons')) db.createObjectStore('pm_buttons');
+      if (!db.objectStoreNames.contains('pm_history')) db.createObjectStore('pm_history');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGet(store, key) {
+  const db = await openDB();
+  const tx = db.transaction(store, 'readonly');
+  const req = tx.objectStore(store).get(key);
+  return new Promise(r => { req.onsuccess = () => r(req.result); req.onerror = () => r(null); });
+}
+
+async function dbSet(store, key, val) {
+  const db = await openDB();
+  const tx = db.transaction(store, 'readwrite');
+  tx.objectStore(store).put(val, key);
+  return new Promise((r, j) => { tx.oncomplete = r; tx.onerror = j; });
+}
+
+// ===========================
+// State
+// ===========================
+let i2iFile = null, refFile = null, resultBlobUrl = null;
+let currentRefMode = 'precise';
+let currentRefType = 'character';
+
+// Prompt Maker state
+let pmTabs = [{ id: 'default', name: '基本' }];
+let pmButtons = { default: [] };
+let pmActiveTab = 'default';
+let pmDeleteMode = false;
+let pmHistory = [];
+let pmHistoryTimer = null;
+
+// ===========================
+// Init
+// ===========================
+(async () => {
+  // Load token
+  const savedToken = await dbGet('settings', 'apiToken');
+  if (savedToken) document.getElementById('token').value = savedToken;
+
+  // Load PM data
+  const savedTabs = await dbGet('settings', 'pmTabs');
+  const savedButtons = await dbGet('settings', 'pmButtons');
+  const savedHistory = await dbGet('settings', 'pmHistory');
+  const savedActiveTab = await dbGet('settings', 'pmActiveTab');
+
+  if (savedTabs) pmTabs = savedTabs;
+  if (savedButtons) pmButtons = savedButtons;
+  if (savedHistory) pmHistory = savedHistory;
+  if (savedActiveTab && pmTabs.find(t => t.id === savedActiveTab)) pmActiveTab = savedActiveTab;
+
+  renderPmTabs();
+  renderPmButtons();
+  updateCharCount();
+})();
+
+// Auto-save token
+document.getElementById('token').addEventListener('input', function() {
+  dbSet('settings', 'apiToken', this.value.trim());
+});
+
+// Auto-save prompt history (1s debounce)
+document.getElementById('prompt').addEventListener('input', function() {
+  updateCharCount();
+  clearTimeout(pmHistoryTimer);
+  pmHistoryTimer = setTimeout(() => saveHistory(this.value.trim()), 1000);
+});
+
+function updateCharCount() {
+  const len = document.getElementById('prompt').value.length;
+  document.getElementById('promptCharCount').textContent = len + '文字';
+}
+
+// ===========================
+// Prompt Maker — Tabs
+// ===========================
+function renderPmTabs() {
+  const c = document.getElementById('pmTabs');
+  c.innerHTML = pmTabs.map(t => {
+    const cls = 'pm-tab' + (t.id === pmActiveTab ? ' active' : '') + (pmDeleteMode ? ' delete-mode' : '');
+    return `<div class="${cls}" data-id="${t.id}"><span class="tab-label">${t.name}</span><span class="tab-x">×</span></div>`;
+  }).join('') + '<button class="pm-add-tab" id="pmAddTab">+</button>';
+
+  c.querySelectorAll('.pm-tab').forEach(el => {
+    const id = el.dataset.id;
+    // Click
+    el.addEventListener('click', (e) => {
+      if (pmDeleteMode && e.target.classList.contains('tab-x')) {
+        deletePmTab(id); return;
+      }
+      pmActiveTab = id;
+      dbSet('settings', 'pmActiveTab', id);
+      renderPmTabs();
+      renderPmButtons();
+    });
+    // Long press to rename
+    let pt = null;
+    el.addEventListener('touchstart', () => { pt = setTimeout(() => { pt = 'fired'; renamePmTab(id); }, 600); }, { passive: true });
+    el.addEventListener('touchend', () => { if (pt !== 'fired') clearTimeout(pt); });
+    el.addEventListener('touchmove', () => { if (pt !== 'fired') clearTimeout(pt); });
+  });
+
+  document.getElementById('pmAddTab')?.addEventListener('click', addPmTab);
+}
+
+function addPmTab() {
+  const name = prompt('タブ名:');
+  if (!name) return;
+  const id = 'tab_' + Date.now();
+  pmTabs.push({ id, name });
+  pmButtons[id] = [];
+  pmActiveTab = id;
+  savePmData();
+  renderPmTabs();
+  renderPmButtons();
+}
+
+function deletePmTab(id) {
+  if (pmTabs.length <= 1) { showToast('最後のタブは削除できません', 'error'); return; }
+  if (!confirm(pmTabs.find(t => t.id === id)?.name + ' を削除？')) return;
+  pmTabs = pmTabs.filter(t => t.id !== id);
+  delete pmButtons[id];
+  if (pmActiveTab === id) pmActiveTab = pmTabs[0].id;
+  savePmData();
+  renderPmTabs();
+  renderPmButtons();
+}
+
+function renamePmTab(id) {
+  const tab = pmTabs.find(t => t.id === id);
+  if (!tab) return;
+  const name = prompt('タブ名:', tab.name);
+  if (name === null) return;
+  tab.name = name || tab.name;
+  savePmData();
+  renderPmTabs();
+}
+
+// ===========================
+// Prompt Maker — Buttons
+// ===========================
+function renderPmButtons() {
+  const c = document.getElementById('pmButtons');
+  const search = document.getElementById('pmSearch').value.toLowerCase();
+  const buttons = (pmButtons[pmActiveTab] || []).filter(b =>
+    !search || b.label.toLowerCase().includes(search) || b.text.toLowerCase().includes(search)
+  );
+
+  c.innerHTML = buttons.length === 0
+    ? '<div style="color:#475569;font-size:11px;padding:8px;">ボタンなし</div>'
+    : buttons.map((b, i) => {
+        const cls = 'pm-btn' + (pmDeleteMode ? ' delete-mode' : '');
+        return `<div class="${cls}" data-idx="${i}" title="${b.text}">${b.label}</div>`;
+      }).join('');
+
+  c.querySelectorAll('.pm-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      if (pmDeleteMode) {
+        deletePmButton(idx);
+      } else {
+        insertPmButton(idx);
+      }
+    });
+  });
+}
+
+function insertPmButton(idx) {
+  const search = document.getElementById('pmSearch').value.toLowerCase();
+  const buttons = (pmButtons[pmActiveTab] || []).filter(b =>
+    !search || b.label.toLowerCase().includes(search) || b.text.toLowerCase().includes(search)
+  );
+  const btn = buttons[idx];
+  if (!btn) return;
+
+  const editor = document.getElementById('prompt');
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const val = editor.value;
+  const text = btn.text;
+
+  let insert = text;
+  if (val && start === val.length) {
+    // Append at end
+    if (!val.endsWith(', ') && !val.endsWith(',')) insert = ', ' + text;
+  } else if (start > 0) {
+    // Insert at cursor
+    if (!val[start - 1]?.match(/[,\s]/)) insert = ', ' + text;
+  }
+
+  editor.value = val.substring(0, start) + insert + val.substring(end);
+  const newPos = start + insert.length;
+  editor.setSelectionRange(newPos, newPos);
+  editor.focus();
+  updateCharCount();
+  showToast(btn.label, 'success');
+}
+
+function registerButton() {
+  const nameEl = document.getElementById('regName');
+  const textEl = document.getElementById('regText');
+  const text = textEl.value.trim();
+  if (!text) { showToast('プロンプトを入力', 'error'); return; }
+
+  const label = nameEl.value.trim() || (text.length > 20 ? text.substring(0, 20) + '…' : text);
+  if (!pmButtons[pmActiveTab]) pmButtons[pmActiveTab] = [];
+  pmButtons[pmActiveTab].push({ label, text });
+  savePmData();
+  renderPmButtons();
+  nameEl.value = '';
+  textEl.value = '';
+  showToast('登録しました', 'success');
+}
+
+function deletePmButton(idx) {
+  const search = document.getElementById('pmSearch').value.toLowerCase();
+  const allButtons = pmButtons[pmActiveTab] || [];
+  const filtered = allButtons.filter(b =>
+    !search || b.label.toLowerCase().includes(search) || b.text.toLowerCase().includes(search)
+  );
+  const target = filtered[idx];
+  if (!target) return;
+  const realIdx = allButtons.indexOf(target);
+  if (realIdx >= 0) {
+    allButtons.splice(realIdx, 1);
+    savePmData();
+    renderPmButtons();
+    showToast('削除しました');
+  }
+}
+
+function toggleDeleteMode() {
+  pmDeleteMode = !pmDeleteMode;
+  document.getElementById('btnDeleteMode').classList.toggle('active', pmDeleteMode);
+  renderPmTabs();
+  renderPmButtons();
+}
+
+// ===========================
+// Prompt Maker — I/O
+// ===========================
+function toggleIO() {
+  const p = document.getElementById('ioPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function exportJSON() {
+  const data = { tabs: pmTabs, buttons: pmButtons };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nai-combo-prompts.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('エクスポートしました', 'success');
+}
+
+function importJSON(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.tabs && data.buttons) {
+        pmTabs = data.tabs;
+        pmButtons = data.buttons;
+        pmActiveTab = pmTabs[0]?.id || 'default';
+        savePmData();
+        renderPmTabs();
+        renderPmButtons();
+        showToast('インポートしました', 'success');
+      } else {
+        showToast('無効なJSON形式', 'error');
+      }
+    } catch { showToast('JSON解析エラー', 'error'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ===========================
+// Prompt Maker — History
+// ===========================
+function saveHistory(text) {
+  if (!text) return;
+  if (pmHistory.length > 0 && pmHistory[0].text === text) return;
+  pmHistory.unshift({ text, time: new Date().toISOString() });
+  if (pmHistory.length > 100) pmHistory.length = 100;
+  dbSet('settings', 'pmHistory', pmHistory);
+  syncToFirestore();
+}
+
+function openHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = pmHistory.length === 0
+    ? '<div style="color:#475569;font-size:12px;">履歴なし</div>'
+    : pmHistory.map((h, i) => {
+        const d = new Date(h.time);
+        const ts = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+        const preview = h.text.length > 100 ? h.text.substring(0, 100) + '…' : h.text;
+        return `<div class="history-item" data-idx="${i}"><div class="h-time">${ts}</div>${preview}</div>`;
+      }).join('');
+
+  list.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      document.getElementById('prompt').value = pmHistory[parseInt(el.dataset.idx)].text;
+      updateCharCount();
+      closeHistory();
+      showToast('履歴から復元', 'success');
+    });
+  });
+
+  document.getElementById('historyModal').classList.add('show');
+}
+
+function closeHistory() {
+  document.getElementById('historyModal').classList.remove('show');
+}
+
+// ===========================
+// Prompt Maker — Save
+// ===========================
+function savePmDataLocal() {
+  dbSet('settings', 'pmTabs', pmTabs);
+  dbSet('settings', 'pmButtons', pmButtons);
+  dbSet('settings', 'pmActiveTab', pmActiveTab);
+}
+
+function savePmData() {
+  savePmDataLocal();
+  syncToFirestore();
+}
+
+// ===========================
+// Toast
+// ===========================
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// ===========================
+// File handling (unchanged from v9)
+// ===========================
+function pickFile(which) {
+  const zone = document.getElementById(which + 'Zone');
+  if (zone.classList.contains('has-image')) return;
+  document.getElementById(which + 'Input').click();
+}
+
+function onFilePicked(which, input) {
+  const f = input.files?.[0];
+  if (f) setImage(which, f);
+  input.value = '';
+}
+
+function setImage(which, file) {
+  if (which === 'i2i') i2iFile = file; else refFile = file;
+  const zone = document.getElementById(which + 'Zone');
+  const url = URL.createObjectURL(file);
+  zone.innerHTML = `<img src="${url}" alt=""><button class="clear-btn" onclick="event.stopPropagation(); clearImage('${which}')">×</button>`;
+  zone.classList.add('has-image');
+  if (which === 'i2i') showI2iControls(true);
+  if (which === 'ref') showRefControls(true);
+}
+
+function clearImage(which) {
+  if (which === 'i2i') i2iFile = null; else refFile = null;
+  const zone = document.getElementById(which + 'Zone');
+  zone.innerHTML = `<div class="icon">📷</div><div class="text">${which==='i2i'?'Pose / Layout':'Character / Style'}<br><span class="sub">Tap or drop</span></div>`;
+  zone.classList.remove('has-image');
+  if (which === 'i2i') showI2iControls(false);
+  if (which === 'ref') showRefControls(false);
+}
+
+function showI2iControls(show) {
+  const el = document.getElementById('i2iControls');
+  el.style.display = show ? 'block' : 'none';
+  if (show && !el.innerHTML) {
+    el.innerHTML = `
+      <div class="slider-wrap">
+        <div class="slider-header"><span>Strength</span><span class="slider-val" id="strVal">0.60</span></div>
+        <input type="range" id="strength" min="0.01" max="0.99" step="0.01" value="0.60" oninput="document.getElementById('strVal').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+      <div class="slider-wrap">
+        <div class="slider-header"><span>Noise</span><span class="slider-val" id="noiseVal">0.00</span></div>
+        <input type="range" id="noise" min="0" max="0.99" step="0.01" value="0" oninput="document.getElementById('noiseVal').textContent=parseFloat(this.value).toFixed(2)">
+      </div>`;
+  }
+}
+
+function showRefControls(show) {
+  const el = document.getElementById('refControls');
+  el.style.display = show ? 'block' : 'none';
+  if (show && !el.innerHTML) {
+    el.innerHTML = `
+      <div style="margin-bottom:10px;">
+        <div class="field-label">Mode</div>
+        <div class="ref-type-btns" id="refModeBtns">
+          <div class="ref-type-btn active" onclick="setRefMode('precise')">精密参照</div>
+          <div class="ref-type-btn" onclick="setRefMode('vibe')">ポーション</div>
+        </div>
+      </div>
+      <div id="preciseControls">
+        <div style="margin-bottom:10px;">
+          <div class="field-label">Type</div>
+          <div class="ref-type-btns" id="refTypeBtns">
+            <div class="ref-type-btn active" data-type="character" onclick="setRefType(this,'character')">Character</div>
+            <div class="ref-type-btn" data-type="style" onclick="setRefType(this,'style')">Style</div>
+            <div class="ref-type-btn" data-type="character&style" onclick="setRefType(this,'character&style')">Char+Style</div>
+          </div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Strength</span><span class="slider-val" id="refStrVal">0.60</span></div>
+          <input type="range" id="refStrength" min="0.01" max="1" step="0.01" value="0.60" oninput="document.getElementById('refStrVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Fidelity</span><span class="slider-val" id="refFidVal">0.50</span></div>
+          <input type="range" id="refFidelity" min="0" max="1" step="0.01" value="0.50" oninput="document.getElementById('refFidVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+      </div>
+      <div id="vibeControls" style="display:none;">
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Info Extracted</span><span class="slider-val" id="vibeInfoVal">0.70</span></div>
+          <input type="range" id="vibeInfoExtracted" min="0.01" max="1" step="0.01" value="0.70" oninput="document.getElementById('vibeInfoVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Strength</span><span class="slider-val" id="vibeStrVal">0.60</span></div>
+          <input type="range" id="vibeStrength" min="0.01" max="1" step="0.01" value="0.60" oninput="document.getElementById('vibeStrVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+        <div style="font-size:10px;color:#64748b;margin-top:4px;">encode-vibe API経由でエンコード後に生成</div>
+      </div>`;
+  }
+}
+
+function setRefMode(mode) {
+  currentRefMode = mode;
+  document.querySelectorAll('#refModeBtns .ref-type-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('preciseControls').style.display = mode === 'precise' ? 'block' : 'none';
+  document.getElementById('vibeControls').style.display = mode === 'vibe' ? 'block' : 'none';
+}
+
+function setRefType(el, type) {
+  currentRefType = type;
+  document.querySelectorAll('#refTypeBtns .ref-type-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Drag & Drop
+['i2iZone','refZone'].forEach(id => {
+  const el = document.getElementById(id);
+  const which = id.replace('Zone','');
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('dragover'); });
+  el.addEventListener('dragleave', () => el.classList.remove('dragover'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('dragover');
+    const f = e.dataTransfer?.files?.[0];
+    if (f && f.type.startsWith('image/')) setImage(which.replace('Zone',''), f);
+  });
+});
+
+// Token toggle
+function toggleToken() {
+  const inp = document.getElementById('token');
+  const btn = inp.nextElementSibling;
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Hide'; }
+  else { inp.type = 'password'; btn.textContent = 'Show'; }
+}
+
+// ===========================
+// Helpers
+// ===========================
+function fileToBase64(file) {
+  return new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.readAsDataURL(file);
+  });
+}
+
+function setLog(msg) {
+  const el = document.getElementById('logLine');
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg;
+}
+
+function setError(msg) {
+  const el = document.getElementById('errorBox');
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg;
+  if (msg) {
+    const dl = document.getElementById('debugLog');
+    if (dl) dl.textContent += '\n\n--- ERROR ---\n' + msg;
+  }
+}
+
+function copyDebug() {
+  navigator.clipboard.writeText(document.getElementById('debugLog').textContent).catch(() => {});
+}
+
+// ===========================
+// crop and resize for Precise Reference (1024x1536)
+// ===========================
+async function cropAndResize(base64Img, targetW = 1024, targetH = 1536) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, targetW, targetH);
+      const scale = Math.min(targetW / img.width, targetH / img.height);
+      const sw = img.width * scale;
+      const sh = img.height * scale;
+      const sx = (targetW - sw) / 2;
+      const sy = (targetH - sh) / 2;
+      ctx.drawImage(img, sx, sy, sw, sh);
+      resolve(canvas.toDataURL('image/png').split(',')[1]);
+    };
+    img.src = 'data:image/png;base64,' + base64Img;
+  });
+}
+
+// ===========================
+// encode-vibe
+// ===========================
+async function encodeVibe(token, base64Img, infoExtracted, model) {
+  const resp = await fetch('https://image.novelai.net/ai/encode-vibe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ image: base64Img, information_extracted: infoExtracted, model }),
+  });
+  if (!resp.ok) throw new Error(`encode-vibe ${resp.status}: ${await resp.text()}`);
+  const buf = await resp.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+// ===========================
+// Generate
+// ===========================
+async function generate() {
+  const token = document.getElementById('token').value.trim();
+  const promptText = document.getElementById('prompt').value.trim();
+
+  if (!token) { setError('API token required'); return; }
+  if (!promptText && !refFile) { setError('Prompt or reference image required'); return; }
+
+  const btn = document.getElementById('btnGenerate');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  setError(''); setLog('Building request...');
+  document.getElementById('resultSection').style.display = 'none';
+
+  try {
+    const res = document.getElementById('resolution').value.split(',').map(Number);
+    const [w, h] = res;
+    const action = i2iFile ? 'img2img' : 'generate';
+    const seedVal = parseInt(document.getElementById('seed').value) || 0;
+    const useSeed = seedVal === 0 ? Math.floor(Math.random() * 4294967295) : seedVal;
+
+    const inputPrompt = promptText || '1girl';
+    const negText = document.getElementById('negPrompt').value || 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry';
+
+    const model = document.getElementById('model').value;
+    const params = {
+      width: w, height: h,
+      scale: parseFloat(document.getElementById('guidance').value),
+      sampler: document.getElementById('sampler').value,
+      steps: parseInt(document.getElementById('steps').value),
+      seed: useSeed,
+      n_samples: 1,
+      ucPreset: 0,
+      qualityToggle: document.getElementById('qualityToggle').checked,
+      dynamic_thresholding: false,
+      noise_schedule: model.includes('4-5') ? 'native' : 'karras',
+      cfg_rescale: 0,
+      add_original_image: true,
+      sm: false, sm_dyn: false,
+      legacy: false, legacy_v3_extend: false,
+      skip_cfg_above_sigma: null,
+      variety_boost: document.getElementById('varietyBoost').checked,
+      params_version: 3,
+      negative_prompt: negText,
+      characterPrompts: [],
+      use_coords: false,
+      v4_prompt: { caption: { base_caption: inputPrompt, char_captions: [] }, use_coords: false, use_order: true },
+      v4_negative_prompt: { caption: { base_caption: negText, char_captions: [] }, use_coords: false, use_order: true },
+      reference_image_multiple: [],
+      reference_information_extracted_multiple: [],
+      reference_strength_multiple: [],
+      normalize_reference_strength_multiple: false,
+      prefer_brownian: true,
+      deliberate_euler_ancestral_bug: false,
+      controlnet_strength: 1,
+    };
+
+    // img2img
+    if (i2iFile) {
+      params.image = await fileToBase64(i2iFile);
+      params.strength = parseFloat(document.getElementById('strength')?.value || 0.6);
+      params.noise = parseFloat(document.getElementById('noise')?.value || 0);
+      params.extra_noise_seed = useSeed;
+      setLog('Encoded img2img source...');
+    }
+
+    // Reference
+    if (refFile) {
+      const refB64 = await fileToBase64(refFile);
+
+      if (currentRefMode === 'precise') {
+        setLog('Resizing reference to 1024x1536...');
+        const resizedB64 = await cropAndResize(refB64, 1024, 1536);
+        const fidelity = parseFloat(document.getElementById('refFidelity')?.value || 0.5);
+        const strength = parseFloat(document.getElementById('refStrength')?.value || 0.6);
+
+        params.director_reference_images = [resizedB64];
+        params.director_reference_descriptions = [{
+          caption: { base_caption: currentRefType, char_captions: [] },
+          legacy_uc: false,
+        }];
+        params.director_reference_information_extracted = [1.0];
+        params.director_reference_secondary_strength_values = [1 - fidelity];
+        params.director_reference_strength_values = [strength];
+        setLog(`Precise Reference (${currentRefType}, str=${strength}, fid=${fidelity})`);
+      } else {
+        const vibeInfo = parseFloat(document.getElementById('vibeInfoExtracted')?.value || 0.7);
+        const vibeStr = parseFloat(document.getElementById('vibeStrength')?.value || 0.6);
+        setLog('Encoding vibe...');
+        const encodedVibe = await encodeVibe(token, refB64, vibeInfo, model);
+        params.reference_image_multiple = [encodedVibe];
+        params.reference_information_extracted_multiple = [vibeInfo];
+        params.reference_strength_multiple = [vibeStr];
+        setLog(`Vibe encoded (info=${vibeInfo}, str=${vibeStr})`);
+      }
+    }
+
+    const body = { input: inputPrompt, model, action, parameters: params };
+
+    // Debug
+    const debugBody = JSON.parse(JSON.stringify(body));
+    if (debugBody.parameters.image) debugBody.parameters.image = '(base64 ' + body.parameters.image.length + ' chars)';
+    if (debugBody.parameters.reference_image_multiple?.length)
+      debugBody.parameters.reference_image_multiple = body.parameters.reference_image_multiple.map(x => '(b64 ' + x.length + ')');
+    if (debugBody.parameters.director_reference_images?.length)
+      debugBody.parameters.director_reference_images = body.parameters.director_reference_images.map(x => '(b64 ' + x.length + ')');
+    document.getElementById('debugLog').textContent = JSON.stringify(debugBody, null, 2);
+    document.getElementById('debugSection').style.display = 'block';
+    setLog(`Sending ${action} request...`);
+
+    const resp = await fetch('https://image.novelai.net/ai/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) throw new Error(`API ${resp.status}: ${await resp.text()}`);
+
+    setLog('Decoding response...');
+    const ct = resp.headers.get('content-type') || '';
+    const blob = await resp.blob();
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+
+    const first8 = Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2,'0')).join(' ');
+    document.getElementById('debugLog').textContent += `\n\n--- RESPONSE ---\nContent-Type: ${ct}\nSize: ${bytes.length} bytes\nFirst 8: ${first8}`;
+
+    let pngBlob;
+    if (bytes[0] === 0x50 && bytes[1] === 0x4B) {
+      const fnLen = bytes[26] | (bytes[27] << 8);
+      const exLen = bytes[28] | (bytes[29] << 8);
+      const comprMethod = bytes[8] | (bytes[9] << 8);
+      const dataStart = 30 + fnLen + exLen;
+
+      if (comprMethod === 8) {
+        let dataEnd = bytes.length;
+        for (let i = dataStart; i < bytes.length - 4; i++) {
+          if (bytes[i]===0x50 && bytes[i+1]===0x4B && (bytes[i+2]===0x01 || bytes[i+2]===0x07)) { dataEnd = i; break; }
+        }
+        const ds = new DecompressionStream('deflate-raw');
+        const wr = ds.writable.getWriter();
+        wr.write(bytes.slice(dataStart, dataEnd));
+        wr.close();
+        const rd = ds.readable.getReader();
+        const chunks = [];
+        while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const result = new Uint8Array(total);
+        let off = 0;
+        for (const c of chunks) { result.set(c, off); off += c.length; }
+        pngBlob = new Blob([result], { type: 'image/png' });
+      } else if (comprMethod === 0) {
+        const comprSize = bytes[18] | (bytes[19] << 8) | (bytes[20] << 16) | (bytes[21] << 24);
+        pngBlob = new Blob([bytes.slice(dataStart, comprSize > 0 ? dataStart + comprSize : undefined)], { type: 'image/png' });
+      } else {
+        throw new Error(`Unknown ZIP compression: ${comprMethod}`);
+      }
+    } else {
+      let pngStart = -1;
+      for (let i = 0; i < bytes.length - 4; i++) {
+        if (bytes[i]===0x89 && bytes[i+1]===0x50 && bytes[i+2]===0x4E && bytes[i+3]===0x47) { pngStart = i; break; }
+      }
+      pngBlob = pngStart >= 0 ? new Blob([bytes.slice(pngStart)], { type: 'image/png' }) : blob;
+    }
+
+    if (resultBlobUrl) URL.revokeObjectURL(resultBlobUrl);
+    resultBlobUrl = URL.createObjectURL(pngBlob);
+
+    document.getElementById('resultImg').src = resultBlobUrl;
+    document.getElementById('saveLink').href = resultBlobUrl;
+    document.getElementById('saveLink').download = `nai_${useSeed}.png`;
+    document.getElementById('resultSection').style.display = 'block';
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    setLog(`Done! Seed: ${useSeed}`);
+
+  } catch (e) {
+    setError(e.message);
+    setLog('');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate';
+  }
+}
+
+// Result reuse
+function resultToI2i() {
+  if (!resultBlobUrl) return;
+  fetch(resultBlobUrl).then(r => r.blob()).then(b => setImage('i2i', new File([b], 'result.png', { type: 'image/png' })));
+}
+function resultToRef() {
+  if (!resultBlobUrl) return;
+  fetch(resultBlobUrl).then(r => r.blob()).then(b => setImage('ref', new File([b], 'result.png', { type: 'image/png' })));
+}
+</script>
+</body>
+</html>
