@@ -428,6 +428,14 @@
                             <div class="cmd-desc">特定SEの停止</div>
                             <div class="cmd-row"><code>SE:STOP</code><button class="cmd-copy" data-cmd="SE:STOP">📋</button></div>
                             <div class="cmd-desc">全SE停止</div>
+                            <div class="cmd-row"><code>SE:se01:random:0-3000</code><button class="cmd-copy" data-cmd="SE:se01:random:0-3000">📋</button></div>
+                            <div class="cmd-desc">0〜3000msのランダム遅延後に再生</div>
+                            <div class="cmd-row"><code>SE:se01,se02,se03:random</code><button class="cmd-copy" data-cmd="SE:se01,se02,se03:random">📋</button></div>
+                            <div class="cmd-desc">複数SEからランダムで1つ再生</div>
+                            <div class="cmd-row"><code>SE:se01:ambient:2000-5000</code><button class="cmd-copy" data-cmd="SE:se01:ambient:2000-5000">📋</button></div>
+                            <div class="cmd-desc">2〜5秒のランダム間隔で鳴らし続ける</div>
+                            <div class="cmd-row"><code>SE:AMBIENT:STOP</code><button class="cmd-copy" data-cmd="SE:AMBIENT:STOP">📋</button></div>
+                            <div class="cmd-desc">全アンビエントSE停止</div>
                             <div class="cmd-row"><code>BGM:bgm01</code><button class="cmd-copy" data-cmd="BGM:bgm01">📋</button></div>
                             <div class="cmd-desc">BGM再生</div>
                             <div class="cmd-row"><code>BGM:STOP</code><button class="cmd-copy" data-cmd="BGM:STOP">📋</button></div>
@@ -659,7 +667,7 @@ let scenes = [], imageBlobs = {}, overlayBlobs = {}, charBlobs = {}, editingId =
 let charSlots = { left: null, center: null, right: null };
 let projectWidth = 832, projectHeight = 1216, resolutionLocked = false;
 let flags = {}, lastChoiceId = null;
-const seAudios = {}, bgmAudios = {};
+const seAudios = {}, bgmAudios = {}, ambientTimers = {};
 let currentBgm = null, loopingSe = {};
 
 // ===== Pack System =====
@@ -754,7 +762,7 @@ function addChoice() { choiceCounter++; currentChoices.push({ id: 'A-' + choiceC
 function renderChoices() { choiceOptions.innerHTML = ''; const isTimed = $('isTimedCheck').checked; currentChoices.forEach((c, i) => { const div = document.createElement('div'); div.className = 'choice-option'; div.innerHTML = `<span class="choice-option-id">${c.id}</span><input type="text" placeholder="選択肢テキスト" value="${c.text}" data-idx="${i}" data-field="text"><select data-idx="${i}" data-field="goto"><option value="">→ 次へ</option>${scenes.map(s => `<option value="${s.label || s.id}" ${c.goto === (s.label || String(s.id)) ? 'selected' : ''}>${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join('')}</select>${isTimed ? `<input type="number" placeholder="±秒" value="${c.timerDelta || 0}" data-idx="${i}" data-field="timerDelta" style="width:50px;font-size:11px" title="タイマー増減(正で増加)">` : ''}<button class="btn remove-choice-btn" data-idx="${i}">×</button>`; choiceOptions.appendChild(div); }); choiceOptions.querySelectorAll('input, select').forEach(el => { el.onchange = el.oninput = () => { const idx = +el.dataset.idx; currentChoices[idx][el.dataset.field] = el.dataset.field === 'timerDelta' ? +el.value : el.value; }; }); choiceOptions.querySelectorAll('.remove-choice-btn').forEach(btn => { btn.onclick = () => { currentChoices.splice(+btn.dataset.idx, 1); renderChoices(); }; }); updateTimeoutGotoOptions(); }
 
 let seCounter = 0;
-function renderSeList() { const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { data.audio.currentTime = 0; data.audio.play(); }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); }
+function renderSeList() { const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play se-play-btn">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { if (!data.audio.paused) { data.audio.pause(); data.audio.currentTime = 0; btns[1].textContent = '▶'; btns[1].style.background = ''; } else { data.audio.currentTime = 0; data.audio.play().catch(()=>{}); btns[1].textContent = '■'; btns[1].style.background = '#e9a020'; data.audio.onended = () => { btns[1].textContent = '▶'; btns[1].style.background = ''; }; } }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); }
 $('addSeBtn').onclick = () => $('seInput').click();
 $('seInput').onchange = e => { const file = e.target.files[0]; if (!file) return; seCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `se${String(seCounter).padStart(2,'0')}`; seAudios[name] = { audio: new Audio(URL.createObjectURL(file)), url: URL.createObjectURL(file), blob: file, filename: `${name}.${ext}` }; renderSeList(); e.target.value = ''; };
 
@@ -779,13 +787,22 @@ $('charInput').onchange = async e => { for (const file of e.target.files) { char
 
 async function playSE(name, count) { const se = seAudios[name]; if (!se) return; if (count === 0) { se.audio.onended = () => { se.audio.currentTime = 0; se.audio.play(); }; se.audio.currentTime = 0; se.audio.play(); loopingSe[name] = true; return; } se.audio.currentTime = 0; se.audio.play().catch(e => {}); }
 function stopSE(name) { const se = seAudios[name]; if (!se) return; se.audio.pause(); se.audio.currentTime = 0; se.audio.onended = null; delete loopingSe[name]; }
-function stopAllSE() { Object.keys(seAudios).forEach(name => stopSE(name)); }
+function stopAllSE() { Object.keys(seAudios).forEach(name => stopSE(name)); stopAllSeAmbient(); }
+function playSeRandomDelay(name, minMs, maxMs) { const delay = Math.random() * (maxMs - minMs) + minMs; setTimeout(() => playSE(name, 1), delay); }
+function playSeRandomPick(names) { const name = names[Math.floor(Math.random() * names.length)].trim(); playSE(name, 1); }
+function startSeAmbient(name, minMs, maxMs) { stopSeAmbient(name); const scheduleNext = () => { const delay = Math.random() * (maxMs - minMs) + minMs; ambientTimers[name] = setTimeout(() => { playSE(name, 1); scheduleNext(); }, delay); }; scheduleNext(); }
+function stopSeAmbient(name) { if (ambientTimers[name]) { clearTimeout(ambientTimers[name]); delete ambientTimers[name]; } }
+function stopAllSeAmbient() { Object.keys(ambientTimers).forEach(stopSeAmbient); }
 function playBGM(name) { if (currentBgm && bgmAudios[currentBgm]) { bgmAudios[currentBgm].audio.pause(); bgmAudios[currentBgm].audio.currentTime = 0; } const bgm = bgmAudios[name]; if (!bgm) return; bgm.audio.loop = true; bgm.audio.play().catch(e => {}); currentBgm = name; }
 function stopBGM() { if (currentBgm && bgmAudios[currentBgm]) { bgmAudios[currentBgm].audio.pause(); bgmAudios[currentBgm].audio.currentTime = 0; } currentBgm = null; }
 
 async function runCmd(cmd, flashEl, shakeEl, isPreview = false) { const origCmd = cmd; cmd = cmd.toUpperCase().trim(); if (cmd.startsWith('@')) cmd = cmd.slice(1); let m;
+m = cmd.match(/^SE:STOP(?::(.+))?$/i); if (m) { m[1] ? stopSE(m[1].toLowerCase()) : stopAllSE(); return null; }
+m = cmd.match(/^SE:AMBIENT:STOP(?::(.+))?$/i); if (m) { m[1] ? stopSeAmbient(m[1].toLowerCase()) : stopAllSeAmbient(); return null; }
+m = cmd.match(/^SE:([^:,]+(?:,[^:,]+)+):random$/i); if (m) { playSeRandomPick(m[1].toLowerCase().split(',')); return null; }
+m = cmd.match(/^SE:([^:,]+):random:(\d+)-(\d+)$/i); if (m) { playSeRandomDelay(m[1].toLowerCase(), +m[2], +m[3]); return null; }
+m = cmd.match(/^SE:([^:,]+):ambient:(\d+)-(\d+)$/i); if (m) { startSeAmbient(m[1].toLowerCase(), +m[2], +m[3]); return null; }
 m = cmd.match(/^SE:([^:]+)(?::(\d+))?$/); if (m) { playSE(origCmd.trim().split(':')[1].toLowerCase(), m[2] !== undefined ? +m[2] : 1); return null; }
-m = cmd.match(/^SE:STOP(?::(.+))?$/); if (m) { m[1] ? stopSE(m[1].toLowerCase()) : stopAllSE(); return null; }
 m = cmd.match(/^([123])SE(\d+)$/); if (m) { playSE('se0' + m[1], +m[2]); return null; }
 m = cmd.match(/^FLASH(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doFlash(flashEl); if (i < n-1) await sleep(150); } return null; }
 m = cmd.match(/^SHAKE(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doShake(shakeEl); if (i < n-1) await sleep(300); } return null; }
