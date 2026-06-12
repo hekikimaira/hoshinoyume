@@ -69,7 +69,7 @@
             .scene-name { font-size: 11px; }
             .scene-text { font-size: 9px; }
             .scene-actions { opacity: 1; bottom: 4px; right: 4px; }
-            .scene-btn { width: 28px; height: 28px; font-size: 12px; }
+            .scene-btn { width: 38px; height: 38px; font-size: 16px; }
             .preview-nav { padding: 8px; gap: 8px; }
             .nav-btn { font-size: 24px; padding: 12px 16px; }
             .preview-info { font-size: 12px; padding: 8px; }
@@ -182,11 +182,20 @@
         .scene-label { font-size: 9px; color: #f39c12; margin-top: 2px; }
         .scene-num { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
         .scene-choice-badge { position: absolute; top: 6px; right: 6px; background: #f39c12; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; }
-        .scene-actions { position: absolute; bottom: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; }
-        .scene-card:hover .scene-actions { opacity: 1; }
-        .scene-btn { width: 24px; height: 24px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .scene-actions { position: absolute; bottom: 6px; right: 6px; display: flex; gap: 6px; opacity: 1; align-items: center; }
+        .scene-btn { width: 36px; height: 36px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .scene-edit { background: #4ecdc4; color: #000; }
         .scene-del { background: #e94560; color: #fff; }
+        .scene-more { background: rgba(0,0,0,0.65); color: #fff; font-size: 18px; font-weight: 700; }
+        .scene-menu { position: absolute; bottom: 48px; right: 6px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 4px; z-index: 50; display: none; flex-direction: column; gap: 2px; box-shadow: 0 4px 16px rgba(0,0,0,0.6); min-width: 130px; }
+        .scene-menu.open { display: flex; }
+        .scene-menu button { background: transparent; border: none; color: #eee; font-size: 13px; padding: 10px 12px; text-align: left; cursor: pointer; border-radius: 4px; white-space: nowrap; }
+        .scene-menu button:hover { background: #3a3a3a; }
+        .scene-menu button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .scene-add-card { background: #252525; border: 2px dashed #4ecdc4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; min-height: 120px; color: #4ecdc4; gap: 8px; transition: background 0.15s; }
+        .scene-add-card:hover { background: #2a3a39; }
+        .scene-add-card .add-plus { font-size: 32px; font-weight: 700; line-height: 1; }
+        .scene-add-card .add-label { font-size: 12px; font-weight: 700; }
         .preview-mode { display: none; position: fixed; inset: 0; z-index: 1000; background: #000; }
         .preview-mode.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .preview-exit-zone { width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; color: #555; font-size: 12px; }
@@ -239,6 +248,12 @@
         .choice-btn:hover { background: #f39c12; color: #000; }
         .pack-overlay { position: fixed; inset: 0; z-index: 3000; background: #000; display: none; }
         .pack-overlay.active { display: block; }
+        .fx-btn-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+        .fx-btn { flex: 0 0 auto; background: #34334a; border: 1px solid #5a5880; color: #cdd; font-size: 12px; font-weight: 700; padding: 9px 14px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.12s; }
+        .fx-btn:hover { background: #44436a; }
+        .fx-btn.fx-active { background: #f39c12; border-color: #f39c12; color: #000; }
+        .fx-btn .fx-state { font-size: 10px; opacity: 0.7; }
+        .fx-hint { font-size: 9px; color: #777; margin: 2px 0 8px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -267,7 +282,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.3 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.4 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -440,12 +455,15 @@
                             <div class="cmd-desc">BGM再生</div>
                             <div class="cmd-row"><code>BGM:STOP</code><button class="cmd-copy" data-cmd="BGM:STOP">📋</button></div>
                             <div class="cmd-desc">BGM停止</div>
-                            <div class="cmd-row"><code>FLASH</code><button class="cmd-copy" data-cmd="FLASH">📋</button></div>
-                            <div class="cmd-desc">白フラッシュ</div>
-                            <div class="cmd-row"><code>FLASH3</code><button class="cmd-copy" data-cmd="FLASH3">📋</button></div>
-                            <div class="cmd-desc">3回連続フラッシュ</div>
-                            <div class="cmd-row"><code>SHAKE</code><button class="cmd-copy" data-cmd="SHAKE">📋</button></div>
-                            <div class="cmd-desc">画面振動</div>
+                            <div style="font-size:11px;font-weight:700;color:#cdd;margin:10px 0 2px">🎬 演出FX（タップでコマンド欄に追加）</div>
+                            <div class="fx-btn-grid" id="fxBtnGrid">
+                                <button class="fx-btn" data-fx="add" data-cmd="FLASH">⚡ フラッシュ</button>
+                                <button class="fx-btn" data-fx="add" data-cmd="FLASH3">⚡⚡⚡ 3連フラッシュ</button>
+                                <button class="fx-btn" data-fx="add" data-cmd="SHAKE">📳 画面振動</button>
+                                <button class="fx-btn" data-fx="toggle" data-on="SE:STOP" data-off="SE:STOP">🔇 SE全停止</button>
+                                <button class="fx-btn" data-fx="add" data-cmd="SE:AMBIENT:STOP">🌫 アンビエント停止</button>
+                            </div>
+                            <div class="fx-hint">⚡振動・フラッシュは一発演出（押すたび追加）。SE/BGMは下の素材リストから🎵で挿入できます。</div>
                         </div>
                     </div>
                     
@@ -602,8 +620,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.5.3 =====
-// Change log: PNG書き出しの裏写り修正(オフスクリーン配置廃止)・全PNG失敗時の通知/進捗表示追加
+// ===== ホシノユメ v0.5.4 =====
+// Change log: FX演出ボタン化・シーンカード整理(編集/削除常駐+…メニュー)・上下移動・末尾＋新規カード
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -905,6 +923,16 @@ function splitCmdLine(line){const parts=[];let cur='',depth=0;for(let i=0;i<line
 async function runCmdSequence(str, flashEl, shakeEl, isPreview = false, overlayContainer = null) { if (!str) return null; const lines = str.split('\n').map(l => l.trim()).filter(l => l); for (const line of lines) { const parts = splitCmdLine(line); for (let i = 0; i < parts.length; i++) { const group = [parts[i]]; while (i + 1 < parts.length && parts[i + 1].startsWith('@')) group.push(parts[++i]); const results = await Promise.all(group.map(c => overlayContainer ? runCmdWithOverlay(c, flashEl, shakeEl, overlayContainer, isPreview) : runCmd(c, flashEl, shakeEl, isPreview))); for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && r.goto) return r; } } } return null; }
 
 document.addEventListener('click', e => { if (e.target.classList.contains('cmd-copy')) { const cmd = e.target.dataset.cmd; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; e.target.textContent = '✓'; setTimeout(() => e.target.textContent = '📋', 800); } });
+// FX演出ボタン: タップでcmdInputにコマンド追加（一発系）
+function insertCmd(cmd) { cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; }
+document.querySelectorAll('#fxBtnGrid .fx-btn').forEach(btn => {
+    btn.onclick = () => {
+        insertCmd(btn.dataset.cmd || btn.dataset.on);
+        const orig = btn.textContent;
+        btn.classList.add('fx-active');
+        setTimeout(() => btn.classList.remove('fx-active'), 350);
+    };
+});
 $('cmdExec').onclick = () => { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); charSlots = { left: null, center: null, right: null }; runCmdSequence(cmdInput.value, editorFlash, editorCanvas, false, $('editorOverlayContainer')); };
 
 cmdInput.addEventListener('input', function() { const v = this.value.trim(); if (v === 'annko85069006262') { this.value = ''; this.style.transition = 'background 0.3s, box-shadow 0.3s'; this.style.background = '#2a4a2a'; this.style.boxShadow = '0 0 12px rgba(0,255,0,0.4)'; setTimeout(() => { this.style.background = ''; this.style.boxShadow = ''; }, 800); } });
@@ -934,9 +962,20 @@ function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; edito
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
 function renderScenes() { sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
-scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}</div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span><div class="scene-actions"><button class="scene-btn scene-play" style="background:#2ed573;color:#000" title="ここから再生">▶</button><button class="scene-btn scene-edit">✎</button><button class="scene-btn scene-copy" style="background:#3498db" title="コピー">📋</button><button class="scene-btn" style="background:#6c5ce7" title="PNG出力">📷</button><button class="scene-btn scene-del">✕</button></div>`;
+scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; const isFirst = i === 0, isLast = i === scenes.length - 1; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}</div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span><div class="scene-menu"><button class="m-up" ${isFirst ? 'disabled' : ''}>⬆ 上へ移動</button><button class="m-down" ${isLast ? 'disabled' : ''}>⬇ 下へ移動</button><button class="m-play">▶ ここから再生</button><button class="m-copy">📋 コピー</button><button class="m-png">📷 PNG出力</button></div><div class="scene-actions"><button class="scene-btn scene-edit" title="編集">✎</button><button class="scene-btn scene-del" title="削除">✕</button><button class="scene-btn scene-more" title="その他">⋯</button></div>`;
 card.ondragstart = e => { e.dataTransfer.setData('idx', i); card.classList.add('dragging'); }; card.ondragend = () => card.classList.remove('dragging'); card.ondragover = e => { e.preventDefault(); card.classList.add('drag-over'); }; card.ondragleave = () => card.classList.remove('drag-over'); card.ondrop = e => { e.preventDefault(); card.classList.remove('drag-over'); const from = +e.dataTransfer.getData('idx'); if (from !== i) { const [moved] = scenes.splice(from, 1); scenes.splice(i, 0, moved); renderScenes(); saveWithHistory(); } };
-card.querySelector('.scene-play').onclick = e => { e.stopPropagation(); startPreviewFrom(i); }; card.querySelector('.scene-edit').onclick = e => { e.stopPropagation(); loadToEditor(s); }; card.querySelector('.scene-copy').onclick = e => { e.stopPropagation(); copySceneToEditor(s); }; card.querySelector('.scene-btn[title="PNG出力"]').onclick = async e => { e.stopPropagation(); await exportSceneToPng(s, i); }; card.querySelector('.scene-del').onclick = e => { e.stopPropagation(); scenes = scenes.filter(x => x.id !== s.id); renderScenes(); saveWithHistory(); }; sceneGrid.appendChild(card); }); }
+const menu = card.querySelector('.scene-menu');
+card.querySelector('.scene-edit').onclick = e => { e.stopPropagation(); loadToEditor(s); };
+card.querySelector('.scene-del').onclick = e => { e.stopPropagation(); if (!confirm('このシーンを削除しますか？')) return; scenes = scenes.filter(x => x.id !== s.id); renderScenes(); saveWithHistory(); };
+card.querySelector('.scene-more').onclick = e => { e.stopPropagation(); const isOpen = menu.classList.contains('open'); document.querySelectorAll('.scene-menu.open').forEach(m => m.classList.remove('open')); if (!isOpen) menu.classList.add('open'); };
+card.querySelector('.m-up').onclick = e => { e.stopPropagation(); if (i > 0) { const [moved] = scenes.splice(i, 1); scenes.splice(i - 1, 0, moved); renderScenes(); saveWithHistory(); } };
+card.querySelector('.m-down').onclick = e => { e.stopPropagation(); if (i < scenes.length - 1) { const [moved] = scenes.splice(i, 1); scenes.splice(i + 1, 0, moved); renderScenes(); saveWithHistory(); } };
+card.querySelector('.m-play').onclick = e => { e.stopPropagation(); menu.classList.remove('open'); startPreviewFrom(i); };
+card.querySelector('.m-copy').onclick = e => { e.stopPropagation(); menu.classList.remove('open'); copySceneToEditor(s); };
+card.querySelector('.m-png').onclick = async e => { e.stopPropagation(); menu.classList.remove('open'); await exportSceneToPng(s, i); };
+sceneGrid.appendChild(card); });
+// 末尾の「＋新規シーン」カード
+const addCard = document.createElement('div'); addCard.className = 'scene-add-card'; addCard.innerHTML = `<span class="add-plus">＋</span><span class="add-label">新規シーン</span>`; addCard.onclick = () => { resetEditor(); document.querySelector('[data-tab="editor"]').click(); nameInput.focus(); }; sceneGrid.appendChild(addCard); }
 
 editModeBtn.onclick = () => { editModeBtn.classList.add('active'); previewModeBtn.classList.remove('active'); sceneGrid.classList.remove('hidden'); previewView.classList.remove('active'); emptyMsg.classList.toggle('hidden', scenes.length > 0); };
 previewModeBtn.onclick = () => { previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; previewIndex = 0; showPreview(); };
@@ -1085,6 +1124,7 @@ $('exportPngBtn').onclick = async () => {
     } catch (err) { alert('PNG出力エラー: ' + err.message); }
 };
 
+document.addEventListener('click', e => { if (!e.target.closest('.scene-menu') && !e.target.closest('.scene-more')) document.querySelectorAll('.scene-menu.open').forEach(m => m.classList.remove('open')); });
 (async () => { await initDB(); await loadFromIndexedDB(); renderScenes(); })();
 </script>
 </body>
