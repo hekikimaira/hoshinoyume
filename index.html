@@ -102,8 +102,8 @@
         .text-display.nvl-mode { top: 0; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; justify-content: flex-start; padding: 3% 4%; overflow-y: auto; }
         .nvl-mode .char-name { font-size: 3.5cqw; margin-bottom: 1%; }
         .nvl-mode .dialogue { font-size: 2.8cqw; line-height: 1.7; }
-        .char-name { font-size: 4cqw; font-weight: 700; color: #fff; text-shadow: 0 0 4px #000, 0 0 4px #000, 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000; margin-bottom: 2%; }
-        .dialogue { font-size: 3.2cqw; line-height: 1.6; color: #fff; text-shadow: 0 0 4px #000, 0 0 4px #000, 2px 2px 4px #000, -2px -2px 4px #000, 2px -2px 4px #000, -2px 2px 4px #000; white-space: pre-wrap; }
+        .char-name { font-size: 4cqw; font-weight: 700; color: #fff; text-shadow: 2px 0 1px #000, -2px 0 1px #000, 0 2px 1px #000, 0 -2px 1px #000, 1.5px 1.5px 1px #000, -1.5px 1.5px 1px #000, 1.5px -1.5px 1px #000, -1.5px -1.5px 1px #000; margin-bottom: 2%; }
+        .dialogue { font-size: 3.2cqw; line-height: 1.6; color: #fff; text-shadow: 2px 0 1px #000, -2px 0 1px #000, 0 2px 1px #000, 0 -2px 1px #000, 1.5px 1.5px 1px #000, -1.5px 1.5px 1px #000, 1.5px -1.5px 1px #000, -1.5px -1.5px 1px #000; white-space: pre-wrap; }
         .section { background: #252525; border-radius: 8px; padding: 0; margin-bottom: 8px; overflow: hidden; }
         .section-header { display: flex; align-items: center; gap: 6px; padding: 10px 12px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 700; color: #aaa; transition: background 0.15s; }
         .section-header:hover { background: #2a2a2a; }
@@ -267,7 +267,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.2 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -602,8 +602,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.5.1 =====
-// Change log: PNG高解像度化(scale4)・text-shadow軽量化・iOS Safari DL修正(safeDownload)
+// ===== ホシノユメ v0.5.2 =====
+// Change log: テキスト縁取りをブラー無しベタ縁に変更(黒靄解消)・プレビューと書き出しの見た目統一
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1042,8 +1042,8 @@ $('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFol
 window.addEventListener('beforeunload', () => { clearTimeout(saveTimer); saveToIndexedDB(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(saveTimer); saveToIndexedDB(); throttledHistorySave(); } });
 
-// ★ FIX: 高解像度化(scale 4)＋text-shadow軽量化でガビつき解消
-const PNG_SHADOW = '1px 1px 3px #000, -1px -1px 3px #000, 0 0 5px #000';
+// ★ FIX: 高解像度化(scale 4)＋ブラー無しベタ縁取りでガビつき・黒靄を解消
+const PNG_SHADOW = '2px 0 1px #000, -2px 0 1px #000, 0 2px 1px #000, 0 -2px 1px #000, 1.5px 1.5px 1px #000, -1.5px 1.5px 1px #000, 1.5px -1.5px 1px #000, -1.5px -1.5px 1px #000';
 function buildSceneExportHtml(scene) {
     const nvl = scene.textMode === 'nvl';
     return `<div class="preview-canvas" style="width:${projectWidth}px;height:${projectHeight}px;position:relative;background:#000;overflow:hidden;"><div class="preview-bg" style="position:absolute;inset:0;">${scene.bgUrl ? `<img src="${scene.bgUrl}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div><div class="text-display ${nvl ? 'nvl-mode' : ''}" style="position:absolute;${nvl ? 'inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-start;padding:3% 4%;' : 'bottom:5%;left:4%;right:4%;'}">${scene.name ? `<div class="char-name" style="font-size:${nvl ? '29px' : '33px'};font-weight:700;color:#fff;text-shadow:${PNG_SHADOW};margin-bottom:${nvl ? '1%' : '2%'};">${scene.name}</div>` : ''}<div class="dialogue" style="font-size:${nvl ? '25px' : '27px'};line-height:${nvl ? '2' : '1.6'};color:#fff;text-shadow:${PNG_SHADOW};white-space:pre-wrap;">${scene.text || ''}</div></div></div>`;
