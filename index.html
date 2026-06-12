@@ -267,7 +267,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.2 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.3 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -602,8 +602,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.5.2 =====
-// Change log: テキスト縁取りをブラー無しベタ縁に変更(黒靄解消)・プレビューと書き出しの見た目統一
+// ===== ホシノユメ v0.5.3 =====
+// Change log: PNG書き出しの裏写り修正(オフスクリーン配置廃止)・全PNG失敗時の通知/進捗表示追加
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -999,28 +999,32 @@ $('dedupeBtn').onclick = async () => { const hashMap = {}, fileHashes = {}; for 
 
 $('clearAll').onclick = async () => { if (!confirm('全削除しますか？')) return; scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; Object.values(seAudios).forEach(d => URL.revokeObjectURL(d.url)); Object.values(bgmAudios).forEach(d => { d.audio.pause(); URL.revokeObjectURL(d.url); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); seCounter = 0; bgmCounter = 0; currentBgm = null; charSlots = { left: null, center: null, right: null }; document.querySelectorAll('.char-slot img').forEach(img => img.remove()); packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]); renderScenes(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); if (db) { const tx = db.transaction(['project', 'images'], 'readwrite'); tx.objectStore('project').clear(); tx.objectStore('images').clear(); } };
 
-// ★ FIX: scale 4 + safeDownload for high quality PNG export
+// ★ FIX: scale 4 + safeDownload + 不可視配置レンダリングに統一
 $('exportAllPngBtn').onclick = async () => {
     if (scenes.length === 0) { alert('シーンがありません'); return; }
+    const btn = $('exportAllPngBtn');
+    const origLabel = btn.textContent;
+    btn.disabled = true;
     const zip = new JSZip();
     const imgFolder = zip.folder('scenes');
+    let okCount = 0, failCount = 0;
     for (let i = 0; i < scenes.length; i++) {
-        const scene = scenes[i];
-        const container = document.createElement('div');
-        container.style.cssText = `position:fixed;left:-9999px;top:0;width:${projectWidth}px;height:${projectHeight}px;`;
-        container.innerHTML = buildSceneExportHtml(scene);
-        document.body.appendChild(container);
+        btn.textContent = `出力中 ${i + 1}/${scenes.length}`;
         try {
-            const canvas = await html2canvas(container.querySelector('.preview-canvas'), {
-                scale: 4,
-                useCORS: true, allowTaint: true, backgroundColor: '#000',
-                width: projectWidth, height: projectHeight
-            });
+            const canvas = await renderSceneToCanvas(scenes[i]);
             const dataUrl = canvas.toDataURL('image/png');
             imgFolder.file(`scene-${String(i + 1).padStart(3, '0')}.png`, dataUrl.split(',')[1], { base64: true });
-        } catch (err) { console.error(err); } finally { document.body.removeChild(container); }
+            okCount++;
+        } catch (err) { console.error(`scene ${i + 1} export failed:`, err); failCount++; }
     }
-    try { const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, 'scenes-png.zip'); } catch (err) { alert('ZIP作成エラー: ' + err.message); }
+    btn.disabled = false;
+    btn.textContent = origLabel;
+    if (okCount === 0) { alert(`書き出し失敗: ${scenes.length}枚すべてエラーになりました。\nコンソールを確認してください。`); return; }
+    try {
+        const content = await zip.generateAsync({ type: 'blob' });
+        safeDownload(content, 'scenes-png.zip');
+        if (failCount > 0) alert(`${okCount}枚を書き出しました（${failCount}枚は失敗）`);
+    } catch (err) { alert('ZIP作成エラー: ' + err.message); }
 };
 
 const historyModal = $('historyModal'), historyList = $('historyList');
@@ -1049,19 +1053,29 @@ function buildSceneExportHtml(scene) {
     return `<div class="preview-canvas" style="width:${projectWidth}px;height:${projectHeight}px;position:relative;background:#000;overflow:hidden;"><div class="preview-bg" style="position:absolute;inset:0;">${scene.bgUrl ? `<img src="${scene.bgUrl}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div><div class="text-display ${nvl ? 'nvl-mode' : ''}" style="position:absolute;${nvl ? 'inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-start;padding:3% 4%;' : 'bottom:5%;left:4%;right:4%;'}">${scene.name ? `<div class="char-name" style="font-size:${nvl ? '29px' : '33px'};font-weight:700;color:#fff;text-shadow:${PNG_SHADOW};margin-bottom:${nvl ? '1%' : '2%'};">${scene.name}</div>` : ''}<div class="dialogue" style="font-size:${nvl ? '25px' : '27px'};line-height:${nvl ? '2' : '1.6'};color:#fff;text-shadow:${PNG_SHADOW};white-space:pre-wrap;">${scene.text || ''}</div></div></div>`;
 }
 
-async function exportSceneToPng(scene, index) {
+// ★ FIX: left:-9999pxのオフスクリーン配置だとhtml2canvasが画面内の本物プレビューを巻き込んで裏写りする。
+//        画面左上に重ねてopacity:0+pointer-events:noneで不可視化し、座標どおり正確に撮る。
+async function renderSceneToCanvas(scene) {
     const container = document.createElement('div');
-    container.style.cssText = `position:fixed;left:-9999px;top:0;width:${projectWidth}px;height:${projectHeight}px;`;
+    container.style.cssText = `position:fixed;left:0;top:0;width:${projectWidth}px;height:${projectHeight}px;opacity:0;pointer-events:none;z-index:-1;`;
     container.innerHTML = buildSceneExportHtml(scene);
     document.body.appendChild(container);
     try {
         const canvas = await html2canvas(container.querySelector('.preview-canvas'), {
             scale: 4,
             useCORS: true, allowTaint: true, backgroundColor: '#000',
-            width: projectWidth, height: projectHeight
+            width: projectWidth, height: projectHeight,
+            windowWidth: projectWidth, windowHeight: projectHeight
         });
+        return canvas;
+    } finally { document.body.removeChild(container); }
+}
+
+async function exportSceneToPng(scene, index) {
+    try {
+        const canvas = await renderSceneToCanvas(scene);
         canvas.toBlob(blob => safeDownload(blob, `scene-${String(index + 1).padStart(3, '0')}.png`), 'image/png');
-    } catch (err) { alert('PNG出力エラー: ' + err.message); } finally { document.body.removeChild(container); }
+    } catch (err) { alert('PNG出力エラー: ' + err.message); }
 }
 
 $('exportPngBtn').onclick = async () => {
