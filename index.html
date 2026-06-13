@@ -254,6 +254,14 @@
         .sound-builder { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
         .sound-cat { border: 1px solid #383838; border-radius: 8px; padding: 10px; background: #202020; }
         .sound-cat-title { font-size: 13px; font-weight: 700; color: #cdd; margin-bottom: 8px; }
+        .chip-area { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; min-height: 4px; }
+        .chip-area:empty { display: none; }
+        .snd-chip { display: inline-flex; align-items: center; gap: 6px; background: #2e4a47; border: 1px solid #4ecdc4; border-radius: 16px; padding: 5px 6px 5px 12px; font-size: 12px; color: #dff; font-family: monospace; cursor: pointer; transition: background 0.12s; }
+        .snd-chip:hover { background: #3a5c58; }
+        .snd-chip.editing { background: #6c5ce7; border-color: #a29bfe; color: #fff; }
+        .snd-chip.fx-chip { background: #34334a; border-color: #5a5880; color: #cdd; cursor: default; }
+        .snd-chip .chip-x { background: rgba(0,0,0,0.3); border: none; color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
+        .snd-chip .chip-x:hover { background: #e94560; }
         .sb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .sb-row label { font-size: 11px; color: #aaa; min-width: 64px; }
         .sb-row select, .sb-row input { background: #1e1e1e; border: 1px solid #444; color: #eee; border-radius: 5px; padding: 7px 9px; font-size: 13px; flex: 1; min-width: 0; }
@@ -290,7 +298,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.7.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.8.0 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -408,6 +416,14 @@
                         <div id="seList"></div>
                         <button class="btn btn-primary" id="addSeBtn" style="width:100%">＋ SE追加</button>
                         <input type="file" id="seInput" class="hidden">
+                        <div class="chip-area" id="seChips"></div>
+                        <div class="fx-btn-grid" id="fxBtnGrid" style="margin:6px 0">
+                            <button class="fx-btn" data-fx="add" data-cmd="FLASH">⚡ フラッシュ</button>
+                            <button class="fx-btn" data-fx="add" data-cmd="FLASH3">⚡⚡⚡ 3連</button>
+                            <button class="fx-btn" data-fx="add" data-cmd="SHAKE">📳 振動</button>
+                            <button class="fx-btn" data-fx="add" data-cmd="SE:STOP">🔇 SE全停止</button>
+                            <button class="fx-btn" data-fx="add" data-cmd="SE:AMBIENT:STOP">🌫 環境音停止</button>
+                        </div>
                         <div class="sound-builder" id="seBuilder" style="margin-top:8px">
                             <div class="sb-row"><label>動作</label><select id="seAction"><option value="play">再生する</option><option value="stop">停止する</option></select></div>
                             <div class="sb-row" id="seTargetRow"><label>SE</label><select id="seTarget"></select></div>
@@ -424,6 +440,7 @@
                         <div id="bgmList"></div>
                         <button class="btn btn-primary" id="addBgmBtn" style="width:100%">＋ BGM追加</button>
                         <input type="file" id="bgmInput" class="hidden">
+                        <div class="chip-area" id="bgmChips"></div>
                         <div class="sound-builder" id="bgmBuilder" style="margin-top:8px">
                             <div class="sb-row"><label>動作</label><select id="bgmAction"><option value="play">再生する</option><option value="stop">停止する</option></select></div>
                             <div class="sb-row" id="bgmTargetRow"><label>BGM</label><select id="bgmTarget"></select></div>
@@ -629,8 +646,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.7.1 =====
-// Change log: プレビュー終了/開始時に全サウンド停止(鳴りっぱなし解消)・SE/BGMを素材登録＋リスト＋ビルダーまで1カテゴリに統合
+// ===== ホシノユメ v0.8.0 =====
+// Change log: サウンドをチップ(タグ)方式に。組んだSE/BGM/FXがSE枠BGM枠にチップで並び、タップで編集・✕で削除。cmdInputと双方向同期、背景立ち絵等の非サウンド行は温存
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -947,7 +964,7 @@ function refreshSoundBuilders() {
     const bgmTarget = $('bgmTarget'); if (bgmTarget) { const cur = bgmTarget.value; bgmTarget.innerHTML = bgmNames.length ? bgmNames.map(n => `<option value="${n}">${n}（${bgmAudios[n].filename || n}）</option>`).join('') : '<option value="">BGM未登録</option>'; if (bgmNames.includes(cur)) bgmTarget.value = cur; }
     // BGM終了シーン番号（シーン数ぶん）
     const us = $('bgmUntilScene'); if (us) { const cur = us.value; us.innerHTML = scenes.map((s, i) => `<option value="${i + 1}">シーン${i + 1}${s.name ? '（' + s.name + '）' : ''}</option>`).join('') || '<option value="1">シーン1</option>'; if (cur) us.value = cur; }
-    buildSeCmd(); buildBgmCmd();
+    buildSeCmd(); buildBgmCmd(); if (typeof renderSoundChips === 'function') renderSoundChips();
 }
 
 function buildSeCmd() {
@@ -987,20 +1004,94 @@ function buildBgmCmd() {
 ['seAction','seTarget','seMode','seCount','seAmbMin','seAmbMax'].forEach(id => { const el = $(id); if (el) el.addEventListener('change', buildSeCmd); });
 $('seRandomChecks') && $('seRandomChecks').addEventListener('change', buildSeCmd);
 ['bgmAction','bgmTarget','bgmUntil','bgmUntilScene'].forEach(id => { const el = $(id); if (el) el.addEventListener('change', buildBgmCmd); });
-$('seAddBtn').onclick = () => { const c = $('sePreview').textContent; if (c && !c.startsWith('（')) { insertCmd(c); $('seAddBtn').textContent = '✓ 追加しました'; setTimeout(() => $('seAddBtn').textContent = '＋ コマンド欄に追加', 1000); } };
-$('bgmAddBtn').onclick = () => { const c = $('bgmPreview').textContent; if (c && !c.startsWith('（')) { insertCmd(c); $('bgmAddBtn').textContent = '✓ 追加しました'; setTimeout(() => $('bgmAddBtn').textContent = '＋ コマンド欄に追加', 1000); } };
+let seEditLine = -1, bgmEditLine = -1; // 編集中の行index（-1=新規）
+function cmdLines() { return cmdInput.value.split('\n').filter(l => l.trim() !== ''); }
+function setCmdLines(lines) { cmdInput.value = lines.join('\n'); renderSoundChips(); if (typeof autoSaveScene === 'function') {} }
+
+$('seAddBtn').onclick = () => {
+    const c = $('sePreview').textContent;
+    if (!c || c.startsWith('（')) return;
+    const lines = cmdLines();
+    if (seEditLine >= 0 && seEditLine < lines.length) { lines[seEditLine] = c; seEditLine = -1; }
+    else lines.push(c);
+    setCmdLines(lines);
+    resetSeBuilder();
+    $('seAddBtn').textContent = '✓ 反映しました'; setTimeout(() => $('seAddBtn').textContent = '＋ 追加', 900);
+};
+$('bgmAddBtn').onclick = () => {
+    const c = $('bgmPreview').textContent;
+    if (!c || c.startsWith('（')) return;
+    const lines = cmdLines();
+    if (bgmEditLine >= 0 && bgmEditLine < lines.length) { lines[bgmEditLine] = c; bgmEditLine = -1; }
+    else lines.push(c);
+    setCmdLines(lines);
+    resetBgmBuilder();
+    $('bgmAddBtn').textContent = '✓ 反映しました'; setTimeout(() => $('bgmAddBtn').textContent = '＋ 追加', 900);
+};
+function resetSeBuilder() { seEditLine = -1; $('seAddBtn').textContent = '＋ 追加'; renderSoundChips(); }
+function resetBgmBuilder() { bgmEditLine = -1; $('bgmAddBtn').textContent = '＋ 追加'; renderSoundChips(); }
+
+// 行がSE系/FX系/BGM系のどれか判定
+function classifyCmd(line) {
+    const u = line.trim().toUpperCase();
+    if (u.startsWith('BGM:')) return 'bgm';
+    if (u.startsWith('SE:') || u.startsWith('FLASH') || u.startsWith('SHAKE')) return 'se';
+    return null;
+}
+// SE/BGM行をビルダーに読み込む（編集モード）
+function loadSeToBuilder(line, idx) {
+    const u = line.trim();
+    seEditLine = idx;
+    if (/^SE:STOP/i.test(u)) { $('seAction').value = 'stop'; const t = u.split(':')[2]; if (t) $('seTarget').value = t.toLowerCase(); }
+    else { $('seAction').value = 'play'; const parts = u.split(':'); const tgt = parts[1] ? parts[1].toLowerCase() : '';
+        if (/:random$/i.test(u) && tgt.includes(',')) { $('seMode').value = 'random'; }
+        else if (/:ambient:/i.test(u)) { $('seMode').value = 'ambient'; const mm = u.match(/ambient:(\d+)-(\d+)/i); if (mm) { $('seAmbMin').value = mm[1]; $('seAmbMax').value = mm[2]; } if ($('seTarget').querySelector(`option[value="${tgt}"]`)) $('seTarget').value = tgt; }
+        else { if ($('seTarget').querySelector(`option[value="${tgt}"]`)) $('seTarget').value = tgt; const cnt = parts[2]; if (cnt === '0') $('seMode').value = '0'; else if (cnt === '3') $('seMode').value = '3'; else if (cnt && +cnt > 1) { $('seMode').value = 'custom'; $('seCount').value = cnt; } else $('seMode').value = '1'; }
+    }
+    buildSeCmd(); $('seAddBtn').textContent = '✓ この内容で更新'; $('seBuilder').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function loadBgmToBuilder(line, idx) {
+    const u = line.trim(); bgmEditLine = idx;
+    if (/^BGM:STOP$/i.test(u)) { $('bgmAction').value = 'stop'; }
+    else { $('bgmAction').value = 'play'; const parts = u.split(':'); const tgt = parts[1] ? parts[1].toLowerCase() : ''; if ($('bgmTarget').querySelector(`option[value="${tgt}"]`)) $('bgmTarget').value = tgt;
+        const mu = u.match(/:until:(\d+)/i); if (mu) { $('bgmUntil').value = 'scene'; refreshSoundBuilders(); $('bgmUntilScene').value = mu[1]; } else $('bgmUntil').value = '0';
+    }
+    buildBgmCmd(); $('bgmAddBtn').textContent = '✓ この内容で更新'; $('bgmBuilder').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// チップ描画
+function renderSoundChips() {
+    const seBox = $('seChips'), bgmBox = $('bgmChips'); if (!seBox || !bgmBox) return;
+    seBox.innerHTML = ''; bgmBox.innerHTML = '';
+    const lines = cmdInput.value.split('\n');
+    lines.forEach((line, idx) => {
+        if (line.trim() === '') return;
+        const cat = classifyCmd(line);
+        if (!cat) return;
+        const u = line.trim().toUpperCase();
+        const isFx = u.startsWith('FLASH') || u.startsWith('SHAKE') || u.startsWith('SE:STOP') || u.startsWith('SE:AMBIENT:STOP');
+        const editable = !isFx; // FX/停止系はタップ編集なし、✕のみ
+        const chip = document.createElement('div');
+        chip.className = 'snd-chip' + (isFx ? ' fx-chip' : '') + ((cat === 'se' && seEditLine === idx) || (cat === 'bgm' && bgmEditLine === idx) ? ' editing' : '');
+        chip.innerHTML = `<span class="chip-label">${line.trim()}</span><button class="chip-x">✕</button>`;
+        chip.querySelector('.chip-x').onclick = e => { e.stopPropagation(); const ls = cmdInput.value.split('\n'); ls.splice(idx, 1); cmdInput.value = ls.join('\n'); if (cat === 'se') seEditLine = -1; else bgmEditLine = -1; renderSoundChips(); };
+        if (editable) chip.querySelector('.chip-label').onclick = () => { cat === 'se' ? loadSeToBuilder(line, idx) : loadBgmToBuilder(line, idx); };
+        else chip.querySelector('.chip-label').style.cursor = 'default';
+        (cat === 'se' ? seBox : bgmBox).appendChild(chip);
+    });
+}
 
 document.querySelectorAll('#fxBtnGrid .fx-btn').forEach(btn => {
     btn.onclick = () => {
         insertCmd(btn.dataset.cmd || btn.dataset.on);
-        const orig = btn.textContent;
+        renderSoundChips();
         btn.classList.add('fx-active');
         setTimeout(() => btn.classList.remove('fx-active'), 350);
     };
 });
 $('cmdExec').onclick = () => { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); charSlots = { left: null, center: null, right: null }; runCmdSequence(cmdInput.value, editorFlash, editorCanvas, false, $('editorOverlayContainer')); };
 
-cmdInput.addEventListener('input', function() { const v = this.value.trim(); if (v === 'annko85069006262') { this.value = ''; this.style.transition = 'background 0.3s, box-shadow 0.3s'; this.style.background = '#2a4a2a'; this.style.boxShadow = '0 0 12px rgba(0,255,0,0.4)'; setTimeout(() => { this.style.background = ''; this.style.boxShadow = ''; }, 800); } });
+cmdInput.addEventListener('input', function() { renderSoundChips(); const v = this.value.trim(); if (v === 'annko85069006262') { this.value = ''; this.style.transition = 'background 0.3s, box-shadow 0.3s'; this.style.background = '#2a4a2a'; this.style.boxShadow = '0 0 12px rgba(0,255,0,0.4)'; setTimeout(() => { this.style.background = ''; this.style.boxShadow = ''; }, 800); } });
 
 saveBtn.onclick = () => {
     const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value };
@@ -1020,9 +1111,9 @@ saveBtn.onclick = () => {
 };
 cancelBtn.onclick = resetEditor;
 
-function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); }
+function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); }
 
-function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); document.querySelector('[data-tab="editor"]').click(); }
+function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); document.querySelector('[data-tab="editor"]').click(); }
 
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
