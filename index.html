@@ -206,6 +206,8 @@
         .preview-hint { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.55); color: #ccc; font-size: 11px; padding: 6px 16px; border-radius: 14px; z-index: 1100; opacity: 0; transition: opacity 0.4s; pointer-events: none; text-align: center; }
         .preview-hint.show { opacity: 1; }
         .preview-close-btn { position: absolute; top: 14px; right: 14px; z-index: 1100; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .preview-transition { position: absolute; inset: 0; z-index: 1050; pointer-events: none; opacity: 0; }
+        .preview-transition.fade-cover { background: #000; }
         .empty-msg { text-align: center; padding: 60px; color: #666; }
         .hidden { display: none !important; }
         @media (max-width: 600px) {
@@ -277,7 +279,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.8 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.9 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -586,6 +588,7 @@
                 <button class="nav-btn" id="nextBtn">›</button>
             </div>
             <div class="preview-info" id="previewInfo">0 / 0</div>
+            <div class="preview-transition" id="previewTransition"></div>
             <div class="preview-hint" id="previewHint">タップ／左スワイプで次へ・右スワイプで戻る・下スワイプで終了</div>
             <div id="debugLog" class="hidden" style="position:absolute;bottom:40px;left:10px;right:10px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.9);color:#0f0;font-size:10px;font-family:monospace;padding:8px;border:1px solid #0f0;"></div>
         </div>
@@ -616,8 +619,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.5.8 =====
-// Change log: スワイプ方向を写真アプリ準拠に反転(右→左払いで次へ)
+// ===== ホシノユメ v0.5.9 =====
+// Change log: シーン遷移トランジション(fade/暗転/白/スライド4方向)の再生処理を実装。保存はされていたが再生コードが無く効いていなかった不具合を修正
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1017,12 +1020,29 @@ function rebuildCharState(upToIndex, charLayer) {
     }
 }
 
-async function showPreview() { choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); const s = scenes[previewIndex]; const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } return; } } catch (e) {} previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
+async function showPreview() { choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); const s = scenes[previewIndex]; const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } return; } } catch (e) {} previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); playTransition(s.transition); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
 
 function showChoices(choices) { choiceOverlay.innerHTML = ''; choices.forEach(c => { const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.textContent = c.text || c.id; btn.onclick = () => selectChoice(c); choiceOverlay.appendChild(btn); }); choiceOverlay.classList.remove('hidden'); }
 function selectChoice(choice) { lastChoiceId = choice.id; choiceOverlay.classList.add('hidden'); if (choice.goto) { const idx = findSceneByLabel(choice.goto); if (idx >= 0) { previewIndex = idx; showPreview(); return; } } if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } }
 
-// ===== 全画面プレビュー操作（スワイプ + タップ） =====
+// ===== シーン遷移トランジション =====
+function playTransition(type) {
+    if (!type || type === 'none') return;
+    const layer = $('previewTransition');
+    const frame = previewCanvas;
+    if (type === 'fade' || type === 'fadeBlack' || type === 'fadeWhite') {
+        const color = type === 'fadeWhite' ? '#fff' : '#000';
+        layer.style.background = color;
+        layer.animate([{ opacity: 0 }, { opacity: 1, offset: 0.4 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], { duration: 600, easing: 'ease-in-out' });
+        return;
+    }
+    const slideMap = { slideLeft: ['translateX(100%)', 'translateX(0)'], slideRight: ['translateX(-100%)', 'translateX(0)'], slideUp: ['translateY(100%)', 'translateY(0)'], slideDown: ['translateY(-100%)', 'translateY(0)'] };
+    if (slideMap[type]) {
+        frame.animate([{ transform: slideMap[type][0] }, { transform: slideMap[type][1] }], { duration: 400, easing: 'cubic-bezier(0.22,1,0.36,1)' });
+    }
+}
+
+
 function previewBusy() { return !choiceOverlay.classList.contains('hidden'); } // 選択肢表示中は送り禁止
 function showPreviewInfo() { previewInfo.classList.add('show'); clearTimeout(showPreviewInfo._t); showPreviewInfo._t = setTimeout(() => previewInfo.classList.remove('show'), 1200); }
 function goNext() { if (previewBusy()) return; if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); showPreviewInfo(); } }
