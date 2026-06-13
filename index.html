@@ -277,7 +277,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.7 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.8 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -586,7 +586,7 @@
                 <button class="nav-btn" id="nextBtn">›</button>
             </div>
             <div class="preview-info" id="previewInfo">0 / 0</div>
-            <div class="preview-hint" id="previewHint">タップ/右スワイプで次へ・左で戻る・下スワイプで終了</div>
+            <div class="preview-hint" id="previewHint">タップ／左スワイプで次へ・右スワイプで戻る・下スワイプで終了</div>
             <div id="debugLog" class="hidden" style="position:absolute;bottom:40px;left:10px;right:10px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.9);color:#0f0;font-size:10px;font-family:monospace;padding:8px;border:1px solid #0f0;"></div>
         </div>
         <div class="empty-msg" id="emptyMsg">シーンがありません</div>
@@ -616,8 +616,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.5.7 =====
-// Change log: 全画面プレビューで画像が消えるバグ修正(canvas高さ0潰れ+解像度動的styleの旧計算式上書きを是正)
+// ===== ホシノユメ v0.5.8 =====
+// Change log: スワイプ方向を写真アプリ準拠に反転(右→左払いで次へ)
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1056,7 +1056,7 @@ previewView.addEventListener('touchend', e => {
     const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY, dt = Date.now() - touchStartT;
     const adx = Math.abs(dx), ady = Math.abs(dy);
     if (ady > SWIPE_DIST && ady > adx) { if (dy > 0) closePreview(); return; } // 下スワイプで閉じる
-    if (adx > SWIPE_DIST && adx > ady) { if (dx > 0) goNext(); else goPrev(); return; } // 右=次 / 左=前
+    if (adx > SWIPE_DIST && adx > ady) { if (dx < 0) goNext(); else goPrev(); return; } // 右→左払い=次 / 左→右払い=前
     if (!touchMoved && dt < TAP_MAX_TIME) goNext(); // タップ=次へ
 });
 // PC（マウスクリック）用：タップ送り
