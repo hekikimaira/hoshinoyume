@@ -279,7 +279,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.5.9 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.6.0 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -619,8 +619,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.5.9 =====
-// Change log: シーン遷移トランジション(fade/暗転/白/スライド4方向)の再生処理を実装。保存はされていたが再生コードが無く効いていなかった不具合を修正
+// ===== ホシノユメ v0.6.0 =====
+// Change log: フェードのタイミング修正。先にカバーで覆ってから画像差替→カバーを引く二段構えに(画像が出た後にフェードしていた不具合を解消)
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1020,26 +1020,31 @@ function rebuildCharState(upToIndex, charLayer) {
     }
 }
 
-async function showPreview() { choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); const s = scenes[previewIndex]; const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } return; } } catch (e) {} previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); playTransition(s.transition); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
+async function showPreview() { choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); const s = scenes[previewIndex]; if (isFadeType(s.transition)) await coverIn(s.transition); const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { coverOut(); if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } else { coverOut(); } return; } } catch (e) { coverOut(); } previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); if (isFadeType(s.transition)) coverOut(); else playSlide(s.transition); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
 
 function showChoices(choices) { choiceOverlay.innerHTML = ''; choices.forEach(c => { const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.textContent = c.text || c.id; btn.onclick = () => selectChoice(c); choiceOverlay.appendChild(btn); }); choiceOverlay.classList.remove('hidden'); }
 function selectChoice(choice) { lastChoiceId = choice.id; choiceOverlay.classList.add('hidden'); if (choice.goto) { const idx = findSceneByLabel(choice.goto); if (idx >= 0) { previewIndex = idx; showPreview(); return; } } if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } }
 
-// ===== シーン遷移トランジション =====
-function playTransition(type) {
-    if (!type || type === 'none') return;
+// ===== シーン遷移トランジション（二段構え：先に覆う→中身差替→引く） =====
+function isFadeType(t) { return t === 'fade' || t === 'fadeBlack' || t === 'fadeWhite'; }
+function transitionColor(t) { return t === 'fadeWhite' ? '#fff' : '#000'; }
+// カバーを出す（前シーンを隠す）。差し替え前に呼ぶ。
+async function coverIn(type) {
     const layer = $('previewTransition');
-    const frame = previewCanvas;
-    if (type === 'fade' || type === 'fadeBlack' || type === 'fadeWhite') {
-        const color = type === 'fadeWhite' ? '#fff' : '#000';
-        layer.style.background = color;
-        layer.animate([{ opacity: 0 }, { opacity: 1, offset: 0.4 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], { duration: 600, easing: 'ease-in-out' });
-        return;
-    }
+    layer.style.background = transitionColor(type);
+    const anim = layer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out', fill: 'forwards' });
+    await anim.finished.catch(() => {});
+}
+// カバーを引く（新シーンを見せる）。差し替え後に呼ぶ。
+function coverOut() {
+    const layer = $('previewTransition');
+    const anim = layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, easing: 'ease-in', fill: 'forwards' });
+    anim.finished.then(() => { layer.style.opacity = '0'; }).catch(() => {});
+}
+// スライド系（canvasが滑り込む。差し替え後に呼ぶ）
+function playSlide(type) {
     const slideMap = { slideLeft: ['translateX(100%)', 'translateX(0)'], slideRight: ['translateX(-100%)', 'translateX(0)'], slideUp: ['translateY(100%)', 'translateY(0)'], slideDown: ['translateY(-100%)', 'translateY(0)'] };
-    if (slideMap[type]) {
-        frame.animate([{ transform: slideMap[type][0] }, { transform: slideMap[type][1] }], { duration: 400, easing: 'cubic-bezier(0.22,1,0.36,1)' });
-    }
+    if (slideMap[type]) previewCanvas.animate([{ transform: slideMap[type][0] }, { transform: slideMap[type][1] }], { duration: 400, easing: 'cubic-bezier(0.22,1,0.36,1)' });
 }
 
 
