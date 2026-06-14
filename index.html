@@ -138,19 +138,6 @@
         .overlay-item .overlay-del { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; background: #e94560; border-radius: 50%; font-size: 10px; line-height: 14px; text-align: center; cursor: pointer; display: none; }
         .overlay-item:hover .overlay-del { display: block; }
         .cmd-section { margin-bottom: 8px; }
-        .cmd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-        .cmd-chips:empty { display: none; }
-        .cmd-chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 14px; padding: 4px 5px 4px 10px; font-size: 11px; font-family: monospace; cursor: pointer; border: 1px solid; max-width: 100%; }
-        .cmd-chip .cc-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-        .cmd-chip .cc-x { background: rgba(0,0,0,0.35); border: none; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
-        .cmd-chip .cc-x:hover { background: #e94560; }
-        .cc-bg { background: #1e3a2e; border-color: #2ecc71; color: #aef5cd; }
-        .cc-char { background: #1e2e3a; border-color: #3498db; color: #aed4f5; }
-        .cc-overlay { background: #2e1e3a; border-color: #9b59b6; color: #ddaef5; }
-        .cc-sound { background: #1e3a38; border-color: #4ecdc4; color: #aef5f0; }
-        .cc-fx { background: #3a3320; border-color: #f39c12; color: #f5dcae; }
-        .cc-flag { background: #3a1e28; border-color: #e94560; color: #f5aec0; }
-        .cc-other { background: #2e2e2e; border-color: #666; color: #ccc; }
         .cmd-section-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #333; border-radius: 4px; cursor: pointer; font-size: 11px; color: #aaa; }
         .cmd-section-header:hover { background: #3a3a3a; }
         .cmd-section-header .arrow { transition: transform 0.2s; }
@@ -312,7 +299,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.4-診断 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -490,7 +477,6 @@
                 </div>
                 <div class="section-body">
                     <textarea id="cmdInput" class="cmd-input" placeholder="1SE2,@FLASH"></textarea>
-                    <div class="cmd-chips" id="cmdChips"></div>
                     <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ 実行</button>
                     
                     <div class="cmd-section">
@@ -665,25 +651,20 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.4 =====
-// Change log: 大容量ZIP読込時のMaximum call stack修正。読込中はチップ描画を抑止し完了後に1回だけ描画＋チップ数上限(300)。0.9.3の全行チップ化が大量データで重複描画爆発していた問題に対処
+// ===== ホシノユメ v0.9.1 =====
+// Change log: シーン編集中に「これを新規シーンとして登録」ボタン追加(実質複製)。エディタは元のまま残り連続複製可能
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
 const DB_VERSION = 3;
 const MAX_HISTORY = 5;
 let db = null;
-// === 診断: 再帰深さ検知 ===
-window.__cs = {}; 
-function __dc(name) { window.__cs[name] = (window.__cs[name]||0) + 1; if (window.__cs[name] > 100 && !window.__reported) { window.__reported = true; const top = Object.entries(window.__cs).sort((a,b)=>b[1]-a[1]).slice(0,4).map(e=>e[0]+':'+e[1]).join(' / '); alert('🔍再帰検知: ' + top); throw new Error('recursion-trap'); } }
-setInterval(() => { window.__cs = {}; }, 200);
-
 
 async function initDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => { console.error('DB error:', request.error); reject(request.error); };
-        request.onsuccess = () => { db = request.result; db.onclose = () => { db = null; }; db.onversionchange = () => { try { db.close(); } catch(e){} db = null; }; resolve(db); };
+        request.onsuccess = () => { db = request.result; resolve(db); };
         request.onupgradeneeded = (e) => {
             const database = e.target.result;
             if (!database.objectStoreNames.contains('project')) database.createObjectStore('project', { keyPath: 'id' });
@@ -694,16 +675,8 @@ async function initDB() {
     });
 }
 
-// スリープ等でIndexedDB接続が切れていても、生きた接続を保証する
-async function ensureDB() {
-    await ensureDB();
-    try { db.transaction('project', 'readonly').abort(); } // 死んでいればここで例外
-    catch (e) { try { db.close(); } catch(_){} db = null; await initDB(); }
-    return db;
-}
-
 async function saveToIndexedDB() {
-    await ensureDB();
+    if (!db) await initDB();
     try {
         const tx1 = db.transaction('project', 'readwrite');
         tx1.objectStore('project').put({
@@ -721,25 +694,16 @@ async function saveToIndexedDB() {
         for (const [name, data] of Object.entries(bgmAudios)) { if (data.blob) { try { const tx = db.transaction('audio', 'readwrite'); tx.objectStore('audio').put({ id: name, blob: data.blob, filename: data.filename, type: 'bgm' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`BGM save error for ${name}:`, e); } } }
         for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'overlay' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Overlay save error for ${filename}:`, e); } } }
         for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'char' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Char save error for ${filename}:`, e); } } }
-    } catch (e) {
-        // 接続切れ起因なら一度だけ再接続してリトライ
-        if (!saveToIndexedDB._retried && /not be found|InvalidStateError|closing|transaction/i.test(e.message || '')) {
-            saveToIndexedDB._retried = true;
-            try { if (db) db.close(); } catch(_){}
-            db = null;
-            try { await initDB(); await saveToIndexedDB(); saveToIndexedDB._retried = false; return; } catch (e2) { saveToIndexedDB._retried = false; }
-        }
-        console.error('Auto save error:', e); alert('保存エラー: ' + e.message);
-    }
+    } catch (e) { console.error('Auto save error:', e); alert('保存エラー: ' + e.message); }
 }
 
-async function saveToHistory() { await ensureDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
+async function saveToHistory() { if (!db) await initDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
 
-async function getHistoryList() { await ensureDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
+async function getHistoryList() { if (!db) await initDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
 
-async function restoreFromHistory(historyId) { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
+async function restoreFromHistory(historyId) { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
 
-async function loadFromIndexedDB() { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
+async function loadFromIndexedDB() { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
 
 let isSaving = false, pendingSave = false;
 async function autoSave() { if (isSaving) { pendingSave = true; return; } isSaving = true; try { await saveToIndexedDB(); } catch (e) { console.error('Auto save failed:', e); } finally { isSaving = false; } if (pendingSave) { pendingSave = false; setTimeout(autoSave, 100); } }
@@ -847,12 +811,12 @@ function addChoice() { choiceCounter++; currentChoices.push({ id: 'A-' + choiceC
 function renderChoices() { choiceOptions.innerHTML = ''; const isTimed = $('isTimedCheck').checked; currentChoices.forEach((c, i) => { const div = document.createElement('div'); div.className = 'choice-option'; div.innerHTML = `<span class="choice-option-id">${c.id}</span><input type="text" placeholder="選択肢テキスト" value="${c.text}" data-idx="${i}" data-field="text"><select data-idx="${i}" data-field="goto"><option value="">→ 次へ</option>${scenes.map(s => `<option value="${s.label || s.id}" ${c.goto === (s.label || String(s.id)) ? 'selected' : ''}>${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join('')}</select>${isTimed ? `<input type="number" placeholder="±秒" value="${c.timerDelta || 0}" data-idx="${i}" data-field="timerDelta" style="width:50px;font-size:11px" title="タイマー増減(正で増加)">` : ''}<button class="btn remove-choice-btn" data-idx="${i}">×</button>`; choiceOptions.appendChild(div); }); choiceOptions.querySelectorAll('input, select').forEach(el => { el.onchange = el.oninput = () => { const idx = +el.dataset.idx; currentChoices[idx][el.dataset.field] = el.dataset.field === 'timerDelta' ? +el.value : el.value; }; }); choiceOptions.querySelectorAll('.remove-choice-btn').forEach(btn => { btn.onclick = () => { currentChoices.splice(+btn.dataset.idx, 1); renderChoices(); }; }); updateTimeoutGotoOptions(); }
 
 let seCounter = 0;
-function renderSeList() { __dc('renderSeList'); const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play se-play-btn">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { if (!data.audio.paused) { data.audio.pause(); data.audio.currentTime = 0; btns[1].textContent = '▶'; btns[1].style.background = ''; } else { data.audio.currentTime = 0; data.audio.play().catch(()=>{}); btns[1].textContent = '■'; btns[1].style.background = '#e9a020'; data.audio.onended = () => { btns[1].textContent = '▶'; btns[1].style.background = ''; }; } }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
+function renderSeList() { const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play se-play-btn">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { if (!data.audio.paused) { data.audio.pause(); data.audio.currentTime = 0; btns[1].textContent = '▶'; btns[1].style.background = ''; } else { data.audio.currentTime = 0; data.audio.play().catch(()=>{}); btns[1].textContent = '■'; btns[1].style.background = '#e9a020'; data.audio.onended = () => { btns[1].textContent = '▶'; btns[1].style.background = ''; }; } }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
 $('addSeBtn').onclick = () => $('seInput').click();
 $('seInput').onchange = e => { const file = e.target.files[0]; if (!file) return; seCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `se${String(seCounter).padStart(2,'0')}`; seAudios[name] = { audio: new Audio(URL.createObjectURL(file)), url: URL.createObjectURL(file), blob: file, filename: `${name}.${ext}` }; renderSeList(); e.target.value = ''; };
 
 let bgmCounter = 0;
-function renderBgmList() { __dc('renderBgmList'); const list = $('bgmList'); list.innerHTML = ''; Object.entries(bgmAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nBGM:' + name : 'BGM:' + name; }; btns[1].onclick = () => { Object.values(bgmAudios).forEach(d => { d.audio.pause(); d.audio.currentTime = 0; }); data.audio.loop = true; data.audio.play(); currentBgm = name; }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete bgmAudios[name]; if (currentBgm === name) currentBgm = null; renderBgmList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
+function renderBgmList() { const list = $('bgmList'); list.innerHTML = ''; Object.entries(bgmAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nBGM:' + name : 'BGM:' + name; }; btns[1].onclick = () => { Object.values(bgmAudios).forEach(d => { d.audio.pause(); d.audio.currentTime = 0; }); data.audio.loop = true; data.audio.play(); currentBgm = name; }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete bgmAudios[name]; if (currentBgm === name) currentBgm = null; renderBgmList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
 $('addBgmBtn').onclick = () => $('bgmInput').click();
 $('bgmInput').onchange = e => { const file = e.target.files[0]; if (!file) return; bgmCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `bgm${String(bgmCounter).padStart(2,'0')}`; const url = URL.createObjectURL(file); const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob: file, filename: `${name}.${ext}` }; renderBgmList(); e.target.value = ''; };
 
@@ -997,7 +961,7 @@ document.addEventListener('click', e => { if (e.target.classList.contains('cmd-c
 function insertCmd(cmd) { cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; }
 
 // ===== サウンドビルダー =====
-function refreshSoundBuilders() { __dc('refreshSoundBuilders');
+function refreshSoundBuilders() {
     const seNames = Object.keys(seAudios), bgmNames = Object.keys(bgmAudios);
     // SE対象
     const seTarget = $('seTarget'); if (seTarget) { const cur = seTarget.value; seTarget.innerHTML = seNames.length ? seNames.map(n => `<option value="${n}">${n}（${seAudios[n].filename || n}）</option>`).join('') : '<option value="">SE未登録</option>'; if (seNames.includes(cur)) seTarget.value = cur; }
@@ -1114,10 +1078,7 @@ function loadBgmToBuilder(line, idx) {
 }
 
 // チップ描画
-let suspendChips = false;
-function renderSoundChips() { __dc('renderSoundChips');
-    if (suspendChips) return;
-    renderCmdChips();
+function renderSoundChips() {
     const seBox = $('seChips'), bgmBox = $('bgmChips'); if (!seBox || !bgmBox) return;
     seBox.innerHTML = ''; bgmBox.innerHTML = '';
     const lines = cmdInput.value.split('\n');
@@ -1135,43 +1096,6 @@ function renderSoundChips() { __dc('renderSoundChips');
         if (editable) chip.querySelector('.chip-label').onclick = () => { cat === 'se' ? loadSeToBuilder(line, idx) : loadBgmToBuilder(line, idx); };
         else chip.querySelector('.chip-label').style.cursor = 'default';
         (cat === 'se' ? seBox : bgmBox).appendChild(chip);
-    });
-}
-
-// コマンド欄の全行をチップ表示（種別色分け・✕削除・タップで該当行へ）
-function classifyCmdFull(line) {
-    const u = line.trim().toUpperCase();
-    if (u.startsWith('BG:')) return { cat: 'bg', icon: '🖼' };
-    if (u.startsWith('CHAR:')) return { cat: 'char', icon: '👤' };
-    if (u.startsWith('OVERLAY:')) return { cat: 'overlay', icon: '✨' };
-    if (u.startsWith('BGM:')) return { cat: 'sound', icon: '🎵' };
-    if (u.startsWith('FLASH') || u.startsWith('SHAKE')) return { cat: 'fx', icon: '⚡' };
-    if (u.startsWith('SE:')) return (u.startsWith('SE:STOP') || u.startsWith('SE:AMBIENT')) ? { cat: 'fx', icon: '🔇' } : { cat: 'sound', icon: '🔊' };
-    if (u.startsWith('SETFLAG:') || u.startsWith('IFFLAG:') || u.startsWith('NOTFLAG:') || u.startsWith('FROM:')) return { cat: 'flag', icon: '🚩' };
-    return { cat: 'other', icon: '・' };
-}
-function renderCmdChips() { __dc('renderCmdChips');
-    if (suspendChips) return;
-    const box = $('cmdChips'); if (!box) return;
-    box.innerHTML = '';
-    const lines = cmdInput.value.split('\n');
-    const MAX_CHIPS = 300; let shown = 0;
-    lines.forEach((line, idx) => {
-        if (line.trim() === '') return;
-        if (shown >= MAX_CHIPS) return;
-        shown++;
-        const { cat, icon } = classifyCmdFull(line);
-        const chip = document.createElement('div');
-        chip.className = 'cmd-chip cc-' + cat;
-        chip.innerHTML = `<span class="cc-label">${icon} ${line.trim()}</span><button class="cc-x">✕</button>`;
-        chip.querySelector('.cc-x').onclick = e => { e.stopPropagation(); const ls = cmdInput.value.split('\n'); ls.splice(idx, 1); cmdInput.value = ls.join('\n'); renderSoundChips(); };
-        // タップで該当行をテキスト欄で選択（手編集しやすく）
-        chip.querySelector('.cc-label').onclick = () => {
-            const ls = cmdInput.value.split('\n'); let start = 0; for (let i = 0; i < idx; i++) start += ls[i].length + 1;
-            cmdInput.focus(); cmdInput.setSelectionRange(start, start + ls[idx].length);
-            cmdInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        };
-        box.appendChild(chip);
     });
 }
 
@@ -1218,7 +1142,7 @@ function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; edito
 
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
-function renderScenes() { __dc('renderScenes'); sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
+function renderScenes() { sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
 scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; const isFirst = i === 0, isLast = i === scenes.length - 1; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}<div class="scene-actions"><button class="scene-btn scene-edit" title="編集">✎</button><button class="scene-btn scene-del" title="削除">✕</button><button class="scene-btn scene-more" title="その他">⋯</button></div></div><div class="scene-menu"><button class="m-up" ${isFirst ? 'disabled' : ''}>⬆ 上へ移動</button><button class="m-down" ${isLast ? 'disabled' : ''}>⬇ 下へ移動</button><button class="m-play">▶ ここから再生</button><button class="m-copy">📋 コピー</button><button class="m-png">📷 PNG出力</button></div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span>`;
 card.ondragstart = e => { e.dataTransfer.setData('idx', i); card.classList.add('dragging'); }; card.ondragend = () => card.classList.remove('dragging'); card.ondragover = e => { e.preventDefault(); card.classList.add('drag-over'); }; card.ondragleave = () => card.classList.remove('drag-over'); card.ondrop = e => { e.preventDefault(); card.classList.remove('drag-over'); const from = +e.dataTransfer.getData('idx'); if (from !== i) { const [moved] = scenes.splice(from, 1); scenes.splice(i, 0, moved); renderScenes(); saveWithHistory(); } };
 const menu = card.querySelector('.scene-menu');
@@ -1392,12 +1316,12 @@ $('closeHistoryBtn').onclick = () => historyModal.classList.add('hidden');
 historyModal.onclick = e => { if (e.target === historyModal) historyModal.classList.add('hidden'); };
 
 $('loadZip').onclick = () => $('zipInput').click();
-$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { suspendChips = true; await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]);
+$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]);
 const imgFolder = zip.folder('images'); if (imgFolder) { const files = []; imgFolder.forEach((p, f) => { if (!f.dir) files.push({ p, f }); }); for (const { p, f } of files) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); if (p.startsWith('ov')) { overlayBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > overlayCounter) overlayCounter = num; } else if (p.startsWith('ch')) { charBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > charCounter) charCounter = num; } else { const hash = await hashBlob(blob); imageBlobs[p] = { url, blob, hash }; imageHashes[hash] = p; const num = parseInt(p.split('.')[0]); if (!isNaN(num) && num > imageCounter) imageCounter = num; } } }
 const audioFolder = zip.folder('audio'); if (audioFolder) { const audioFiles = []; audioFolder.forEach((p, f) => { if (!f.dir) audioFiles.push({ p, f }); }); for (const { p, f } of audioFiles) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); const name = p.split('.')[0].toLowerCase(); if (name.startsWith('se')) { seAudios[name] = { audio: new Audio(url), url, blob, filename: p }; const num = parseInt(name.slice(2)); if (!isNaN(num) && num > seCounter) seCounter = num; } else if (name.startsWith('bgm')) { const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob, filename: p }; const num = parseInt(name.slice(3)); if (!isNaN(num) && num > bgmCounter) bgmCounter = num; } } }
 const dataFile = zip.file('data.json'); if (dataFile) { const data = JSON.parse(await dataFile.async('string')); scenes = (data.scenes || []).map(s => ({ ...s, uuid: s.uuid || crypto.randomUUID(), bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); chapters = data.chapters || []; if (data.projectWidth && data.projectHeight) applyProjectResolution(data.projectWidth, data.projectHeight); else { resolutionLocked = false; const firstBg = scenes.find(s => s.bg); if (firstBg && imageBlobs[firstBg.bg]) { const img = new Image(); img.onload = () => { if (!resolutionLocked) applyProjectResolution(img.width, img.height); }; img.src = imageBlobs[firstBg.bg].url; } } scenes.forEach(s => { if (s.choices) s.choices.forEach(c => { const m = c.id.match(/^A-(\d+)$/); if (m && +m[1] > choiceCounter) choiceCounter = +m[1]; }); }); }
 packScripts = {}; const packsFolder = zip.folder('packs'); if (packsFolder) { const packFiles = []; packsFolder.forEach((p, f) => { if (!f.dir && p.endsWith('.js')) packFiles.push({ p, f }); }); for (const { p, f } of packFiles) { const source = await f.async('string'); loadPackScript(p, source); } }
-renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); suspendChips = false; renderSoundChips(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}\nPacks: ${Object.keys(packScripts).join(', ') || '(なし)'}`); } catch (err) { suspendChips = false; alert('読み込みエラー: ' + err.message); } };
+renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}\nPacks: ${Object.keys(packScripts).join(', ') || '(なし)'}`); } catch (err) { alert('読み込みエラー: ' + err.message); } };
 
 function getExt(filename) { return filename.split('.').pop() || 'mp3'; }
 $('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, 'vn-project.zip'); } catch (err) { alert('保存エラー: ' + err.message); } };
