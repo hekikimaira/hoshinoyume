@@ -138,6 +138,19 @@
         .overlay-item .overlay-del { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; background: #e94560; border-radius: 50%; font-size: 10px; line-height: 14px; text-align: center; cursor: pointer; display: none; }
         .overlay-item:hover .overlay-del { display: block; }
         .cmd-section { margin-bottom: 8px; }
+        .cmd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .cmd-chips:empty { display: none; }
+        .cmd-chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 14px; padding: 4px 5px 4px 10px; font-size: 11px; font-family: monospace; cursor: pointer; border: 1px solid; max-width: 100%; }
+        .cmd-chip .cc-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+        .cmd-chip .cc-x { background: rgba(0,0,0,0.35); border: none; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
+        .cmd-chip .cc-x:hover { background: #e94560; }
+        .cc-bg { background: #1e3a2e; border-color: #2ecc71; color: #aef5cd; }
+        .cc-char { background: #1e2e3a; border-color: #3498db; color: #aed4f5; }
+        .cc-overlay { background: #2e1e3a; border-color: #9b59b6; color: #ddaef5; }
+        .cc-sound { background: #1e3a38; border-color: #4ecdc4; color: #aef5f0; }
+        .cc-fx { background: #3a3320; border-color: #f39c12; color: #f5dcae; }
+        .cc-flag { background: #3a1e28; border-color: #e94560; color: #f5aec0; }
+        .cc-other { background: #2e2e2e; border-color: #666; color: #ccc; }
         .cmd-section-header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #333; border-radius: 4px; cursor: pointer; font-size: 11px; color: #aaa; }
         .cmd-section-header:hover { background: #3a3a3a; }
         .cmd-section-header .arrow { transition: transform 0.2s; }
@@ -299,7 +312,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.3 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -477,6 +490,7 @@
                 </div>
                 <div class="section-body">
                     <textarea id="cmdInput" class="cmd-input" placeholder="1SE2,@FLASH"></textarea>
+                    <div class="cmd-chips" id="cmdChips"></div>
                     <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ 実行</button>
                     
                     <div class="cmd-section">
@@ -651,8 +665,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.1 =====
-// Change log: シーン編集中に「これを新規シーンとして登録」ボタン追加(実質複製)。エディタは元のまま残り連続複製可能
+// ===== ホシノユメ v0.9.3 =====
+// Change log: コマンド欄を全行チップ化。背景/立ち絵/オーバーレイ/サウンド/FX/フラグ分岐を種別色分けでチップ一覧表示、✕で行削除・タップで該当行へジャンプ。テキスト欄は残し双方向同期
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -664,7 +678,7 @@ async function initDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => { console.error('DB error:', request.error); reject(request.error); };
-        request.onsuccess = () => { db = request.result; resolve(db); };
+        request.onsuccess = () => { db = request.result; db.onclose = () => { db = null; }; db.onversionchange = () => { try { db.close(); } catch(e){} db = null; }; resolve(db); };
         request.onupgradeneeded = (e) => {
             const database = e.target.result;
             if (!database.objectStoreNames.contains('project')) database.createObjectStore('project', { keyPath: 'id' });
@@ -675,8 +689,16 @@ async function initDB() {
     });
 }
 
+// スリープ等でIndexedDB接続が切れていても、生きた接続を保証する
+async function ensureDB() {
+    await ensureDB();
+    try { db.transaction('project', 'readonly').abort(); } // 死んでいればここで例外
+    catch (e) { try { db.close(); } catch(_){} db = null; await initDB(); }
+    return db;
+}
+
 async function saveToIndexedDB() {
-    if (!db) await initDB();
+    await ensureDB();
     try {
         const tx1 = db.transaction('project', 'readwrite');
         tx1.objectStore('project').put({
@@ -694,16 +716,25 @@ async function saveToIndexedDB() {
         for (const [name, data] of Object.entries(bgmAudios)) { if (data.blob) { try { const tx = db.transaction('audio', 'readwrite'); tx.objectStore('audio').put({ id: name, blob: data.blob, filename: data.filename, type: 'bgm' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`BGM save error for ${name}:`, e); } } }
         for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'overlay' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Overlay save error for ${filename}:`, e); } } }
         for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'char' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Char save error for ${filename}:`, e); } } }
-    } catch (e) { console.error('Auto save error:', e); alert('保存エラー: ' + e.message); }
+    } catch (e) {
+        // 接続切れ起因なら一度だけ再接続してリトライ
+        if (!saveToIndexedDB._retried && /not be found|InvalidStateError|closing|transaction/i.test(e.message || '')) {
+            saveToIndexedDB._retried = true;
+            try { if (db) db.close(); } catch(_){}
+            db = null;
+            try { await initDB(); await saveToIndexedDB(); saveToIndexedDB._retried = false; return; } catch (e2) { saveToIndexedDB._retried = false; }
+        }
+        console.error('Auto save error:', e); alert('保存エラー: ' + e.message);
+    }
 }
 
-async function saveToHistory() { if (!db) await initDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
+async function saveToHistory() { await ensureDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
 
-async function getHistoryList() { if (!db) await initDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
+async function getHistoryList() { await ensureDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
 
-async function restoreFromHistory(historyId) { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
+async function restoreFromHistory(historyId) { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
 
-async function loadFromIndexedDB() { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
+async function loadFromIndexedDB() { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
 
 let isSaving = false, pendingSave = false;
 async function autoSave() { if (isSaving) { pendingSave = true; return; } isSaving = true; try { await saveToIndexedDB(); } catch (e) { console.error('Auto save failed:', e); } finally { isSaving = false; } if (pendingSave) { pendingSave = false; setTimeout(autoSave, 100); } }
@@ -1079,6 +1110,7 @@ function loadBgmToBuilder(line, idx) {
 
 // チップ描画
 function renderSoundChips() {
+    renderCmdChips();
     const seBox = $('seChips'), bgmBox = $('bgmChips'); if (!seBox || !bgmBox) return;
     seBox.innerHTML = ''; bgmBox.innerHTML = '';
     const lines = cmdInput.value.split('\n');
@@ -1096,6 +1128,39 @@ function renderSoundChips() {
         if (editable) chip.querySelector('.chip-label').onclick = () => { cat === 'se' ? loadSeToBuilder(line, idx) : loadBgmToBuilder(line, idx); };
         else chip.querySelector('.chip-label').style.cursor = 'default';
         (cat === 'se' ? seBox : bgmBox).appendChild(chip);
+    });
+}
+
+// コマンド欄の全行をチップ表示（種別色分け・✕削除・タップで該当行へ）
+function classifyCmdFull(line) {
+    const u = line.trim().toUpperCase();
+    if (u.startsWith('BG:')) return { cat: 'bg', icon: '🖼' };
+    if (u.startsWith('CHAR:')) return { cat: 'char', icon: '👤' };
+    if (u.startsWith('OVERLAY:')) return { cat: 'overlay', icon: '✨' };
+    if (u.startsWith('BGM:')) return { cat: 'sound', icon: '🎵' };
+    if (u.startsWith('FLASH') || u.startsWith('SHAKE')) return { cat: 'fx', icon: '⚡' };
+    if (u.startsWith('SE:')) return (u.startsWith('SE:STOP') || u.startsWith('SE:AMBIENT')) ? { cat: 'fx', icon: '🔇' } : { cat: 'sound', icon: '🔊' };
+    if (u.startsWith('SETFLAG:') || u.startsWith('IFFLAG:') || u.startsWith('NOTFLAG:') || u.startsWith('FROM:')) return { cat: 'flag', icon: '🚩' };
+    return { cat: 'other', icon: '・' };
+}
+function renderCmdChips() {
+    const box = $('cmdChips'); if (!box) return;
+    box.innerHTML = '';
+    const lines = cmdInput.value.split('\n');
+    lines.forEach((line, idx) => {
+        if (line.trim() === '') return;
+        const { cat, icon } = classifyCmdFull(line);
+        const chip = document.createElement('div');
+        chip.className = 'cmd-chip cc-' + cat;
+        chip.innerHTML = `<span class="cc-label">${icon} ${line.trim()}</span><button class="cc-x">✕</button>`;
+        chip.querySelector('.cc-x').onclick = e => { e.stopPropagation(); const ls = cmdInput.value.split('\n'); ls.splice(idx, 1); cmdInput.value = ls.join('\n'); renderSoundChips(); };
+        // タップで該当行をテキスト欄で選択（手編集しやすく）
+        chip.querySelector('.cc-label').onclick = () => {
+            const ls = cmdInput.value.split('\n'); let start = 0; for (let i = 0; i < idx; i++) start += ls[i].length + 1;
+            cmdInput.focus(); cmdInput.setSelectionRange(start, start + ls[idx].length);
+            cmdInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+        box.appendChild(chip);
     });
 }
 
