@@ -306,7 +306,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.6 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.7 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -657,8 +657,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.6 =====
-// Change log: 文字縁取りのジャギー軽減。text-shadowのブラー半径を1px→2pxに上げ、html2canvas書き出し時のエッジのギザつきを緩和(プレビュー/書き出し/プレイヤー全て)
+// ===== ホシノユメ v0.9.7 =====
+// Change log: PNG書き出しで選択肢シーンの選択肢ボタンも描画するように(単体/全PNG両方)。プレビューのchoice-btnをpx換算で再現
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1441,7 +1441,14 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { cle
 const PNG_SHADOW = '2px 0 2px #000, -2px 0 2px #000, 0 2px 2px #000, 0 -2px 2px #000, 1.5px 1.5px 2px #000, -1.5px 1.5px 2px #000, 1.5px -1.5px 2px #000, -1.5px -1.5px 2px #000';
 function buildSceneExportHtml(scene) {
     const nvl = scene.textMode === 'nvl';
-    return `<div class="preview-canvas" style="width:${projectWidth}px;height:${projectHeight}px;position:relative;background:#000;overflow:hidden;"><div class="preview-bg" style="position:absolute;inset:0;">${scene.bgUrl ? `<img src="${scene.bgUrl}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div><div class="text-display ${nvl ? 'nvl-mode' : ''}" style="position:absolute;${nvl ? 'inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-start;padding:3% 4%;' : 'bottom:5%;left:4%;right:4%;'}">${scene.name ? `<div class="char-name" style="font-size:${nvl ? '29px' : '33px'};font-weight:700;color:#fff;text-shadow:${PNG_SHADOW};margin-bottom:${nvl ? '1%' : '2%'};">${scene.name}</div>` : ''}<div class="dialogue" style="font-size:${nvl ? '25px' : '27px'};line-height:${nvl ? '2' : '1.6'};color:#fff;text-shadow:${PNG_SHADOW};white-space:pre-wrap;">${scene.text || ''}</div></div></div>`;
+    // 選択肢シーンなら選択肢ボタン群を描画（プレビューのchoice-btnをpx換算で再現）
+    let choiceHtml = '';
+    if (scene.isChoice && scene.choices && scene.choices.length > 0) {
+        const fs = Math.round(projectWidth * 0.035), padV = Math.round(projectWidth * 0.03), padH = Math.round(projectWidth * 0.06), gap = Math.round(projectWidth * 0.03), radius = Math.round(projectWidth * 0.01);
+        const btns = scene.choices.map(c => `<div style="background:linear-gradient(135deg,#333 0%,#222 100%);border:2px solid #f39c12;color:#fff;padding:${padV}px ${padH}px;font-size:${fs}px;font-weight:700;border-radius:${radius}px;min-width:60%;max-width:84%;text-align:center;box-sizing:border-box;">${c.text || c.id}</div>`).join('');
+        choiceHtml = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${gap}px;z-index:20;">${btns}</div>`;
+    }
+    return `<div class="preview-canvas" style="width:${projectWidth}px;height:${projectHeight}px;position:relative;background:#000;overflow:hidden;"><div class="preview-bg" style="position:absolute;inset:0;">${scene.bgUrl ? `<img src="${scene.bgUrl}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div>${choiceHtml}<div class="text-display ${nvl ? 'nvl-mode' : ''}" style="position:absolute;${nvl ? 'inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-start;padding:3% 4%;' : 'bottom:5%;left:4%;right:4%;'}">${scene.name ? `<div class="char-name" style="font-size:${nvl ? '29px' : '33px'};font-weight:700;color:#fff;text-shadow:${PNG_SHADOW};margin-bottom:${nvl ? '1%' : '2%'};">${scene.name}</div>` : ''}<div class="dialogue" style="font-size:${nvl ? '25px' : '27px'};line-height:${nvl ? '2' : '1.6'};color:#fff;text-shadow:${PNG_SHADOW};white-space:pre-wrap;">${scene.text || ''}</div></div></div>`;
 }
 
 // ★ FIX: left:-9999pxのオフスクリーン配置だとhtml2canvasが画面内の本物プレビューを巻き込んで裏写りする。
