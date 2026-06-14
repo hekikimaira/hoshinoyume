@@ -312,7 +312,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.4 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.4-診断 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -673,6 +673,11 @@ const DB_NAME = 'vn-editor-db';
 const DB_VERSION = 3;
 const MAX_HISTORY = 5;
 let db = null;
+// === 診断: 再帰深さ検知 ===
+window.__cs = {}; 
+function __dc(name) { window.__cs[name] = (window.__cs[name]||0) + 1; if (window.__cs[name] > 100 && !window.__reported) { window.__reported = true; const top = Object.entries(window.__cs).sort((a,b)=>b[1]-a[1]).slice(0,4).map(e=>e[0]+':'+e[1]).join(' / '); alert('🔍再帰検知: ' + top); throw new Error('recursion-trap'); } }
+setInterval(() => { window.__cs = {}; }, 200);
+
 
 async function initDB() {
     return new Promise((resolve, reject) => {
@@ -842,12 +847,12 @@ function addChoice() { choiceCounter++; currentChoices.push({ id: 'A-' + choiceC
 function renderChoices() { choiceOptions.innerHTML = ''; const isTimed = $('isTimedCheck').checked; currentChoices.forEach((c, i) => { const div = document.createElement('div'); div.className = 'choice-option'; div.innerHTML = `<span class="choice-option-id">${c.id}</span><input type="text" placeholder="選択肢テキスト" value="${c.text}" data-idx="${i}" data-field="text"><select data-idx="${i}" data-field="goto"><option value="">→ 次へ</option>${scenes.map(s => `<option value="${s.label || s.id}" ${c.goto === (s.label || String(s.id)) ? 'selected' : ''}>${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join('')}</select>${isTimed ? `<input type="number" placeholder="±秒" value="${c.timerDelta || 0}" data-idx="${i}" data-field="timerDelta" style="width:50px;font-size:11px" title="タイマー増減(正で増加)">` : ''}<button class="btn remove-choice-btn" data-idx="${i}">×</button>`; choiceOptions.appendChild(div); }); choiceOptions.querySelectorAll('input, select').forEach(el => { el.onchange = el.oninput = () => { const idx = +el.dataset.idx; currentChoices[idx][el.dataset.field] = el.dataset.field === 'timerDelta' ? +el.value : el.value; }; }); choiceOptions.querySelectorAll('.remove-choice-btn').forEach(btn => { btn.onclick = () => { currentChoices.splice(+btn.dataset.idx, 1); renderChoices(); }; }); updateTimeoutGotoOptions(); }
 
 let seCounter = 0;
-function renderSeList() { const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play se-play-btn">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { if (!data.audio.paused) { data.audio.pause(); data.audio.currentTime = 0; btns[1].textContent = '▶'; btns[1].style.background = ''; } else { data.audio.currentTime = 0; data.audio.play().catch(()=>{}); btns[1].textContent = '■'; btns[1].style.background = '#e9a020'; data.audio.onended = () => { btns[1].textContent = '▶'; btns[1].style.background = ''; }; } }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
+function renderSeList() { __dc('renderSeList'); const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play se-play-btn">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { if (!data.audio.paused) { data.audio.pause(); data.audio.currentTime = 0; btns[1].textContent = '▶'; btns[1].style.background = ''; } else { data.audio.currentTime = 0; data.audio.play().catch(()=>{}); btns[1].textContent = '■'; btns[1].style.background = '#e9a020'; data.audio.onended = () => { btns[1].textContent = '▶'; btns[1].style.background = ''; }; } }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
 $('addSeBtn').onclick = () => $('seInput').click();
 $('seInput').onchange = e => { const file = e.target.files[0]; if (!file) return; seCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `se${String(seCounter).padStart(2,'0')}`; seAudios[name] = { audio: new Audio(URL.createObjectURL(file)), url: URL.createObjectURL(file), blob: file, filename: `${name}.${ext}` }; renderSeList(); e.target.value = ''; };
 
 let bgmCounter = 0;
-function renderBgmList() { const list = $('bgmList'); list.innerHTML = ''; Object.entries(bgmAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nBGM:' + name : 'BGM:' + name; }; btns[1].onclick = () => { Object.values(bgmAudios).forEach(d => { d.audio.pause(); d.audio.currentTime = 0; }); data.audio.loop = true; data.audio.play(); currentBgm = name; }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete bgmAudios[name]; if (currentBgm === name) currentBgm = null; renderBgmList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
+function renderBgmList() { __dc('renderBgmList'); const list = $('bgmList'); list.innerHTML = ''; Object.entries(bgmAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nBGM:' + name : 'BGM:' + name; }; btns[1].onclick = () => { Object.values(bgmAudios).forEach(d => { d.audio.pause(); d.audio.currentTime = 0; }); data.audio.loop = true; data.audio.play(); currentBgm = name; }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete bgmAudios[name]; if (currentBgm === name) currentBgm = null; renderBgmList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
 $('addBgmBtn').onclick = () => $('bgmInput').click();
 $('bgmInput').onchange = e => { const file = e.target.files[0]; if (!file) return; bgmCounter++; const ext = file.name.split('.').pop() || 'mp3'; const name = `bgm${String(bgmCounter).padStart(2,'0')}`; const url = URL.createObjectURL(file); const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob: file, filename: `${name}.${ext}` }; renderBgmList(); e.target.value = ''; };
 
@@ -992,7 +997,7 @@ document.addEventListener('click', e => { if (e.target.classList.contains('cmd-c
 function insertCmd(cmd) { cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; }
 
 // ===== サウンドビルダー =====
-function refreshSoundBuilders() {
+function refreshSoundBuilders() { __dc('refreshSoundBuilders');
     const seNames = Object.keys(seAudios), bgmNames = Object.keys(bgmAudios);
     // SE対象
     const seTarget = $('seTarget'); if (seTarget) { const cur = seTarget.value; seTarget.innerHTML = seNames.length ? seNames.map(n => `<option value="${n}">${n}（${seAudios[n].filename || n}）</option>`).join('') : '<option value="">SE未登録</option>'; if (seNames.includes(cur)) seTarget.value = cur; }
@@ -1110,7 +1115,7 @@ function loadBgmToBuilder(line, idx) {
 
 // チップ描画
 let suspendChips = false;
-function renderSoundChips() {
+function renderSoundChips() { __dc('renderSoundChips');
     if (suspendChips) return;
     renderCmdChips();
     const seBox = $('seChips'), bgmBox = $('bgmChips'); if (!seBox || !bgmBox) return;
@@ -1145,7 +1150,7 @@ function classifyCmdFull(line) {
     if (u.startsWith('SETFLAG:') || u.startsWith('IFFLAG:') || u.startsWith('NOTFLAG:') || u.startsWith('FROM:')) return { cat: 'flag', icon: '🚩' };
     return { cat: 'other', icon: '・' };
 }
-function renderCmdChips() {
+function renderCmdChips() { __dc('renderCmdChips');
     if (suspendChips) return;
     const box = $('cmdChips'); if (!box) return;
     box.innerHTML = '';
@@ -1213,7 +1218,7 @@ function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; edito
 
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
-function renderScenes() { sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
+function renderScenes() { __dc('renderScenes'); sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
 scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; const isFirst = i === 0, isLast = i === scenes.length - 1; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}<div class="scene-actions"><button class="scene-btn scene-edit" title="編集">✎</button><button class="scene-btn scene-del" title="削除">✕</button><button class="scene-btn scene-more" title="その他">⋯</button></div></div><div class="scene-menu"><button class="m-up" ${isFirst ? 'disabled' : ''}>⬆ 上へ移動</button><button class="m-down" ${isLast ? 'disabled' : ''}>⬇ 下へ移動</button><button class="m-play">▶ ここから再生</button><button class="m-copy">📋 コピー</button><button class="m-png">📷 PNG出力</button></div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span>`;
 card.ondragstart = e => { e.dataTransfer.setData('idx', i); card.classList.add('dragging'); }; card.ondragend = () => card.classList.remove('dragging'); card.ondragover = e => { e.preventDefault(); card.classList.add('drag-over'); }; card.ondragleave = () => card.classList.remove('drag-over'); card.ondrop = e => { e.preventDefault(); card.classList.remove('drag-over'); const from = +e.dataTransfer.getData('idx'); if (from !== i) { const [moved] = scenes.splice(from, 1); scenes.splice(i, 0, moved); renderScenes(); saveWithHistory(); } };
 const menu = card.querySelector('.scene-menu');
