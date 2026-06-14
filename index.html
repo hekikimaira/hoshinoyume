@@ -120,6 +120,7 @@
         .btn-primary { background: #4ecdc4; color: #000; width: 100%; }
         .btn-save { background: #e94560; color: #fff; width: 100%; padding: 14px; font-size: 14px; }
         .btn-cancel { background: #444; color: #aaa; width: 100%; margin-top: 8px; }
+        .btn-dup { background: #6c5ce7; color: #fff; width: 100%; margin-top: 8px; padding: 13px; font-size: 14px; }
         .btn-zip { background: #6c5ce7; color: #fff; }
         .audio-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .audio-label { font-size: 11px; font-weight: 700; color: #4ecdc4; width: 36px; }
@@ -298,7 +299,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.8.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -309,6 +310,7 @@
                     <div style="display:flex;gap:8px">
                         <button class="btn btn-zip" id="loadZip" style="flex:1">📁 ZIP読込</button>
                         <button class="btn btn-zip" id="saveZip" style="flex:1">💾 ZIP保存</button>
+                        <button class="btn btn-primary" id="exportGameBtn" style="flex:1">🎮 ゲーム書き出し</button>
                     </div>
                     <input type="file" id="zipInput" accept=".zip" class="hidden">
                 </div>
@@ -570,6 +572,7 @@
             <!-- 保存バー（下部固定） -->
             <div class="save-bar">
                 <button class="btn btn-save" id="saveBtn">＋ 新規シーン追加</button>
+                <button class="btn btn-dup hidden" id="dupBtn">⧉ これを新規シーンとして登録</button>
                 <button class="btn btn-cancel hidden" id="cancelBtn">キャンセル</button>
                 <button class="btn" id="exportPngBtn" style="background:#6c5ce7;color:#fff">📷 PNG保存</button>
             </div>
@@ -648,8 +651,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.8.1 =====
-// Change log: SE/BGM再生コマンドに音量(vol:N)を追加。ビルダーに音量プルダウン、チップ編集でも音量復元。:vol:Nを末尾トークンとして剥がす方式で既存記法と完全両立
+// ===== ホシノユメ v0.9.1 =====
+// Change log: シーン編集中に「これを新規シーンとして登録」ボタン追加(実質複製)。エディタは元のまま残り連続複製可能
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1125,10 +1128,17 @@ saveBtn.onclick = () => {
     renderScenes(); saveWithHistory();
 };
 cancelBtn.onclick = resetEditor;
+// 複製：今のエディタ内容を新規シーンとして末尾に追加（エディタはそのまま）
+$('dupBtn').onclick = () => {
+    const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? currentChoices.map(c => ({ ...c, id: 'choice_' + (++choiceCounter) })) : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value };
+    scenes.push({ ...baseProps, id: Date.now(), uuid: crypto.randomUUID(), text: textInput.value, label: '' });
+    renderScenes(); saveWithHistory();
+    const b = $('dupBtn'); b.textContent = '✓ 複製しました'; setTimeout(() => b.textContent = '⧉ これを新規シーンとして登録', 1000);
+};
 
-function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); }
+function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); $('dupBtn').classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); }
 
-function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); document.querySelector('[data-tab="editor"]').click(); }
+function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); $('dupBtn').classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); document.querySelector('[data-tab="editor"]').click(); }
 
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
@@ -1316,6 +1326,36 @@ renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeLi
 function getExt(filename) { return filename.split('.').pop() || 'mp3'; }
 $('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, 'vn-project.zip'); } catch (err) { alert('保存エラー: ' + err.message); } };
 
+$('exportGameBtn').onclick = async () => {
+    if (scenes.length === 0) { alert('シーンがありません'); return; }
+    const btn = $('exportGameBtn'); const orig = btn.textContent; btn.disabled = true; btn.textContent = '書き出し中...';
+    try {
+        const zip = new JSZip();
+        const assets = zip.folder('assets'); const imgFolder = assets.folder('images'); const audioFolder = assets.folder('audio');
+        // 背景
+        const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); });
+        for (const filename of usedImages) { const d = imageBlobs[filename]; if (d) { const blob = d.blob || d.file; if (blob) imgFolder.file(filename, blob); } }
+        // 立ち絵・オーバーレイ（全部入れる：cmd内で参照される可能性）
+        for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); }
+        for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); }
+        // 音声
+        const seList = [], bgmList = [];
+        for (const [name, data] of Object.entries(seAudios)) { const fn = name + '.' + (data.filename ? getExt(data.filename) : 'mp3'); audioFolder.file(fn, data.blob); seList.push({ id: name, filename: fn }); }
+        for (const [name, data] of Object.entries(bgmAudios)) { const fn = name + '.' + (data.filename ? getExt(data.filename) : 'mp3'); audioFolder.file(fn, data.blob); bgmList.push({ id: name, filename: fn }); }
+        // ゲームデータ
+        const gameData = { projectWidth, projectHeight, scenes: scenes.map(s => ({ id: s.id, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), se: seList, bgm: bgmList };
+        const title = (scenes[0] && scenes[0].name) ? 'ホシノユメ作品' : 'ホシノユメ作品';
+        // プレイヤーHTML生成
+        let player = $('playerTemplate').textContent.split('<\/').join('</');
+        player = player.split('__GAME_DATA__').join(JSON.stringify(gameData)).split('__GAME_TITLE__').join(title);
+        zip.file('index.html', player);
+        const content = await zip.generateAsync({ type: 'blob' });
+        safeDownload(content, 'game.zip');
+    } catch (err) { alert('書き出しエラー: ' + err.message); }
+    btn.disabled = false; btn.textContent = orig;
+};
+
+
 window.addEventListener('beforeunload', () => { clearTimeout(saveTimer); saveToIndexedDB(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(saveTimer); saveToIndexedDB(); throttledHistorySave(); } });
 
@@ -1360,6 +1400,280 @@ $('exportPngBtn').onclick = async () => {
 
 document.addEventListener('click', e => { if (!e.target.closest('.scene-menu') && !e.target.closest('.scene-more')) document.querySelectorAll('.scene-menu.open').forEach(m => m.classList.remove('open')); });
 (async () => { await initDB(); await loadFromIndexedDB(); renderScenes(); })();
+</script>
+
+<script id="playerTemplate" type="text/html">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>__GAME_TITLE__<\/title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif; }
+    #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; touch-action: none; }
+    .preview-canvas { position: relative; background: #000; aspect-ratio: var(--project-ratio, 832/1216); height: 100vh; max-width: 100vw; container-type: inline-size; overflow: hidden; }
+    .preview-bg { position: absolute; inset: 0; z-index: 1; }
+    .preview-bg img { width: 100%; height: 100%; object-fit: cover; }
+    .char-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; width: 100%; height: 100%; }
+    .char-slot { position: absolute; bottom: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+    .char-slot[data-slot="left"] { left: 20%; transform: translateX(-50%); }
+    .char-slot[data-slot="center"] { left: 50%; transform: translateX(-50%); }
+    .char-slot[data-slot="right"] { left: 80%; transform: translateX(-50%); }
+    .char-slot img { max-height: 90%; width: auto; transition: opacity 0.3s; }
+    .char-slot img.flip { transform: scaleX(-1); }
+    .overlay-container { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+    .editor-overlay-item { position: absolute; transform: translate(-50%, -50%); }
+    .editor-overlay-item img { display: block; max-width: 40cqw; height: auto; }
+    .text-display { position: absolute; bottom: 5%; left: 4%; right: 4%; z-index: 5; }
+    .text-display.nvl-mode { top: 0; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; justify-content: flex-start; padding: 3% 4%; overflow-y: auto; }
+    .char-name { font-size: 4cqw; font-weight: 700; color: #fff; text-shadow: 2px 0 1px #000, -2px 0 1px #000, 0 2px 1px #000, 0 -2px 1px #000, 1.5px 1.5px 1px #000, -1.5px 1.5px 1px #000, 1.5px -1.5px 1px #000, -1.5px -1.5px 1px #000; margin-bottom: 2%; }
+    .dialogue { font-size: 3.2cqw; line-height: 1.6; color: #fff; text-shadow: 2px 0 1px #000, -2px 0 1px #000, 0 2px 1px #000, 0 -2px 1px #000, 1.5px 1.5px 1px #000, -1.5px 1.5px 1px #000, 1.5px -1.5px 1px #000, -1.5px -1.5px 1px #000; white-space: pre-wrap; }
+    .nvl-mode .char-name { font-size: 3.5cqw; margin-bottom: 1%; }
+    .nvl-mode .dialogue { font-size: 2.8cqw; line-height: 1.7; }
+    .preview-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 30; }
+    .preview-flash.active { animation: flash 0.3s ease-out; }
+    @keyframes flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+    .shake { animation: shake 0.4s; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+    .choice-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3cqw; z-index: 20; pointer-events: none; }
+    .choice-overlay.hidden { display: none; }
+    .choice-btn { background: linear-gradient(135deg, #333 0%, #222 100%); border: 2px solid #f39c12; color: #fff; padding: 3cqw 6cqw; font-size: 3.5cqw; font-weight: 700; border-radius: 1cqw; cursor: pointer; min-width: 60%; text-align: center; transition: all 0.2s; pointer-events: auto; }
+    .choice-btn:active { background: #f39c12; color: #000; }
+    .pl-transition { position: absolute; inset: 0; z-index: 25; pointer-events: none; opacity: 0; }
+    .pl-info { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: #fff; font-size: 13px; padding: 5px 14px; border-radius: 14px; z-index: 40; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .pl-info.show { opacity: 1; }
+    /* タイトル画面 */
+    #title { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a0a center/cover no-repeat; cursor: pointer; }
+    #title.hidden { display: none; }
+    #title .t-name { color: #fff; font-size: 32px; font-weight: 700; text-shadow: 0 2px 12px rgba(0,0,0,0.9); text-align: center; padding: 0 24px; margin-bottom: 40px; }
+    #title .t-start { color: #fff; font-size: 17px; border: 1px solid rgba(255,255,255,0.6); border-radius: 30px; padding: 12px 36px; background: rgba(0,0,0,0.4); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    #end { position: fixed; inset: 0; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; background: #000; color: #fff; gap: 24px; }
+    #end.show { display: flex; }
+    #end button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.5); color: #fff; font-size: 16px; padding: 12px 32px; border-radius: 24px; cursor: pointer; }
+<\/style>
+<\/head>
+<body>
+    <div id="title">
+        <div class="t-name">__GAME_TITLE__<\/div>
+        <div class="t-start">▶ タップでスタート<\/div>
+    <\/div>
+    <div id="stage">
+        <div class="preview-canvas" id="canvas">
+            <div class="preview-bg" id="bg"><\/div>
+            <div class="char-layer" id="charLayer">
+                <div class="char-slot" data-slot="left"><\/div>
+                <div class="char-slot" data-slot="center"><\/div>
+                <div class="char-slot" data-slot="right"><\/div>
+            <\/div>
+            <div class="overlay-container" id="overlayContainer"><\/div>
+            <div class="text-display" id="textDisplay">
+                <div class="char-name" id="charName"><\/div>
+                <div class="dialogue" id="dialogue"><\/div>
+            <\/div>
+            <div class="choice-overlay hidden" id="choiceOverlay"><\/div>
+            <div class="pl-transition" id="transition"><\/div>
+            <div class="preview-flash" id="flash"><\/div>
+        <\/div>
+        <div class="pl-info" id="info">0 / 0<\/div>
+    <\/div>
+    <div id="end">
+        <div style="font-size:20px">— おわり —<\/div>
+        <button id="replayBtn">もう一度見る<\/button>
+    <\/div>
+<script>
+/* ===== ゲームデータ（書き出し時に注入） ===== */
+const GAME_DATA = __GAME_DATA__;
+/* 素材URLは assets/ から読む */
+const scenes = GAME_DATA.scenes || [];
+const projectWidth = GAME_DATA.projectWidth || 832, projectHeight = GAME_DATA.projectHeight || 1216;
+document.documentElement.style.setProperty('--project-ratio', projectWidth + '/' + projectHeight);
+
+const $ = id => document.getElementById(id);
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* 素材参照ヘルパー（ファイル名→assetsパス） */
+function imgUrl(name) { return name ? 'assets/images/' + name : ''; }
+function charUrl(name) { return name ? 'assets/images/' + name : ''; }
+function ovUrl(name) { return name ? 'assets/images/' + name : ''; }
+
+/* オーディオはプール管理 */
+const seAudios = {}, bgmAudios = {}, ambientTimers = {}, loopingSe = {};
+let currentBgm = null, bgmStopAtScene = null;
+(GAME_DATA.se || []).forEach(n => { seAudios[n.id] = { audio: new Audio('assets/audio/' + n.filename) }; });
+(GAME_DATA.bgm || []).forEach(n => { const a = new Audio('assets/audio/' + n.filename); a.loop = true; bgmAudios[n.id] = { audio: a }; });
+
+/* 再生状態 */
+let idx = 0, flags = {}, lastChoiceId = null, charSlots = { left: null, center: null, right: null };
+
+/* ===== サウンド ===== */
+async function playSE(name, count, vol) { const se = seAudios[name]; if (!se) return; se.audio.volume = (vol != null) ? Math.max(0, Math.min(1, vol/100)) : 1; if (count === 0) { se.audio.onended = () => { se.audio.currentTime = 0; se.audio.play(); }; se.audio.currentTime = 0; se.audio.play().catch(()=>{}); loopingSe[name] = true; return; } const times = (count && count > 1) ? count : 1; if (times === 1) { se.audio.currentTime = 0; se.audio.play().catch(()=>{}); return; } let played = 0; const once = () => { played++; se.audio.currentTime = 0; se.audio.play().catch(()=>{}); }; se.audio.onended = () => { if (played < times) once(); else se.audio.onended = null; }; once(); }
+function stopSE(name) { const se = seAudios[name]; if (!se) return; se.audio.pause(); se.audio.currentTime = 0; se.audio.onended = null; delete loopingSe[name]; }
+function stopAllSE() { Object.keys(seAudios).forEach(stopSE); }
+function startSeAmbient(name, minMs, maxMs) { stopSeAmbient(name); const next = () => { const d = Math.random()*(maxMs-minMs)+minMs; ambientTimers[name] = setTimeout(() => { playSE(name, 1); next(); }, d); }; next(); }
+function stopSeAmbient(name) { if (ambientTimers[name]) { clearTimeout(ambientTimers[name]); delete ambientTimers[name]; } }
+function stopAllSeAmbient() { Object.keys(ambientTimers).forEach(stopSeAmbient); }
+function playSeRandomPick(names) { const n = names[Math.floor(Math.random()*names.length)]; playSE(n, 1); }
+function playSeRandomDelay(name, a, b) { const d = Math.random()*(b-a)+a; setTimeout(() => playSE(name, 1), d); }
+function playBGM(name, untilScene, vol) { if (currentBgm && bgmAudios[currentBgm]) { bgmAudios[currentBgm].audio.pause(); bgmAudios[currentBgm].audio.currentTime = 0; } const bgm = bgmAudios[name]; if (!bgm) return; bgm.audio.loop = true; bgm.audio.volume = (vol != null) ? Math.max(0, Math.min(1, vol/100)) : 1; bgm.audio.play().catch(()=>{}); currentBgm = name; bgmStopAtScene = (untilScene && untilScene > 0) ? untilScene : null; }
+function stopBGM() { if (currentBgm && bgmAudios[currentBgm]) { bgmAudios[currentBgm].audio.pause(); bgmAudios[currentBgm].audio.currentTime = 0; } currentBgm = null; bgmStopAtScene = null; }
+function stopAllSound() { try { stopAllSE(); } catch(e){} try { stopAllSeAmbient(); } catch(e){} try { stopBGM(); } catch(e){} }
+
+/* ===== FX ===== */
+function doFlash(el) { el.classList.remove('active'); void el.offsetWidth; el.classList.add('active'); }
+function doShake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
+function parseEasing(e) { const map = { linear:'linear', easein:'ease-in', easeout:'ease-out', easeinout:'ease-in-out', bounce:'cubic-bezier(0.68,-0.55,0.265,1.55)' }; return map[(e||'easeout').toLowerCase()] || 'ease-out'; }
+function parseSpeed(s) { if (!s) return 500; if (typeof s === 'number') return s; const str = String(s).toLowerCase(); if (str === 'slow') return 1000; if (str === 'fast') return 200; if (str === 'normal') return 500; return parseInt(str) || 500; }
+
+/* ===== 立ち絵 ===== */
+let activeOverlays = {}, kfCounter = 0;
+async function runCharCmd(cmd, charLayer) {
+    if (!charLayer) return;
+    const u = cmd.toUpperCase().trim();
+    if (u === 'CLEAR') { charLayer.querySelectorAll('.char-slot img').forEach(i => i.remove()); charSlots = { left: null, center: null, right: null }; return; }
+    const parts = cmd.split(':');
+    const slot = parts[0].toLowerCase();
+    const slotEl = charLayer.querySelector(`.char-slot[data-slot="${slot}"]`);
+    if (!slotEl) return;
+    if ((parts[1] || '').toUpperCase() === 'HIDE') { slotEl.querySelectorAll('img').forEach(i => i.remove()); charSlots[slot] = null; return; }
+    const filename = parts[1]; const flip = (parts[2] || '').toLowerCase() === 'flip';
+    if (!filename) return;
+    slotEl.querySelectorAll('img').forEach(i => i.remove());
+    const img = document.createElement('img'); img.src = charUrl(filename); if (flip) img.classList.add('flip');
+    slotEl.appendChild(img); charSlots[slot] = { filename, flip };
+}
+function rebuildCharState(uptoIdx, charLayer) {
+    charLayer.querySelectorAll('.char-slot img').forEach(i => i.remove());
+    charSlots = { left: null, center: null, right: null };
+    for (let i = 0; i < uptoIdx; i++) {
+        const cmd = scenes[i] && scenes[i].cmd; if (!cmd) continue;
+        cmd.split('\n').forEach(line => { const p = line.trim(); if (!p.toUpperCase().startsWith('CHAR:')) return; const u = p.toUpperCase();
+            if (u === 'CHAR:CLEAR') { charLayer.querySelectorAll('.char-slot img').forEach(im => im.remove()); charSlots = { left: null, center: null, right: null }; return; }
+            const parts = p.slice(5).split(':'); const slot = parts[0].toLowerCase(); const slotEl = charLayer.querySelector(`.char-slot[data-slot="${slot}"]`); if (!slotEl) return;
+            if ((parts[1]||'').toUpperCase() === 'HIDE') { slotEl.querySelectorAll('img').forEach(im => im.remove()); charSlots[slot] = null; return; }
+            const filename = parts[1]; const flip = (parts[2]||'').toLowerCase() === 'flip'; if (!filename) return;
+            slotEl.querySelectorAll('img').forEach(im => im.remove()); const img = document.createElement('img'); img.src = charUrl(filename); if (flip) img.classList.add('flip'); slotEl.appendChild(img); charSlots[slot] = { filename, flip };
+        });
+    }
+}
+
+/* ===== オーバーレイ ===== */
+function parseEditorOverlayNewSyntax(cmd) { const am = cmd.match(/^([↑↓→←])\((-?[\d.]+),(-?[\d.]+)\)(?::(.+))?$/); if (am) { const dir=am[1],a=parseFloat(am[2]),b=parseFloat(am[3]),rest=am[4]||'',rp=rest.split(':'),speed=parseSpeed(rp[0]),easing=parseEasing(rp[1]),ls=rp[2],lc=ls==='loop'?Infinity:(parseInt(ls)||1); let points; if(dir==='↑'||dir==='↓')points=[{x:50,y:a},{x:50,y:b}];else points=[{x:a,y:50},{x:b,y:50}]; return{points,speed,easing,loopCount:lc}; } const jm=cmd.match(/^JUMP\((-?[\d.]+),(-?[\d.]+)\),\((-?[\d.]+),(-?[\d.]+)\)(?::(.+))?$/i); if(jm){const sx=parseFloat(jm[1]),sy=parseFloat(jm[2]),ex=parseFloat(jm[3]),ey=parseFloat(jm[4]),rest=jm[5]||'',rp=rest.split(':'),speed=parseSpeed(rp[0]||'800ms'),easing=parseEasing(rp[1]||'easeinout'),ls=rp[2],lc=ls==='loop'?Infinity:(parseInt(ls)||1);const dx=Math.abs(ex-sx),dy=Math.abs(ey-sy),dist=Math.sqrt(dx*dx+dy*dy),jh=Math.max(dist*0.3,15),steps=16,points=[];for(let i=0;i<=steps;i++){const t=i/steps;points.push({x:sx+(ex-sx)*t,y:sy+(ey-sy)*t-4*jh*t*(1-t)});}return{points,speed,easing,loopCount:lc};} const fm=cmd.match(/^FLOAT\((-?[\d.]+),(-?[\d.]+)\)(?::(.+))?$/i); if(fm){const x=parseFloat(fm[1]),y=parseFloat(fm[2]),rest=fm[3]||'',rp=rest.split(':'),speed=parseSpeed(rp[0]||'2000ms'),easing=parseEasing(rp[1]||'easeinout'),ls=rp[2],lc=ls==='loop'?Infinity:(parseInt(ls)||1);return{points:[{x,y},{x,y:y-3},{x,y}],speed,easing,loopCount:lc};} return null; }
+function runKeyframeOverlay(filename, points, duration, easing, loopCount, options, container) { const u = ovUrl(filename); if (!u) return; if (activeOverlays[filename]) { activeOverlays[filename].element.remove(); delete activeOverlays[filename]; } const el = document.createElement('div'); el.className = 'editor-overlay-item'; const flip = options.flip ? 'transform:scaleX(-1);' : ''; const sc = options.scale ? 'width:'+options.scale+'%;' : ''; el.innerHTML = `<img src="${u}" style="${flip}${sc}">`; el.dataset.ov = filename; container.appendChild(el); activeOverlays[filename] = { element: el }; const an = `pkf_${++kfCounter}`; let kf = `@keyframes ${an} {\n`; for (let i=0;i<points.length;i++){ const pct = points.length===1?0:Math.round((i/(points.length-1))*100); kf += `${pct}% { left:${points[i].x}%; top:${points[i].y}%; }\n`; } kf += '}'; const st = document.createElement('style'); st.textContent = kf; document.head.appendChild(st); el.style.left = points[0].x+'%'; el.style.top = points[0].y+'%'; const iter = loopCount===Infinity?'infinite':String(loopCount); const fill = loopCount===Infinity?'none':'forwards'; el.style.animation = `${an} ${duration}ms ${easing} ${iter} ${fill}`; if (loopCount!==Infinity) setTimeout(()=>st.remove(), duration*loopCount+100); }
+async function runOverlay(cmd, container) {
+    if (cmd.toUpperCase().startsWith('CLEAR')) { const parts = cmd.slice(5).split(':').filter(p=>p); if (parts.length===0){ container.innerHTML=''; activeOverlays={}; return; } const up=parts.map(p=>p.toUpperCase()); const isFade=up.includes('FADE'); const ft=parts.find(p=>/^\d+MS$/i.test(p)); const fn=parts.find(p=>!['FADE'].includes(p.toUpperCase())&&!/^\d+MS$/i.test(p)); const targets=fn?[fn]:Object.keys(activeOverlays); for(const id of targets){const ov=activeOverlays[id];if(!ov)continue;if(isFade){ov.element.style.transition=`opacity ${ft?parseInt(ft):300}ms`;ov.element.style.opacity='0';await sleep(ft?parseInt(ft):300);}ov.element.remove();delete activeOverlays[id];} return; }
+    const parts = cmd.split(':'); const filename = parts[0]; const rest = parts.slice(1).join(':');
+    const options = {}; const cleanRest = rest.replace(/:flip/i, () => { options.flip = true; return ''; }).replace(/:scale=(\d+)/i, (m,s) => { options.scale = +s; return ''; });
+    const kf = parseEditorOverlayNewSyntax(cleanRest); if (kf) { runKeyframeOverlay(filename, kf.points, kf.speed, kf.easing, kf.loopCount, options, container); return; }
+    const u = ovUrl(filename); if (!u) return; if (activeOverlays[filename]) { activeOverlays[filename].element.remove(); }
+    const el = document.createElement('div'); el.className = 'editor-overlay-item'; const flip = options.flip ? 'transform:scaleX(-1);' : ''; const sc = options.scale ? 'width:'+options.scale+'%;' : ''; el.innerHTML = `<img src="${u}" style="${flip}${sc}">`; el.style.left = '50%'; el.style.top = '50%'; container.appendChild(el); activeOverlays[filename] = { element: el };
+}
+/* ===== コマンド解釈 ===== */
+function splitCmdLine(line) { return line.split(';').map(s => s.trim()).filter(s => s); }
+async function runCmd(cmd, flashEl, shakeEl) {
+    const origCmd = cmd; cmd = cmd.toUpperCase().trim(); if (cmd.startsWith('@')) cmd = cmd.slice(1); let m;
+    let __vol = null; { const vm = cmd.match(/:VOL:(\d+)$/i); if (vm) { __vol = +vm[1]; cmd = cmd.replace(/:VOL:\d+$/i, ''); } }
+    m = cmd.match(/^SE:STOP(?::(.+))?$/i); if (m) { m[1] ? stopSE(m[1].toLowerCase()) : stopAllSE(); return null; }
+    m = cmd.match(/^SE:AMBIENT:STOP(?::(.+))?$/i); if (m) { m[1] ? stopSeAmbient(m[1].toLowerCase()) : stopAllSeAmbient(); return null; }
+    m = cmd.match(/^SE:([^:,]+(?:,[^:,]+)+):random$/i); if (m) { playSeRandomPick(m[1].toLowerCase().split(',')); return null; }
+    m = cmd.match(/^SE:([^:,]+):random:(\d+)-(\d+)$/i); if (m) { playSeRandomDelay(m[1].toLowerCase(), +m[2], +m[3]); return null; }
+    m = cmd.match(/^SE:([^:,]+):ambient:(\d+)-(\d+)$/i); if (m) { startSeAmbient(m[1].toLowerCase(), +m[2], +m[3]); return null; }
+    m = cmd.match(/^SE:([^:]+)(?::(\d+))?$/); if (m) { playSE(origCmd.trim().split(':')[1].toLowerCase(), m[2] !== undefined ? +m[2] : 1, __vol); return null; }
+    m = cmd.match(/^([123])SE(\d+)$/); if (m) { playSE('se0' + m[1], +m[2], __vol); return null; }
+    m = cmd.match(/^FLASH(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doFlash(flashEl); if (i < n-1) await sleep(150); } return null; }
+    m = cmd.match(/^SHAKE(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doShake(shakeEl); if (i < n-1) await sleep(300); } return null; }
+    m = cmd.match(/^BGM:([^:]+):until:(\d+)$/i); if (m) { playBGM(m[1].toLowerCase(), +m[2], __vol); return null; }
+    m = cmd.match(/^BGM:([^:]+)$/); if (m) { playBGM(origCmd.trim().split(':')[1].toLowerCase(), null, __vol); return null; }
+    if (cmd === 'BGM:STOP') { stopBGM(); return null; }
+    m = cmd.match(/^SETFLAG:(.+)$/); if (m) { flags[m[1]] = true; return null; }
+    m = cmd.match(/^IFFLAG:(.+):SKIP$/); if (m) { if (flags[m[1]]) return 'SKIP'; return null; }
+    m = cmd.match(/^IFFLAG:(.+):GOTO:(.+)$/); if (m) { if (flags[m[1]]) return { goto: m[2] }; return null; }
+    m = cmd.match(/^NOTFLAG:(.+):GOTO:(.+)$/); if (m) { if (!flags[m[1]]) return { goto: m[2] }; return null; }
+    m = cmd.match(/^FROM:(.+):SKIP$/); if (m) { if (lastChoiceId === m[1]) return 'SKIP'; return null; }
+    m = cmd.match(/^FROM:(.+):GOTO:(.+)$/); if (m) { if (lastChoiceId === m[1]) return { goto: m[2] }; return null; }
+    return null;
+}
+async function runCmdWithOverlay(cmd, flashEl, shakeEl, overlayContainer) {
+    const u = cmd.toUpperCase().trim();
+    if (u.startsWith('OVERLAY:')) { await runOverlay(cmd.trim().slice(8), overlayContainer); return null; }
+    if (u.startsWith('CHAR:')) { await runCharCmd(cmd.trim().slice(5), $('charLayer')); return null; }
+    return runCmd(cmd, flashEl, shakeEl);
+}
+async function runCmdSequence(str, flashEl, shakeEl, overlayContainer) {
+    if (!str) return null;
+    const lines = str.split('\n').map(l => l.trim()).filter(l => l);
+    for (const line of lines) {
+        const parts = splitCmdLine(line);
+        for (let i = 0; i < parts.length; i++) {
+            const group = [parts[i]]; while (i + 1 < parts.length && parts[i + 1].startsWith('@')) group.push(parts[++i]);
+            const results = await Promise.all(group.map(c => runCmdWithOverlay(c, flashEl, shakeEl, overlayContainer)));
+            for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && r.goto) return r; }
+        }
+    }
+    return null;
+}
+function findSceneByLabel(label) { const i = scenes.findIndex(s => s.label === label || String(s.id) === label); return i >= 0 ? i : -1; }
+
+/* ===== トランジション ===== */
+function isFadeType(t) { return t === 'fade' || t === 'fadeBlack' || t === 'fadeWhite'; }
+function transitionColor(t) { return t === 'fadeWhite' ? '#fff' : '#000'; }
+async function coverIn(type) { const layer = $('transition'); layer.style.background = transitionColor(type); const a = layer.animate([{opacity:0},{opacity:1}], {duration:180, easing:'ease-out', fill:'forwards'}); await a.finished.catch(()=>{}); }
+function coverOut() { const layer = $('transition'); const a = layer.animate([{opacity:1},{opacity:0}], {duration:500, easing:'ease-in', fill:'forwards'}); a.finished.then(()=>{ layer.style.opacity='0'; }).catch(()=>{}); }
+function playSlide(type) { const map = { slideLeft:['translateX(100%)','translateX(0)'], slideRight:['translateX(-100%)','translateX(0)'], slideUp:['translateY(100%)','translateY(0)'], slideDown:['translateY(-100%)','translateY(0)'] }; if (map[type]) $('canvas').animate([{transform:map[type][0]},{transform:map[type][1]}], {duration:400, easing:'cubic-bezier(0.22,1,0.36,1)'}); }
+
+/* ===== シーン表示 ===== */
+let busy = false;
+async function showScene() {
+    $('choiceOverlay').classList.add('hidden'); $('overlayContainer').innerHTML = ''; activeOverlays = {};
+    rebuildCharState(idx, $('charLayer'));
+    if (!scenes.length) return;
+    idx = Math.max(0, Math.min(idx, scenes.length - 1));
+    if (bgmStopAtScene !== null && (idx + 1) > bgmStopAtScene) stopBGM();
+    const s = scenes[idx];
+    if (isFadeType(s.transition)) await coverIn(s.transition);
+    try {
+        const result = await runCmdSequence(s.cmd, $('flash'), $('canvas'), $('overlayContainer'));
+        if (result === 'SKIP') { coverOut(); if (idx < scenes.length - 1) { idx++; showScene(); } else endGame(); return; }
+        if (result && result.goto) { const j = findSceneByLabel(result.goto); if (j >= 0) { idx = j; showScene(); } else coverOut(); return; }
+    } catch (e) { coverOut(); }
+    $('info').textContent = `${idx + 1} / ${scenes.length}`;
+    $('bg').innerHTML = s.bg ? `<img src="${imgUrl(s.bg)}">` : '';
+    $('charName').textContent = s.name || ''; $('charName').style.display = s.name ? 'block' : 'none';
+    $('dialogue').textContent = s.text || '';
+    if (s.textMode === 'nvl') $('textDisplay').classList.add('nvl-mode'); else $('textDisplay').classList.remove('nvl-mode');
+    if (isFadeType(s.transition)) coverOut(); else playSlide(s.transition);
+    flashInfo();
+    if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices);
+}
+function showChoices(choices) { const co = $('choiceOverlay'); co.innerHTML = ''; choices.forEach(c => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = c.text || c.id; b.onclick = (e) => { e.stopPropagation(); selectChoice(c); }; co.appendChild(b); }); co.classList.remove('hidden'); }
+function selectChoice(choice) { lastChoiceId = choice.id; $('choiceOverlay').classList.add('hidden'); if (choice.goto) { const j = findSceneByLabel(choice.goto); if (j >= 0) { idx = j; showScene(); return; } } if (idx < scenes.length - 1) { idx++; showScene(); } else endGame(); }
+function choicesOpen() { return !$('choiceOverlay').classList.contains('hidden'); }
+function flashInfo() { $('info').classList.add('show'); clearTimeout(flashInfo._t); flashInfo._t = setTimeout(() => $('info').classList.remove('show'), 1200); }
+
+/* ===== 進行操作 ===== */
+function goNext() { if (choicesOpen()) return; if (idx < scenes.length - 1) { idx++; showScene(); } else endGame(); }
+function goPrev() { if (choicesOpen()) return; if (idx > 0) { idx--; showScene(); } }
+function endGame() { stopAllSound(); $('end').classList.add('show'); }
+
+const stage = $('stage');
+let tsx=0, tsy=0, tst=0, moved=false; const SW=45, TM=14, TT=350;
+stage.addEventListener('touchstart', e => { if (e.target.closest('.choice-btn')) return; const t = e.changedTouches[0]; tsx=t.clientX; tsy=t.clientY; tst=Date.now(); moved=false; }, {passive:true});
+stage.addEventListener('touchmove', e => { const t = e.changedTouches[0]; if (Math.abs(t.clientX-tsx)>TM || Math.abs(t.clientY-tsy)>TM) moved=true; }, {passive:true});
+stage.addEventListener('touchend', e => { if (e.target.closest('.choice-btn')) return; const t = e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy, dt=Date.now()-tst, adx=Math.abs(dx), ady=Math.abs(dy); if (ady>SW && ady>adx) return; if (adx>SW && adx>ady) { if (dx<0) goNext(); else goPrev(); return; } if (!moved && dt<TT) goNext(); });
+stage.addEventListener('click', e => { if (e.target.closest('.choice-btn')) return; if ('ontouchstart' in window) return; goNext(); });
+document.addEventListener('keydown', e => { if (choicesOpen()) return; if (e.key==='ArrowRight'||e.key===' '||e.key==='Enter') goNext(); if (e.key==='ArrowLeft') goPrev(); });
+
+/* ===== タイトル→開始 ===== */
+function startGame() { idx = 0; flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; stopAllSound(); $('end').classList.remove('show'); showScene(); }
+$('title').addEventListener('click', () => { $('title').classList.add('hidden'); startGame(); });
+$('replayBtn').addEventListener('click', () => { $('end').classList.remove('show'); startGame(); });
+
+<\/script>
+<\/body>
+<\/html>
+
 </script>
 </body>
 </html>
