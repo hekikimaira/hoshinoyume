@@ -144,6 +144,13 @@
         .cmd-section-header.open .arrow { transform: rotate(90deg); }
         .cmd-section-content { display: none; padding: 8px; background: #2a2a2a; border-radius: 0 0 4px 4px; margin-top: -4px; }
         .cmd-section-header.open + .cmd-section-content { display: block; }
+        .cb { display: flex; flex-direction: column; gap: 7px; padding: 6px 2px; }
+        .cb-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+        .cb-row label { font-size: 11px; color: #aaa; min-width: 58px; }
+        .cb-row select, .cb-row input { background: #1e1e1e; border: 1px solid #444; color: #eee; border-radius: 5px; padding: 7px 9px; font-size: 13px; flex: 1; min-width: 0; }
+        .cb-preview { background: #1a2a28; border: 1px solid #2e5; border-radius: 5px; padding: 8px 10px; font-family: monospace; font-size: 12px; color: #7fd; word-break: break-all; }
+        .cb-add { background: #6c5ce7; color: #fff; border: none; border-radius: 6px; padding: 11px; font-size: 13px; font-weight: 700; cursor: pointer; width: 100%; }
+        .cb-add:active { background: #5a4cd0; }
         .cmd-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 10px; }
         .cmd-row code { flex: 1; background: #333; padding: 4px 6px; border-radius: 3px; color: #4ecdc4; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cmd-row .cmd-copy { width: 22px; height: 22px; background: #444; border: none; border-radius: 3px; color: #888; font-size: 10px; cursor: pointer; flex-shrink: 0; }
@@ -299,7 +306,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.1 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.5 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -476,9 +483,6 @@
                     <span class="arrow">▶</span><span class="section-icon">⚡</span> コマンド
                 </div>
                 <div class="section-body">
-                    <textarea id="cmdInput" class="cmd-input" placeholder="1SE2,@FLASH"></textarea>
-                    <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ 実行</button>
-                    
                     <div class="cmd-section">
                         <div class="cmd-section-header" onclick="this.classList.toggle('open')">
                             <span class="arrow">▶</span> 🎬 演出FX
@@ -497,75 +501,77 @@
                     
                     <div class="cmd-section">
                         <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                            <span class="arrow">▶</span> フラグ分岐
+                            <span class="arrow">▶</span> 🚩 フラグ分岐
                         </div>
                         <div class="cmd-section-content">
-                            <div class="cmd-row"><code>SETFLAG:フラグ名</code><button class="cmd-copy" data-cmd="SETFLAG:フラグ名">📋</button></div>
-                            <div class="cmd-desc">フラグをONにする</div>
-                            <div class="cmd-row"><code>IFFLAG:フラグ名:SKIP</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:SKIP">📋</button></div>
-                            <div class="cmd-desc">フラグONならこのシーンをスキップ</div>
-                            <div class="cmd-row"><code>IFFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="IFFLAG:フラグ名:GOTO:ラベル">📋</button></div>
-                            <div class="cmd-desc">フラグONならラベルへジャンプ</div>
-                            <div class="cmd-row"><code>NOTFLAG:フラグ名:GOTO:ラベル</code><button class="cmd-copy" data-cmd="NOTFLAG:フラグ名:GOTO:ラベル">📋</button></div>
-                            <div class="cmd-desc">フラグOFFならラベルへジャンプ</div>
-                            <div class="cmd-row"><code>FROM:A-1:SKIP</code><button class="cmd-copy" data-cmd="FROM:A-1:SKIP">📋</button></div>
-                            <div class="cmd-desc">選択肢A-1から来たらスキップ</div>
-                            <div class="cmd-row"><code>FROM:A-1:GOTO:ラベル</code><button class="cmd-copy" data-cmd="FROM:A-1:GOTO:ラベル">📋</button></div>
-                            <div class="cmd-desc">選択肢A-1から来たらジャンプ</div>
-                        </div>
-                    </div>
-                    
-                    <div class="cmd-section">
-                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                            <span class="arrow">▶</span> カウンター（周回永続）
-                        </div>
-                        <div class="cmd-section-content">
-                            <div class="cmd-row"><code>SETCOUNTER:周回数:0</code><button class="cmd-copy" data-cmd="SETCOUNTER:周回数:0">📋</button></div>
-                            <div class="cmd-desc">カウンターを値にセット</div>
-                            <div class="cmd-row"><code>ADDCOUNTER:周回数:1</code><button class="cmd-copy" data-cmd="ADDCOUNTER:周回数:1">📋</button></div>
-                            <div class="cmd-desc">カウンターに加算（負数で減算）</div>
-                            <div class="cmd-row"><code>RESETCOUNTER:周回数</code><button class="cmd-copy" data-cmd="RESETCOUNTER:周回数">📋</button></div>
-                            <div class="cmd-desc">カウンターを0にリセット</div>
-                            <div class="cmd-row"><code>IFCOUNTER:周回数:>=:3:GOTO:真ED</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:>=:3:GOTO:真ED">📋</button></div>
-                            <div class="cmd-desc">条件を満たせばジャンプ</div>
-                            <div class="cmd-row"><code>IFCOUNTER:周回数:==:0:SKIP</code><button class="cmd-copy" data-cmd="IFCOUNTER:周回数:==:0:SKIP">📋</button></div>
-                            <div class="cmd-desc">条件を満たせばスキップ</div>
-                        </div>
-                    </div>
-                    
-                    <div class="cmd-section">
-                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
-                            <span class="arrow">▶</span> オーバーレイ
-                        </div>
-                        <div class="cmd-section-content">
-                            <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5">
-                                透過画像を画面外から出現させる演出<br>
-                                構文: OVERLAY:ファイル:方向:パス:速度:easing:loop
+                            <div class="cb" id="flagBuilder">
+                                <div class="cb-row"><label>種類</label><select id="flagType">
+                                    <option value="set">フラグをONにする</option>
+                                    <option value="if_skip">ONならスキップ</option>
+                                    <option value="if_goto">ONならジャンプ</option>
+                                    <option value="not_goto">OFFならジャンプ</option>
+                                    <option value="from_skip">選択肢から来たらスキップ</option>
+                                    <option value="from_goto">選択肢から来たらジャンプ</option>
+                                </select></div>
+                                <div class="cb-row" id="flagNameRow"><label>フラグ名</label><input id="flagName" placeholder="例: 告白した"></div>
+                                <div class="cb-row" id="flagFromRow" style="display:none"><label>選択肢ID</label><input id="flagFrom" placeholder="例: A-1"></div>
+                                <div class="cb-row" id="flagGotoRow" style="display:none"><label>ジャンプ先</label><input id="flagGoto" placeholder="例: 真ED"></div>
+                                <div class="cb-preview" id="flagPreview">SETFLAG:告白した</div>
+                                <button class="cb-add" id="flagAdd">＋ コマンド欄に追加</button>
                             </div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50:500ms">📋</button></div>
-                            <div class="cmd-desc">上から降りてきて中央で停止</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:bottom:100>20:300ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:bottom:100>20:300ms">📋</button></div>
-                            <div class="cmd-desc">下から出てきて20%で停止</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:left:-100>200:400ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:left:-100>200:400ms">📋</button></div>
-                            <div class="cmd-desc">左から右へ貫通</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:top:-100>50|1000>-100:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:top:-100>50|1000>-100:500ms">📋</button></div>
-                            <div class="cmd-desc">出てきて1秒待って戻る</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:→(-100,120):500ms:bounce</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:→(-100,120):500ms:bounce">📋</button></div>
-                            <div class="cmd-desc">左外→右外へバウンド移動</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:↑(120,-20):800ms:easeInOut">📋</button></div>
-                            <div class="cmd-desc">下から上へ貫通</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(-20,80),(120,80):800ms">📋</button></div>
-                            <div class="cmd-desc">左→右へ放物線ジャンプ</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:JUMP(20,90),(80,30):600ms:easeinout:3">📋</button></div>
-                            <div class="cmd-desc">右上へ3回ジャンプ</div>
-                            <div class="cmd-row"><code>OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop</code><button class="cmd-copy" data-cmd="OVERLAY:ov001.png:FLOAT(50,40):2000ms:easeinout:loop">📋</button></div>
-                            <div class="cmd-desc">ふわふわ浮遊</div>
-                            <div class="cmd-row"><code>OVERLAY:CLEAR</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR">📋</button></div>
-                            <div class="cmd-desc">全オーバーレイを消去</div>
-                            <div class="cmd-row"><code>OVERLAY:CLEAR:fade:500ms</code><button class="cmd-copy" data-cmd="OVERLAY:CLEAR:fade:500ms">📋</button></div>
-                            <div class="cmd-desc">フェードアウトで消去</div>
                         </div>
                     </div>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> 🔢 カウンター（周回永続）
+                        </div>
+                        <div class="cmd-section-content">
+                            <div class="cb" id="counterBuilder">
+                                <div class="cb-row"><label>種類</label><select id="cntType">
+                                    <option value="set">値をセット</option>
+                                    <option value="add">加算（負数で減算）</option>
+                                    <option value="reset">0にリセット</option>
+                                    <option value="if_goto">条件を満たせばジャンプ</option>
+                                    <option value="if_skip">条件を満たせばスキップ</option>
+                                </select></div>
+                                <div class="cb-row"><label>カウンター名</label><input id="cntName" placeholder="例: 周回数"></div>
+                                <div class="cb-row" id="cntValRow"><label>値</label><input id="cntVal" type="number" value="1" style="width:90px"></div>
+                                <div class="cb-row" id="cntCmpRow" style="display:none"><label>条件</label><select id="cntCmp" style="flex:0 0 70px"><option value=">=">≧</option><option value="<=">≦</option><option value=">">＞</option><option value="<">＜</option><option value="==">＝</option><option value="!=">≠</option></select><input id="cntCmpVal" type="number" value="3" style="width:80px"></div>
+                                <div class="cb-row" id="cntGotoRow" style="display:none"><label>ジャンプ先</label><input id="cntGoto" placeholder="例: 真ED"></div>
+                                <div class="cb-preview" id="cntPreview">SETCOUNTER:周回数:1</div>
+                                <button class="cb-add" id="cntAdd">＋ コマンド欄に追加</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> ✨ オーバーレイ演出
+                        </div>
+                        <div class="cmd-section-content">
+                            <div class="cb" id="overlayBuilder">
+                                <div class="cb-row"><label>画像</label><select id="ovTarget"></select></div>
+                                <div class="cb-row"><label>動き</label><select id="ovMotion">
+                                    <option value="top">上から登場</option>
+                                    <option value="bottom">下から登場</option>
+                                    <option value="left">左から登場</option>
+                                    <option value="right">右から登場</option>
+                                    <option value="float">ふわふわ浮遊(loop)</option>
+                                    <option value="jump">放物線ジャンプ</option>
+                                    <option value="static">中央に静止</option>
+                                    <option value="clear">全消去</option>
+                                </select></div>
+                                <div class="cb-row" id="ovSpeedRow"><label>速度</label><select id="ovSpeed"><option value="500">標準(500ms)</option><option value="300">速い(300ms)</option><option value="800">ゆっくり(800ms)</option><option value="2000">とても遅い(2000ms)</option></select></div>
+                                <div class="cb-row" id="ovEaseRow"><label>動きの質</label><select id="ovEase"><option value="easeOut">自然(easeOut)</option><option value="easeInOut">なめらか</option><option value="bounce">バウンド</option><option value="linear">一定</option></select></div>
+                                <div class="cb-preview" id="ovPreview">画像を登録してください</div>
+                                <button class="cb-add" id="ovAdd">＋ コマンド欄に追加</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px;color:#888;margin:14px 0 4px;font-weight:700">📝 最終コマンド（手動調整可）</div>
+                    <textarea id="cmdInput" class="cmd-input" placeholder="上のビルダーで追加すると、ここに最終的なコマンドが入ります。直接編集も可能。"></textarea>
+                    <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ このコマンドをプレビュー実行</button>
                 </div>
             </div>
 
@@ -651,8 +657,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.1 =====
-// Change log: シーン編集中に「これを新規シーンとして登録」ボタン追加(実質複製)。エディタは元のまま残り連続複製可能
+// ===== ホシノユメ v0.9.5 =====
+// Change log: v0.9.1ベース(全行チップ化は不具合のため不採用)。フラグ/カウンター/オーバーレイをプルダウンビルダー化、選択→追加で最下部の最終コマンド欄に反映(手動調整可)。オーバーレイは素材連動プルダウン
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -839,8 +845,80 @@ function safeDownload(blobOrUrl, filename) {
     }, 1500);
 }
 
-function renderOverlayList() { const list = $('overlayList'); list.innerHTML = ''; Object.entries(overlayBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const insert = `OVERLAY:${filename}:top:-100>50:500ms:easeOut`; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete overlayBlobs[filename]; renderOverlayList(); } }; list.appendChild(item); }); }
+function renderOverlayList() { const list = $('overlayList'); list.innerHTML = ''; Object.entries(overlayBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const insert = `OVERLAY:${filename}:top:-100>50:500ms:easeOut`; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete overlayBlobs[filename]; renderOverlayList(); } }; list.appendChild(item); }); if (typeof refreshOverlayBuilder === 'function') refreshOverlayBuilder(); }
 $('addOverlayBtn').onclick = () => $('overlayInput').click();
+
+// ===== コマンドビルダー（フラグ/カウンター/オーバーレイ） =====
+function cbInsert(cmd) { cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; }
+function cbFlash(btn) { const t = btn.textContent; btn.textContent = '✓ 追加しました'; setTimeout(() => btn.textContent = t, 900); }
+
+// --- フラグ ---
+function buildFlag() {
+    const type = $('flagType').value, name = $('flagName').value.trim() || 'フラグ名', from = $('flagFrom').value.trim() || 'A-1', goto = $('flagGoto').value.trim() || 'ラベル';
+    let cmd = '';
+    if (type === 'set') cmd = `SETFLAG:${name}`;
+    else if (type === 'if_skip') cmd = `IFFLAG:${name}:SKIP`;
+    else if (type === 'if_goto') cmd = `IFFLAG:${name}:GOTO:${goto}`;
+    else if (type === 'not_goto') cmd = `NOTFLAG:${name}:GOTO:${goto}`;
+    else if (type === 'from_skip') cmd = `FROM:${from}:SKIP`;
+    else if (type === 'from_goto') cmd = `FROM:${from}:GOTO:${goto}`;
+    $('flagPreview').textContent = cmd;
+    const isFrom = type.startsWith('from');
+    $('flagNameRow').style.display = isFrom ? 'none' : 'flex';
+    $('flagFromRow').style.display = isFrom ? 'flex' : 'none';
+    $('flagGotoRow').style.display = type.endsWith('goto') ? 'flex' : 'none';
+}
+['flagType','flagName','flagFrom','flagGoto'].forEach(id => $(id).addEventListener('input', buildFlag));
+$('flagAdd').onclick = () => { buildFlag(); cbInsert($('flagPreview').textContent); cbFlash($('flagAdd')); };
+
+// --- カウンター ---
+function buildCounter() {
+    const type = $('cntType').value, name = $('cntName').value.trim() || '周回数', val = $('cntVal').value || '0', cmp = $('cntCmp').value, cmpVal = $('cntCmpVal').value || '0', goto = $('cntGoto').value.trim() || 'ラベル';
+    let cmd = '';
+    if (type === 'set') cmd = `SETCOUNTER:${name}:${val}`;
+    else if (type === 'add') cmd = `ADDCOUNTER:${name}:${val}`;
+    else if (type === 'reset') cmd = `RESETCOUNTER:${name}`;
+    else if (type === 'if_goto') cmd = `IFCOUNTER:${name}:${cmp}:${cmpVal}:GOTO:${goto}`;
+    else if (type === 'if_skip') cmd = `IFCOUNTER:${name}:${cmp}:${cmpVal}:SKIP`;
+    $('cntPreview').textContent = cmd;
+    $('cntValRow').style.display = (type === 'set' || type === 'add') ? 'flex' : 'none';
+    const isIf = type.startsWith('if');
+    $('cntCmpRow').style.display = isIf ? 'flex' : 'none';
+    $('cntGotoRow').style.display = type === 'if_goto' ? 'flex' : 'none';
+}
+['cntType','cntName','cntVal','cntCmp','cntCmpVal','cntGoto'].forEach(id => $(id).addEventListener('input', buildCounter));
+$('cntAdd').onclick = () => { buildCounter(); cbInsert($('cntPreview').textContent); cbFlash($('cntAdd')); };
+
+// --- オーバーレイ ---
+function refreshOverlayBuilder() {
+    const sel = $('ovTarget'); if (!sel) return; const cur = sel.value;
+    const names = Object.keys(overlayBlobs);
+    sel.innerHTML = names.length ? names.map(n => `<option value="${n}">${n}</option>`).join('') : '<option value="">画像未登録</option>';
+    if (names.includes(cur)) sel.value = cur;
+    buildOverlay();
+}
+function buildOverlay() {
+    const target = $('ovTarget').value, motion = $('ovMotion').value, speed = $('ovSpeed').value, ease = $('ovEase').value;
+    let cmd = '';
+    if (motion === 'clear') cmd = 'OVERLAY:CLEAR:fade:500ms';
+    else if (!target) cmd = '画像を登録してください';
+    else if (motion === 'top') cmd = `OVERLAY:${target}:top:-100>50:${speed}ms:${ease}`;
+    else if (motion === 'bottom') cmd = `OVERLAY:${target}:bottom:100>50:${speed}ms:${ease}`;
+    else if (motion === 'left') cmd = `OVERLAY:${target}:left:-100>50:${speed}ms:${ease}`;
+    else if (motion === 'right') cmd = `OVERLAY:${target}:right:200>50:${speed}ms:${ease}`;
+    else if (motion === 'float') cmd = `OVERLAY:${target}:FLOAT(50,40):${speed}ms:${ease}:loop`;
+    else if (motion === 'jump') cmd = `OVERLAY:${target}:JUMP(-20,80),(120,80):${speed}ms:${ease}`;
+    else if (motion === 'static') cmd = `OVERLAY:${target}:top:50>50:1ms`;
+    $('ovPreview').textContent = cmd;
+    const hide = motion === 'clear' || motion === 'static';
+    $('ovSpeedRow').style.display = motion === 'clear' ? 'none' : 'flex';
+    $('ovEaseRow').style.display = hide ? 'none' : 'flex';
+    $('ovTarget').closest('.cb-row').style.display = motion === 'clear' ? 'none' : 'flex';
+}
+['ovTarget','ovMotion','ovSpeed','ovEase'].forEach(id => $(id).addEventListener('change', buildOverlay));
+$('ovAdd').onclick = () => { buildOverlay(); const c = $('ovPreview').textContent; if (c && !c.startsWith('画像を')) { cbInsert(c); cbFlash($('ovAdd')); } };
+
+buildFlag(); buildCounter();
 $('overlayInput').onchange = async e => { for (const file of e.target.files) { overlayCounter++; const ext = file.name.split('.').pop(); overlayBlobs[`ov${String(overlayCounter).padStart(3, '0')}.${ext}`] = { url: URL.createObjectURL(file), blob: file }; } renderOverlayList(); e.target.value = ''; };
 
 function renderCharList() { const list = $('charList'); list.innerHTML = ''; Object.entries(charBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const slot = $('charSlotSelect').value; const flip = $('charFlipCheck').checked; let insert = `CHAR:${slot}:${filename}`; if (flip) insert += ':flip'; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete charBlobs[filename]; renderCharList(); } }; list.appendChild(item); }); }
