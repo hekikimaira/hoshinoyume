@@ -313,7 +313,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.11 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.12 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -590,12 +590,17 @@
                                 <div class="cb-row"><label>質感</label><select id="onEffect"><option value="focus">focus（ボヤけ→くっきり）</option><option value="fade">fade（じわっと）</option><option value="zoom">zoom（拡大衝撃）</option></select></div>
                                 <div class="cb-row"><label>位置</label><select id="onPos"><option value="center">中央</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="topleft">左上</option><option value="topright">右上</option><option value="bottomleft">左下</option><option value="bottomright">右下</option><option value="coord">座標指定</option></select></div>
                                 <div class="cb-row" id="onCoordRow" style="display:none"><label>座標(X,Y%)</label><input id="onX" type="number" value="50" style="width:70px"><input id="onY" type="number" value="50" style="width:70px"></div>
-                                <div class="cb-row"><label>サイズ</label><input id="onSize" type="range" min="5" max="40" value="14" style="flex:1"><span id="onSizeVal" style="font-size:11px;color:#aaa;min-width:38px">14%</span></div>
+                                <div class="cb-row"><label>サイズ</label><input id="onSize" type="range" min="1" max="40" step="0.5" value="14" style="flex:1"><span id="onSizeVal" style="font-size:11px;color:#aaa;min-width:38px">14%</span></div>
                                 <div class="cb-row" id="onColorRow"><label>色</label><input id="onColor" type="color" value="#ffffff" style="width:50px;padding:2px"><button id="onColorClear" style="background:#333;color:#aaa;border:none;border-radius:5px;padding:6px 10px;font-size:11px;cursor:pointer">既定(白)に戻す</button></div>
                                 <div class="cb-row" id="onFontRow"><label>フォント</label><select id="onFont"><option value="">既定（ゴシック太字）</option><option value="serif">明朝(serif)</option><option value="'Hiragino Mincho ProN',serif">ヒラギノ明朝</option><option value="fantasy">装飾(fantasy)</option></select></div>
                                 <div class="cb-row"><label>遅延(ms)</label><input id="onDelay" type="number" value="0" min="0" step="100" style="width:90px"><span style="font-size:9px;color:#777">複数同時の時間差用</span></div>
                                 <div class="cb-preview" id="onPreview">ONOMA:ドンッ:focus:center:14</div>
-                                <button class="cb-add" id="onAdd">＋ コマンド欄に追加</button>
+                                <div style="display:flex;gap:6px">
+                                    <button class="cb-add" id="onPreviewBtn" style="flex:1;background:#2a8">▶ プレビュー</button>
+                                    <button class="cb-add" id="onAdd" style="flex:1">＋ 追加</button>
+                                </div>
+                                <div id="onMiniStage" style="position:relative;width:100%;aspect-ratio:832/1216;max-height:280px;background:#1a1a1a;border:1px solid #333;border-radius:6px;overflow:hidden;container-type:inline-size;margin-top:4px;display:none"></div>
+                                <div class="chip-area" id="onomaChips" style="margin-top:6px"></div>
                             </div>
                         </div>
                     </div>
@@ -687,8 +692,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.11 =====
-// Change log: オノマトペ制御パネル(部品2)追加。文字/画像・質感・位置・サイズ(スライダー)・色(ピッカー)・フォント・遅延をUIで設定→serializeOnomaでコマンド生成。名前欄横にクリアボタン(名前+セリフ一括消去)
+// ===== ホシノユメ v0.9.12 =====
+// Change log: オノマトペ サイズ下限1%(刻み0.5)・画像倍率2倍に縮小。オノマトペ専用チップ(複数並ぶ・タップで制御パネルに読込編集・コマンド連動・✕削除)とミニプレビュー(▶で即表示)追加。崩し文字は画像で対応
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -912,7 +917,61 @@ function buildOnoma() {
 $('onColor').addEventListener('input', () => { $('onColor').dataset.use = '1'; buildOnoma(); });
 $('onColorClear').onclick = () => { $('onColor').dataset.use = '0'; $('onColor').value = '#ffffff'; buildOnoma(); };
 ['onText','onImage','onEffect','onPos','onX','onY','onSize','onFont','onDelay'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', buildOnoma); });
-$('onAdd').onclick = () => { buildOnoma(); cbInsert($('onPreview').textContent); cbFlash($('onAdd')); };
+$('onAdd').onclick = () => {
+    buildOnoma();
+    const cmd = $('onPreview').textContent;
+    const lines = cmdInput.value.split('\n');
+    if (onomaEditLine >= 0 && onomaEditLine < lines.length) { lines[onomaEditLine] = cmd; onomaEditLine = -1; $('onAdd').textContent = '＋ 追加'; }
+    else lines.push(cmd);
+    cmdInput.value = lines.filter((l, i) => l.trim() !== '' || i < lines.length).join('\n').replace(/\n+$/, '');
+    renderOnomaChips();
+    cbFlash($('onAdd'));
+};
+
+// ミニプレビュー: 設定中のオノマトペを即再生
+$('onPreviewBtn').onclick = () => {
+    const stage = $('onMiniStage');
+    stage.style.display = 'block';
+    stage.innerHTML = '';
+    const cmd = $('onPreview').textContent.replace(/^ONOMA:/, '');
+    runOnoma(cmd, stage);
+};
+
+// 最終コマンド欄のONOMA行を抽出してチップ表示
+function renderOnomaChips() {
+    const box = $('onomaChips'); if (!box) return;
+    box.innerHTML = '';
+    const lines = cmdInput.value.split('\n');
+    lines.forEach((line, idx) => {
+        const t = line.trim();
+        if (!/^ONOMA:/i.test(t)) return;
+        const o = parseOnoma(t.slice(6));
+        const chip = document.createElement('div');
+        chip.className = 'snd-chip';
+        chip.innerHTML = `<span class="chip-label">💥 ${o.content}(${o.effect})</span><button class="chip-x">✕</button>`;
+        chip.querySelector('.chip-x').onclick = e => { e.stopPropagation(); const ls = cmdInput.value.split('\n'); ls.splice(idx, 1); cmdInput.value = ls.join('\n'); renderOnomaChips(); };
+        chip.querySelector('.chip-label').onclick = () => loadOnomaToPanel(o, idx);
+        box.appendChild(chip);
+    });
+}
+
+// チップ→制御パネルに読み込み（編集モード）
+let onomaEditLine = -1;
+function loadOnomaToPanel(o, idx) {
+    onomaEditLine = idx;
+    if (o.isImage && $('onImage').querySelector(`option[value="${o.content}"]`)) { $('onImage').value = o.content; $('onText').value = ''; }
+    else { $('onImage').value = ''; $('onText').value = o.content; }
+    $('onEffect').value = o.effect;
+    $('onPos').value = o.pos;
+    if (o.pos === 'coord') { $('onX').value = o.x; $('onY').value = o.y; }
+    $('onSize').value = o.size;
+    if (o.color) { $('onColor').value = o.color; $('onColor').dataset.use = '1'; } else { $('onColor').dataset.use = '0'; }
+    $('onFont').value = o.font || '';
+    $('onDelay').value = o.delay || 0;
+    buildOnoma();
+    $('onAdd').textContent = '✓ この内容で更新';
+    $('onomaBuilder').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
 $('addOverlayBtn').onclick = () => $('overlayInput').click();
 
@@ -986,7 +1045,7 @@ function buildOverlay() {
 ['ovTarget','ovMotion','ovSpeed','ovEase'].forEach(id => $(id).addEventListener('change', buildOverlay));
 $('ovAdd').onclick = () => { buildOverlay(); const c = $('ovPreview').textContent; if (c && !c.startsWith('画像を')) { cbInsert(c); cbFlash($('ovAdd')); } };
 
-buildFlag(); buildCounter(); if (typeof buildOnoma === 'function') buildOnoma();
+buildFlag(); buildCounter(); if (typeof buildOnoma === 'function') buildOnoma(); if (typeof renderOnomaChips === 'function') renderOnomaChips();
 $('overlayInput').onchange = async e => { for (const file of e.target.files) { overlayCounter++; const ext = file.name.split('.').pop(); overlayBlobs[`ov${String(overlayCounter).padStart(3, '0')}.${ext}`] = { url: URL.createObjectURL(file), blob: file }; } renderOverlayList(); e.target.value = ''; };
 
 function renderCharList() { const list = $('charList'); list.innerHTML = ''; Object.entries(charBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const slot = $('charSlotSelect').value; const flip = $('charFlipCheck').checked; let insert = `CHAR:${slot}:${filename}`; if (flip) insert += ':flip'; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete charBlobs[filename]; renderCharList(); } }; list.appendChild(item); }); }
@@ -1095,7 +1154,7 @@ function runOnoma(arg, container) {
         el.style.left = o.x + '%'; el.style.top = o.y + '%';
         if (o.isImage) {
             const src = (typeof overlayBlobs !== 'undefined' && overlayBlobs[o.content] && overlayBlobs[o.content].url) || (typeof charBlobs !== 'undefined' && charBlobs[o.content] && charBlobs[o.content].url) || '';
-            el.innerHTML = `<img src="${src}" style="width:${o.size * 3}cqw;height:auto;display:block;">`;
+            el.innerHTML = `<img src="${src}" style="width:${o.size * 2}cqw;height:auto;display:block;">`;
         } else {
             el.textContent = o.content;
             el.style.fontSize = o.size + 'cqw';
@@ -1335,9 +1394,9 @@ $('dupBtn').onclick = () => {
     const b = $('dupBtn'); b.textContent = '✓ 複製しました'; setTimeout(() => b.textContent = '⧉ これを新規シーンとして登録', 1000);
 };
 
-function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); $('dupBtn').classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); }
+function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); $('dupBtn').classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); if (typeof renderOnomaChips === 'function') { onomaEditLine = -1; const oa = $('onAdd'); if (oa) oa.textContent = '＋ 追加'; renderOnomaChips(); } }
 
-function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); $('dupBtn').classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); document.querySelector('[data-tab="editor"]').click(); }
+function loadToEditor(scene) { $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); $('dupBtn').classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; onomaEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); if (typeof renderOnomaChips === 'function') renderOnomaChips(); document.querySelector('[data-tab="editor"]').click(); }
 
 function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
@@ -1838,7 +1897,7 @@ function runOnoma(arg, container) {
         const el = document.createElement('div');
         el.className = 'onoma onoma-' + o.effect;
         el.style.left = o.x + '%'; el.style.top = o.y + '%';
-        if (o.isImage) { el.innerHTML = `<img src="${imgUrl(o.content)}" style="width:${o.size * 3}cqw;height:auto;display:block;">`; }
+        if (o.isImage) { el.innerHTML = `<img src="${imgUrl(o.content)}" style="width:${o.size * 2}cqw;height:auto;display:block;">`; }
         else { el.textContent = o.content; el.style.fontSize = o.size + 'cqw'; if (o.color) el.style.color = o.color; if (o.font) el.style.fontFamily = o.font; }
         container.appendChild(el);
     };
