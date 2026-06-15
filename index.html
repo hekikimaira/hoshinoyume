@@ -313,7 +313,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.10 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.11 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -340,7 +340,10 @@
                         <button class="btn" id="modeADV" style="flex:1;background:#4ecdc4;color:#000">ADV</button>
                         <button class="btn" id="modeNVL" style="flex:1;background:#333;color:#888">NVL</button>
                     </div>
-                    <input type="text" id="nameInput" placeholder="キャラクター名">
+                    <div style="display:flex;gap:6px;align-items:stretch">
+                        <input type="text" id="nameInput" placeholder="キャラクター名" style="flex:1;min-width:0">
+                        <button id="clearTextBtn" style="flex:none;background:#444;color:#ddd;border:none;border-radius:6px;padding:0 14px;font-size:12px;cursor:pointer;white-space:nowrap">🧹 クリア</button>
+                    </div>
                     <textarea id="textInput" placeholder="セリフ"></textarea>
                     <input type="text" id="labelInput" class="label-input" placeholder="ラベル（例: ルートB開始）" style="margin-top:4px">
                 </div>
@@ -576,6 +579,26 @@
                             </div>
                         </div>
                     </div>
+                    <div class="cmd-section">
+                        <div class="cmd-section-header" onclick="this.classList.toggle('open')">
+                            <span class="arrow">▶</span> 💥 オノマトペ演出
+                        </div>
+                        <div class="cmd-section-content">
+                            <div class="cb" id="onomaBuilder">
+                                <div class="cb-row"><label>内容</label><input id="onText" placeholder="例: ドンッ（または画像を選択）" style="flex:1"></div>
+                                <div class="cb-row"><label>画像から</label><select id="onImage"><option value="">（文字を使う）</option></select></div>
+                                <div class="cb-row"><label>質感</label><select id="onEffect"><option value="focus">focus（ボヤけ→くっきり）</option><option value="fade">fade（じわっと）</option><option value="zoom">zoom（拡大衝撃）</option></select></div>
+                                <div class="cb-row"><label>位置</label><select id="onPos"><option value="center">中央</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option><option value="topleft">左上</option><option value="topright">右上</option><option value="bottomleft">左下</option><option value="bottomright">右下</option><option value="coord">座標指定</option></select></div>
+                                <div class="cb-row" id="onCoordRow" style="display:none"><label>座標(X,Y%)</label><input id="onX" type="number" value="50" style="width:70px"><input id="onY" type="number" value="50" style="width:70px"></div>
+                                <div class="cb-row"><label>サイズ</label><input id="onSize" type="range" min="5" max="40" value="14" style="flex:1"><span id="onSizeVal" style="font-size:11px;color:#aaa;min-width:38px">14%</span></div>
+                                <div class="cb-row" id="onColorRow"><label>色</label><input id="onColor" type="color" value="#ffffff" style="width:50px;padding:2px"><button id="onColorClear" style="background:#333;color:#aaa;border:none;border-radius:5px;padding:6px 10px;font-size:11px;cursor:pointer">既定(白)に戻す</button></div>
+                                <div class="cb-row" id="onFontRow"><label>フォント</label><select id="onFont"><option value="">既定（ゴシック太字）</option><option value="serif">明朝(serif)</option><option value="'Hiragino Mincho ProN',serif">ヒラギノ明朝</option><option value="fantasy">装飾(fantasy)</option></select></div>
+                                <div class="cb-row"><label>遅延(ms)</label><input id="onDelay" type="number" value="0" min="0" step="100" style="width:90px"><span style="font-size:9px;color:#777">複数同時の時間差用</span></div>
+                                <div class="cb-preview" id="onPreview">ONOMA:ドンッ:focus:center:14</div>
+                                <button class="cb-add" id="onAdd">＋ コマンド欄に追加</button>
+                            </div>
+                        </div>
+                    </div>
                     <div style="font-size:11px;color:#888;margin:14px 0 4px;font-weight:700">📝 最終コマンド（手動調整可）</div>
                     <textarea id="cmdInput" class="cmd-input" placeholder="上のビルダーで追加すると、ここに最終的なコマンドが入ります。直接編集も可能。"></textarea>
                     <button class="btn btn-primary" id="cmdExec" style="margin-top:8px;margin-bottom:12px">▶ このコマンドをプレビュー実行</button>
@@ -664,8 +687,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.10 =====
-// Change log: オノマトペ独立システムの土台。parseOnoma/serializeOnoma(コマンド文字列⇄オブジェクトの双方向変換)を実装、runOnomaをパーサ共有形にリファクタ。往復変換テスト6/6一致。次の制御パネルの基盤
+// ===== ホシノユメ v0.9.11 =====
+// Change log: オノマトペ制御パネル(部品2)追加。文字/画像・質感・位置・サイズ(スライダー)・色(ピッカー)・フォント・遅延をUIで設定→serializeOnomaでコマンド生成。名前欄横にクリアボタン(名前+セリフ一括消去)
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -852,7 +875,45 @@ function safeDownload(blobOrUrl, filename) {
     }, 1500);
 }
 
-function renderOverlayList() { const list = $('overlayList'); list.innerHTML = ''; Object.entries(overlayBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const insert = `OVERLAY:${filename}:top:-100>50:500ms:easeOut`; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete overlayBlobs[filename]; renderOverlayList(); } }; list.appendChild(item); }); if (typeof refreshOverlayBuilder === 'function') refreshOverlayBuilder(); }
+function renderOverlayList() { const list = $('overlayList'); list.innerHTML = ''; Object.entries(overlayBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const insert = `OVERLAY:${filename}:top:-100>50:500ms:easeOut`; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete overlayBlobs[filename]; renderOverlayList(); } }; list.appendChild(item); }); if (typeof refreshOverlayBuilder === 'function') refreshOverlayBuilder(); if (typeof refreshOnomaImages === 'function') refreshOnomaImages(); }
+$('clearTextBtn').onclick = () => { nameInput.value = ''; textInput.value = ''; textInput.focus(); };
+
+// ===== オノマトペ制御パネル =====
+function refreshOnomaImages() {
+    const sel = $('onImage'); if (!sel) return; const cur = sel.value;
+    const names = Object.keys(overlayBlobs);
+    sel.innerHTML = '<option value="">（文字を使う）</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+    if (names.includes(cur)) sel.value = cur;
+}
+function buildOnoma() {
+    const img = $('onImage').value;
+    const content = img || $('onText').value || 'ドンッ';
+    const pos = $('onPos').value;
+    const o = {
+        content,
+        effect: $('onEffect').value,
+        pos,
+        x: parseFloat($('onX').value) || 50,
+        y: parseFloat($('onY').value) || 50,
+        size: parseFloat($('onSize').value) || 14,
+        color: (!img && $('onColor').dataset.use === '1') ? $('onColor').value : '',
+        font: img ? '' : $('onFont').value,
+        delay: parseInt($('onDelay').value) || 0
+    };
+    $('onPreview').textContent = serializeOnoma(o);
+    // UI出し分け
+    $('onCoordRow').style.display = pos === 'coord' ? 'flex' : 'none';
+    $('onSizeVal').textContent = o.size + '%';
+    const isImg = !!img;
+    $('onColorRow').style.display = isImg ? 'none' : 'flex';
+    $('onFontRow').style.display = isImg ? 'none' : 'flex';
+    $('onText').closest('.cb-row').style.opacity = isImg ? '0.4' : '1';
+}
+$('onColor').addEventListener('input', () => { $('onColor').dataset.use = '1'; buildOnoma(); });
+$('onColorClear').onclick = () => { $('onColor').dataset.use = '0'; $('onColor').value = '#ffffff'; buildOnoma(); };
+['onText','onImage','onEffect','onPos','onX','onY','onSize','onFont','onDelay'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', buildOnoma); });
+$('onAdd').onclick = () => { buildOnoma(); cbInsert($('onPreview').textContent); cbFlash($('onAdd')); };
+
 $('addOverlayBtn').onclick = () => $('overlayInput').click();
 
 // ===== コマンドビルダー（フラグ/カウンター/オーバーレイ） =====
@@ -925,7 +986,7 @@ function buildOverlay() {
 ['ovTarget','ovMotion','ovSpeed','ovEase'].forEach(id => $(id).addEventListener('change', buildOverlay));
 $('ovAdd').onclick = () => { buildOverlay(); const c = $('ovPreview').textContent; if (c && !c.startsWith('画像を')) { cbInsert(c); cbFlash($('ovAdd')); } };
 
-buildFlag(); buildCounter();
+buildFlag(); buildCounter(); if (typeof buildOnoma === 'function') buildOnoma();
 $('overlayInput').onchange = async e => { for (const file of e.target.files) { overlayCounter++; const ext = file.name.split('.').pop(); overlayBlobs[`ov${String(overlayCounter).padStart(3, '0')}.${ext}`] = { url: URL.createObjectURL(file), blob: file }; } renderOverlayList(); e.target.value = ''; };
 
 function renderCharList() { const list = $('charList'); list.innerHTML = ''; Object.entries(charBlobs).forEach(([filename, data]) => { const item = document.createElement('div'); item.className = 'overlay-item'; item.innerHTML = `<img src="${data.url}"><span class="overlay-name">${filename}</span><span class="overlay-del">×</span>`; item.onclick = () => { const slot = $('charSlotSelect').value; const flip = $('charFlipCheck').checked; let insert = `CHAR:${slot}:${filename}`; if (flip) insert += ':flip'; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + insert : insert; }; item.querySelector('.overlay-del').onclick = e => { e.stopPropagation(); if (confirm(`${filename} を削除しますか？`)) { URL.revokeObjectURL(data.url); delete charBlobs[filename]; renderCharList(); } }; list.appendChild(item); }); }
