@@ -313,7 +313,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.9 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.10 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -664,8 +664,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.9 =====
-// Change log: ONOMA拡張。color=/font=/delay= オプション(順不同)追加、文字部が画像名(.png等)なら画像をfocus/fade/zoomで表示、delayで時間差・複数同時演出が可能に
+// ===== ホシノユメ v0.9.10 =====
+// Change log: オノマトペ独立システムの土台。parseOnoma/serializeOnoma(コマンド文字列⇄オブジェクトの双方向変換)を実装、runOnomaをパーサ共有形にリファクタ。往復変換テスト6/6一致。次の制御パネルの基盤
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -993,43 +993,57 @@ const setPosition = (percent) => { if (direction === 'top' || direction === 'bot
 const animate = async () => { for (let i = 0; i < pathParts.length; i++) { const { pos, delay } = pathParts[i], speed = speeds[Math.min(i, speeds.length - 1)], easing = easings[Math.min(i, easings.length - 1)]; if (i === 0) { el.style.transition = 'none'; setPosition(pos); void el.offsetWidth; } else { el.style.transition = `all ${speed}ms ${easing}`; setPosition(pos); await sleep(speed); } if (delay > 0) await sleep(delay); } };
 for (let loop = 0; loop < loopCount; loop++) { if (!editorActiveOverlays[filename]) break; await animate(); } }
 
-// オノマトペ: ONOMA:文字or画像名:質感:位置:サイズ:color=...:font=...:delay=...
+// ===== オノマトペ データ構造（コマンド文字列 ⇄ オブジェクト） =====
+// オブジェクト形: { content, effect, pos, x, y, size, color, font, delay }
+//   pos: 'center'等のキーワード or 'coord'(座標指定時)。x,yは常に%値。
+const ONOMA_POS = { center: [50,50], top: [50,28], bottom: [50,72], left: [28,50], right: [72,50], topleft: [28,28], topright: [72,28], bottomleft: [28,72], bottomright: [72,72] };
+function parseOnoma(arg) {
+    const parts = String(arg).split(':');
+    const content = parts[0] || '';
+    const opts = {}; const ordered = [];
+    for (let i = 1; i < parts.length; i++) { const p = parts[i]; const eq = p.indexOf('='); if (eq > 0) opts[p.slice(0, eq).toLowerCase()] = p.slice(eq + 1); else ordered.push(p); }
+    let effect = (ordered[0] || 'focus').toLowerCase(); if (!['focus','fade','zoom'].includes(effect)) effect = 'focus';
+    const posRaw = ordered[1] || 'center';
+    const size = ordered[2] ? parseFloat(ordered[2]) : 14;
+    let pos = 'center', x = 50, y = 50;
+    const coord = posRaw.match(/^\(?(-?[\d.]+),(-?[\d.]+)\)?$/);
+    if (coord) { pos = 'coord'; x = parseFloat(coord[1]); y = parseFloat(coord[2]); }
+    else if (ONOMA_POS[posRaw.toLowerCase()]) { pos = posRaw.toLowerCase(); [x, y] = ONOMA_POS[pos]; }
+    const isImage = (typeof overlayBlobs !== 'undefined' && overlayBlobs[content]) || (typeof charBlobs !== 'undefined' && charBlobs[content]) || /\.(png|jpg|jpeg|webp|gif)$/i.test(content);
+    return { content, isImage, effect, pos, x, y, size, color: opts.color || '', font: opts.font || '', delay: opts.delay ? parseInt(opts.delay) : 0 };
+}
+function serializeOnoma(o) {
+    const seg = [o.content];
+    // effect・位置・サイズは省略可能だが、後続項目があれば前を埋める必要があるため素直に並べる
+    seg.push(o.effect || 'focus');
+    seg.push(o.pos === 'coord' ? `(${o.x},${o.y})` : (o.pos || 'center'));
+    seg.push(String(o.size != null ? o.size : 14));
+    let s = 'ONOMA:' + seg.join(':');
+    if (o.color) s += ':color=' + o.color;
+    if (o.font) s += ':font=' + o.font;
+    if (o.delay) s += ':delay=' + o.delay;
+    return s;
+}
 function runOnoma(arg, container) {
     if (!container) return;
-    const parts = arg.split(':');
-    const content = parts[0];
-    if (!content) return;
-    // 後半のkey=valオプションを分離
-    const opts = {}; const ordered = [];
-    for (let i = 1; i < parts.length; i++) { const p = parts[i]; const eq = p.indexOf('='); if (eq > 0) { opts[p.slice(0, eq).toLowerCase()] = p.slice(eq + 1); } else { ordered.push(p); } }
-    const effect = (ordered[0] || 'focus').toLowerCase();
-    const posRaw = ordered[1] || 'center';
-    const sizePct = ordered[2] ? parseFloat(ordered[2]) : 14;
-    const posMap = { center: [50,50], top: [50,28], bottom: [50,72], left: [28,50], right: [72,50], topleft: [28,28], topright: [72,28], bottomleft: [28,72], bottomright: [72,72] };
-    let x = 50, y = 50;
-    const coord = posRaw.match(/^\(?(-?[\d.]+),(-?[\d.]+)\)?$/);
-    if (coord) { x = parseFloat(coord[1]); y = parseFloat(coord[2]); }
-    else if (posMap[posRaw.toLowerCase()]) { [x, y] = posMap[posRaw.toLowerCase()]; }
-    const cls = ['focus','fade','zoom'].includes(effect) ? effect : 'focus';
-    // 画像名か文字か判定
-    const isImage = (typeof overlayBlobs !== 'undefined' && overlayBlobs[content]) || (typeof charBlobs !== 'undefined' && charBlobs[content]) || /\.(png|jpg|jpeg|webp|gif)$/i.test(content);
+    const o = parseOnoma(arg);
+    if (!o.content) return;
     const make = () => {
         const el = document.createElement('div');
-        el.className = 'onoma onoma-' + cls;
-        el.style.left = x + '%'; el.style.top = y + '%';
-        if (isImage) {
-            const src = (typeof overlayBlobs !== 'undefined' && overlayBlobs[content] && overlayBlobs[content].url) || (typeof charBlobs !== 'undefined' && charBlobs[content] && charBlobs[content].url) || '';
-            el.innerHTML = `<img src="${src}" style="width:${sizePct * 3}cqw;height:auto;display:block;">`;
+        el.className = 'onoma onoma-' + o.effect;
+        el.style.left = o.x + '%'; el.style.top = o.y + '%';
+        if (o.isImage) {
+            const src = (typeof overlayBlobs !== 'undefined' && overlayBlobs[o.content] && overlayBlobs[o.content].url) || (typeof charBlobs !== 'undefined' && charBlobs[o.content] && charBlobs[o.content].url) || '';
+            el.innerHTML = `<img src="${src}" style="width:${o.size * 3}cqw;height:auto;display:block;">`;
         } else {
-            el.textContent = content;
-            el.style.fontSize = sizePct + 'cqw';
-            if (opts.color) el.style.color = opts.color;
-            if (opts.font) el.style.fontFamily = opts.font;
+            el.textContent = o.content;
+            el.style.fontSize = o.size + 'cqw';
+            if (o.color) el.style.color = o.color;
+            if (o.font) el.style.fontFamily = o.font;
         }
         container.appendChild(el);
     };
-    const delay = opts.delay ? parseInt(opts.delay) : 0;
-    if (delay > 0) setTimeout(make, delay); else make();
+    if (o.delay > 0) setTimeout(make, o.delay); else make();
 }
 
 async function runCmdWithOverlay(cmd, flashEl, shakeEl, overlayContainer, isPreview = false) { const upperCmd = cmd.toUpperCase().trim(); if (upperCmd.startsWith('ONOMA:')) { runOnoma(cmd.trim().slice(6), overlayContainer); return null; } if (upperCmd.startsWith('OVERLAY:')) { await runEditorOverlay(cmd.trim().slice(8), overlayContainer); return null; } if (upperCmd.startsWith('CHAR:')) { const charLayer = overlayContainer.closest('.preview-canvas').querySelector('.char-layer'); await runCharCmd(cmd.trim().slice(5), charLayer); return null; } if (upperCmd.startsWith('PACK:') && isPreview) { const parts = cmd.trim().slice(5).split(':'); const name = parts[0].toLowerCase(); const args = parts.slice(1); const result = await runPack(name, args); if (result) { if (result.goto) return { goto: result.goto }; if (result.skip) return 'SKIP'; if (result.flag) flags[result.flag] = true; } return null; } return runCmd(cmd, flashEl, shakeEl, isPreview); }
@@ -1733,31 +1747,41 @@ async function runCmd(cmd, flashEl, shakeEl) {
     m = cmd.match(/^FROM:(.+):GOTO:(.+)$/); if (m) { if (lastChoiceId === m[1]) return { goto: m[2] }; return null; }
     return null;
 }
-function runOnoma(arg, container) {
-    if (!container) return;
-    const parts = arg.split(':'); const content = parts[0]; if (!content) return;
+const ONOMA_POS = { center: [50,50], top: [50,28], bottom: [50,72], left: [28,50], right: [72,50], topleft: [28,28], topright: [72,28], bottomleft: [28,72], bottomright: [72,72] };
+function parseOnoma(arg) {
+    const parts = String(arg).split(':');
+    const content = parts[0] || '';
     const opts = {}; const ordered = [];
     for (let i = 1; i < parts.length; i++) { const p = parts[i]; const eq = p.indexOf('='); if (eq > 0) opts[p.slice(0, eq).toLowerCase()] = p.slice(eq + 1); else ordered.push(p); }
-    const effect = (ordered[0] || 'focus').toLowerCase();
+    let effect = (ordered[0] || 'focus').toLowerCase(); if (!['focus','fade','zoom'].includes(effect)) effect = 'focus';
     const posRaw = ordered[1] || 'center';
-    const sizePct = ordered[2] ? parseFloat(ordered[2]) : 14;
-    const posMap = { center: [50,50], top: [50,28], bottom: [50,72], left: [28,50], right: [72,50], topleft: [28,28], topright: [72,28], bottomleft: [28,72], bottomright: [72,72] };
-    let x = 50, y = 50;
+    const size = ordered[2] ? parseFloat(ordered[2]) : 14;
+    let pos = 'center', x = 50, y = 50;
     const coord = posRaw.match(/^\(?(-?[\d.]+),(-?[\d.]+)\)?$/);
-    if (coord) { x = parseFloat(coord[1]); y = parseFloat(coord[2]); }
-    else if (posMap[posRaw.toLowerCase()]) { [x, y] = posMap[posRaw.toLowerCase()]; }
-    const cls = ['focus','fade','zoom'].includes(effect) ? effect : 'focus';
+    if (coord) { pos = 'coord'; x = parseFloat(coord[1]); y = parseFloat(coord[2]); }
+    else if (ONOMA_POS[posRaw.toLowerCase()]) { pos = posRaw.toLowerCase(); [x, y] = ONOMA_POS[pos]; }
     const isImage = /\.(png|jpg|jpeg|webp|gif)$/i.test(content);
+    return { content, isImage, effect, pos, x, y, size, color: opts.color || '', font: opts.font || '', delay: opts.delay ? parseInt(opts.delay) : 0 };
+}
+function serializeOnoma(o) {
+    let s = 'ONOMA:' + [o.content, o.effect || 'focus', o.pos === 'coord' ? `(${o.x},${o.y})` : (o.pos || 'center'), String(o.size != null ? o.size : 14)].join(':');
+    if (o.color) s += ':color=' + o.color;
+    if (o.font) s += ':font=' + o.font;
+    if (o.delay) s += ':delay=' + o.delay;
+    return s;
+}
+function runOnoma(arg, container) {
+    if (!container) return;
+    const o = parseOnoma(arg); if (!o.content) return;
     const make = () => {
         const el = document.createElement('div');
-        el.className = 'onoma onoma-' + cls;
-        el.style.left = x + '%'; el.style.top = y + '%';
-        if (isImage) { el.innerHTML = `<img src="${imgUrl(content)}" style="width:${sizePct * 3}cqw;height:auto;display:block;">`; }
-        else { el.textContent = content; el.style.fontSize = sizePct + 'cqw'; if (opts.color) el.style.color = opts.color; if (opts.font) el.style.fontFamily = opts.font; }
+        el.className = 'onoma onoma-' + o.effect;
+        el.style.left = o.x + '%'; el.style.top = o.y + '%';
+        if (o.isImage) { el.innerHTML = `<img src="${imgUrl(o.content)}" style="width:${o.size * 3}cqw;height:auto;display:block;">`; }
+        else { el.textContent = o.content; el.style.fontSize = o.size + 'cqw'; if (o.color) el.style.color = o.color; if (o.font) el.style.fontFamily = o.font; }
         container.appendChild(el);
     };
-    const delay = opts.delay ? parseInt(opts.delay) : 0;
-    if (delay > 0) setTimeout(make, delay); else make();
+    if (o.delay > 0) setTimeout(make, o.delay); else make();
 }
 }
 async function runCmdWithOverlay(cmd, flashEl, shakeEl, overlayContainer) {
