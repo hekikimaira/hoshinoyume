@@ -313,7 +313,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.12 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.13 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -599,7 +599,7 @@
                                     <button class="cb-add" id="onPreviewBtn" style="flex:1;background:#2a8">▶ プレビュー</button>
                                     <button class="cb-add" id="onAdd" style="flex:1">＋ 追加</button>
                                 </div>
-                                <div id="onMiniStage" style="position:relative;width:100%;aspect-ratio:832/1216;max-height:280px;background:#1a1a1a;border:1px solid #333;border-radius:6px;overflow:hidden;container-type:inline-size;margin-top:4px;display:none"></div>
+                                <div id="onMiniStage" style="position:relative;width:100%;height:0;padding-bottom:146%;background:#1a1a1a;border:1px solid #333;border-radius:6px;overflow:hidden;container-type:inline-size;margin-top:4px;display:none"></div>
                                 <div class="chip-area" id="onomaChips" style="margin-top:6px"></div>
                             </div>
                         </div>
@@ -692,8 +692,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.12 =====
-// Change log: オノマトペ サイズ下限1%(刻み0.5)・画像倍率2倍に縮小。オノマトペ専用チップ(複数並ぶ・タップで制御パネルに読込編集・コマンド連動・✕削除)とミニプレビュー(▶で即表示)追加。崩し文字は画像で対応
+// ===== ホシノユメ v0.9.13 =====
+// Change log: ミニプレビュー修正。枠が高さ0で絶対配置が枠外(画面下)にはみ出していた問題を、padding-bottom方式の固定高さで解決。追加時にミニプレビューを閉じてクリア
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -925,6 +925,7 @@ $('onAdd').onclick = () => {
     else lines.push(cmd);
     cmdInput.value = lines.filter((l, i) => l.trim() !== '' || i < lines.length).join('\n').replace(/\n+$/, '');
     renderOnomaChips();
+    const ms = $('onMiniStage'); if (ms) { ms.innerHTML = ''; ms.style.display = 'none'; }
     cbFlash($('onAdd'));
 };
 
