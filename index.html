@@ -313,7 +313,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.15 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.16 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -697,8 +697,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.15 =====
-// Change log: ゲーム書き出しの真っ白バグ修正。プレイヤー側runOnomaに余分な閉じ括弧があり起動時に構文エラーで即死していた。オノマトペ移植時の波括弧重複を除去
+// ===== ホシノユメ v0.9.16 =====
+// Change log: スリープ後の保存エラー(The object can not be found here)を再修正。0.9.1ロールバックで巻き戻っていたensureDB(接続切断検知＋自動再接続)＋保存リトライを再適用
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -710,7 +710,7 @@ async function initDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => { console.error('DB error:', request.error); reject(request.error); };
-        request.onsuccess = () => { db = request.result; resolve(db); };
+        request.onsuccess = () => { db = request.result; db.onclose = () => { db = null; }; db.onversionchange = () => { try { db.close(); } catch(e){} db = null; }; resolve(db); };
         request.onupgradeneeded = (e) => {
             const database = e.target.result;
             if (!database.objectStoreNames.contains('project')) database.createObjectStore('project', { keyPath: 'id' });
@@ -721,8 +721,16 @@ async function initDB() {
     });
 }
 
+// スリープ等でIndexedDB接続が切れていても生きた接続を保証
+async function ensureDB() {
+    await ensureDB();
+    try { db.transaction('project', 'readonly').abort(); }
+    catch (e) { try { db.close(); } catch(_){} db = null; await initDB(); }
+    return db;
+}
+
 async function saveToIndexedDB() {
-    if (!db) await initDB();
+    await ensureDB();
     try {
         const tx1 = db.transaction('project', 'readwrite');
         tx1.objectStore('project').put({
@@ -740,16 +748,24 @@ async function saveToIndexedDB() {
         for (const [name, data] of Object.entries(bgmAudios)) { if (data.blob) { try { const tx = db.transaction('audio', 'readwrite'); tx.objectStore('audio').put({ id: name, blob: data.blob, filename: data.filename, type: 'bgm' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`BGM save error for ${name}:`, e); } } }
         for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'overlay' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Overlay save error for ${filename}:`, e); } } }
         for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'char' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Char save error for ${filename}:`, e); } } }
-    } catch (e) { console.error('Auto save error:', e); alert('保存エラー: ' + e.message); }
+    } catch (e) {
+        if (!saveToIndexedDB._retried && /not be found|InvalidStateError|closing|transaction/i.test(e.message || '')) {
+            saveToIndexedDB._retried = true;
+            try { if (db) db.close(); } catch(_){}
+            db = null;
+            try { await initDB(); await saveToIndexedDB(); saveToIndexedDB._retried = false; return; } catch (e2) { saveToIndexedDB._retried = false; }
+        }
+        console.error('Auto save error:', e); alert('保存エラー: ' + e.message);
+    }
 }
 
-async function saveToHistory() { if (!db) await initDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
+async function saveToHistory() { await ensureDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
 
-async function getHistoryList() { if (!db) await initDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
+async function getHistoryList() { await ensureDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
 
-async function restoreFromHistory(historyId) { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
+async function restoreFromHistory(historyId) { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
 
-async function loadFromIndexedDB() { if (!db) await initDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
+async function loadFromIndexedDB() { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
 
 let isSaving = false, pendingSave = false;
 async function autoSave() { if (isSaving) { pendingSave = true; return; } isSaving = true; try { await saveToIndexedDB(); } catch (e) { console.error('Auto save failed:', e); } finally { isSaving = false; } if (pendingSave) { pendingSave = false; setTimeout(autoSave, 100); } }
