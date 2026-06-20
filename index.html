@@ -319,7 +319,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.22 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.23 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -611,7 +611,7 @@
                                     <button class="cb-add" id="onPreviewBtn" style="flex:1;background:#2a8">▶ プレビュー</button>
                                     <button class="cb-add" id="onAdd" style="flex:1">＋ 追加</button>
                                 </div>
-                                <div id="onMiniStage" style="position:relative;width:100%;height:0;padding-bottom:146%;background:#1a1a1a;border:1px solid #333;border-radius:6px;overflow:hidden;container-type:inline-size;margin-top:4px;display:none"></div>
+                                <div id="onMiniStage" style="position:relative;width:100%;height:0;padding-bottom:146%;background:#1a1a1a;border:1px solid #333;border-radius:6px;overflow:hidden;container-type:inline-size;margin-top:4px;display:none;background-image:linear-gradient(rgba(120,180,255,0.25) 1px,transparent 1px),linear-gradient(90deg,rgba(120,180,255,0.25) 1px,transparent 1px),linear-gradient(rgba(255,180,120,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,180,120,0.4) 1px,transparent 1px);background-size:33.333% 33.333%,33.333% 33.333%,100% 50%,50% 100%;background-position:0 0,0 0,0 50%,50% 0"></div>
                                 <div class="chip-area" id="onomaChips" style="margin-top:6px"></div>
                             </div>
                         </div>
@@ -704,8 +704,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.22 =====
-// Change log: 走り書き手書きフォント Slackside One(SIL OFL 1.1, かな専用) を追加。本体・プレイヤーに@font-face埋め込み、オノマトペのfontプルダウンに追加。漢字は他フォントにフォールバック。ライセンス4フォント分に更新
+// ===== ホシノユメ v0.9.23 =====
+// Change log: ミニプレビューに三分割＋中央十字のグリッド線を追加(CSS背景)。オノマトペの位置決め・座標指定の基準に。青=三分割、橙=中央
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
