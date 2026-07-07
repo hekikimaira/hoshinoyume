@@ -321,7 +321,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.26 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.29 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -695,6 +695,13 @@
             <button class="btn" id="addChapterBtn" style="background:#4ecdc4;color:#000">＋ チャプター追加</button>
             <button class="btn" id="removeChapterBtn" style="background:#e74c3c;color:#fff">－ 末尾を削除</button>
         </div>
+        <div class="section-title" style="margin:28px 0 16px">メニュー設定</div>
+        <p style="font-size:12px;color:#888;margin-bottom:12px">書き出したゲームのセーブ/ロード画面のスロット数です。容量が許す限り増やせます。</p>
+        <div style="display:flex;align-items:center;gap:12px">
+            <label style="font-size:13px;color:#ccc">セーブスロット数</label>
+            <input type="number" id="saveSlotsInput" min="1" max="200" value="20" style="width:90px;background:#1e1e1e;border:1px solid #444;color:#eee;border-radius:6px;padding:8px 10px;font-size:14px">
+            <span style="font-size:11px;color:#777">個</span>
+        </div>
     </div>
 </div>
 
@@ -709,8 +716,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.26 =====
-// Change log: iPhone(縦長画面)でプレビューが左右見切れる問題を修正。aspect-ratio+max-widthのSafari挙動を回避し、width/height両方をmin()計算(画面幅と高さから算出した幅の小さい方)に変更。本体・プレイヤー・動的CSS全対応
+// ===== ホシノユメ v0.9.29 =====
+// Change log: シーン更新後にエディタが閉じて一覧に戻る挙動を修正。更新時のresetEditorを廃止し、編集画面に留まって続けて編集できるように(更新フィードバックのみ表示)
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -789,6 +796,7 @@ function saveWithHistory() { autoSave(); throttledHistorySave(); }
 let scenes = [], imageBlobs = {}, overlayBlobs = {}, charBlobs = {}, editingId = null, currentBgFile = null, currentBgUrl = null, previewIndex = 0, imageCounter = 0, overlayCounter = 0, charCounter = 0, choiceCounter = 0, currentChoices = [], currentTextMode = 'adv', chapters = [], saveTimer = null;
 let charSlots = { left: null, center: null, right: null };
 let projectWidth = 832, projectHeight = 1216, resolutionLocked = false;
+let projectSaveSlots = 20;
 let flags = {}, lastChoiceId = null;
 const seAudios = {}, bgmAudios = {}, ambientTimers = {};
 let currentBgm = null, loopingSe = {}, bgmStopAtScene = null;
@@ -860,6 +868,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => { doc
 
 function renderChapters() { const list = $('chapterList'); list.innerHTML = ''; chapters.forEach((ch, i) => { const item = document.createElement('div'); item.className = 'chapter-item'; const scene = scenes[ch.sceneIndex]; const thumbUrl = scene?.bgUrl || ''; item.innerHTML = `<span class="chapter-num">${i+1}</span><div class="chapter-thumb">${thumbUrl?`<img src="${thumbUrl}">`:''}${'</div>'}<select class="chapter-scene-select" data-idx="${i}"><option value="-1">シーンを選択...</option>${scenes.map((s,si) => `<option value="${si}" ${ch.sceneIndex===si?'selected':''}>#${si+1} ${s.name||s.text?.slice(0,15)||'(空)'}</option>`).join('')}</select><input type="text" class="chapter-comment" data-idx="${i}" value="${ch.comment||''}" placeholder="チャプター名（例: 第1章 はじまり）">`; item.querySelector('.chapter-scene-select').onchange = e => { chapters[i].sceneIndex = parseInt(e.target.value); renderChapters(); saveWithHistory(); }; item.querySelector('.chapter-comment').oninput = e => { chapters[i].comment = e.target.value; saveWithHistory(); }; list.appendChild(item); }); }
 $('addChapterBtn').onclick = () => { chapters.push({ sceneIndex: -1, comment: '' }); renderChapters(); saveWithHistory(); };
+const _slotsInput = document.getElementById('saveSlotsInput');
+if (_slotsInput) { _slotsInput.value = projectSaveSlots; _slotsInput.oninput = () => { projectSaveSlots = Math.max(1, Math.min(200, parseInt(_slotsInput.value) || 20)); saveWithHistory(); }; }
 $('removeChapterBtn').onclick = () => { if (chapters.length > 0) { chapters.pop(); renderChapters(); saveWithHistory(); } };
 
 nameInput.oninput = () => { editorName.textContent = nameInput.value; editorName.style.display = nameInput.value ? 'block' : 'none'; };
@@ -1445,7 +1455,10 @@ saveBtn.onclick = () => {
     if (editingId) {
         const scene = { ...baseProps, id: editingId, uuid: scenes.find(s => s.id === editingId)?.uuid || crypto.randomUUID(), text: textInput.value, label: labelInput.value };
         const idx = scenes.findIndex(s => s.id === editingId); if (idx >= 0) scenes[idx] = scene;
-        resetEditor();
+        // 編集画面に留まる（一覧に戻らない）。更新フィードバックだけ出す
+        const _t = saveBtn.textContent;
+        saveBtn.textContent = '✓ 更新しました';
+        setTimeout(() => { if (editingId) saveBtn.textContent = '✓ シーンを更新'; }, 1000);
     } else {
         const chunks = textInput.value.split(/@@@|＠＠＠/).map(c => c.trim()).filter(c => c);
         if (chunks.length === 0) chunks.push('');
@@ -2195,7 +2208,7 @@ $('exportGameBtn').onclick = async () => {
         for (const [name, data] of Object.entries(seAudios)) { const fn = name + '.' + (data.filename ? getExt(data.filename) : 'mp3'); audioFolder.file(fn, data.blob); seList.push({ id: name, filename: fn }); }
         for (const [name, data] of Object.entries(bgmAudios)) { const fn = name + '.' + (data.filename ? getExt(data.filename) : 'mp3'); audioFolder.file(fn, data.blob); bgmList.push({ id: name, filename: fn }); }
         // ゲームデータ
-        const gameData = { projectWidth, projectHeight, scenes: scenes.map(s => ({ id: s.id, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), se: seList, bgm: bgmList };
+        const gameData = { projectWidth, projectHeight, saveSlots: (typeof projectSaveSlots !== 'undefined' ? projectSaveSlots : 20), scenes: scenes.map(s => ({ id: s.id, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), se: seList, bgm: bgmList };
         const title = (scenes[0] && scenes[0].name) ? 'ホシノユメ作品' : 'ホシノユメ作品';
         // プレイヤーHTML生成
         let player = $('playerTemplate').textContent.split('<\/').join('</');
@@ -2328,6 +2341,114 @@ document.addEventListener('click', e => { if (!e.target.closest('.scene-menu') &
     #end { position: fixed; inset: 0; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; background: #000; color: #fff; gap: 24px; }
     #end.show { display: flex; }
     #end button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.5); color: #fff; font-size: 16px; padding: 12px 32px; border-radius: 24px; cursor: pointer; }
+
+/* ===== ゲームメニューシステム ===== */
+.menu-btn {
+  position: absolute; top: 14px; right: 14px; z-index: 40;
+  width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(15,20,30,0.72); border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: transform 0.15s, background 0.2s;
+}
+.menu-btn:active { transform: scale(0.92); background: rgba(40,50,65,0.85); }
+.menu-btn span { display: block; width: 18px; height: 2px; background: #fff; border-radius: 2px; position: relative; box-shadow: 0 6px 0 #fff, 0 -6px 0 #fff; }
+
+.menu-overlay {
+  position: absolute; inset: 0; z-index: 90; display: none;
+  background: rgba(6,9,14,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.menu-overlay.show { display: block; animation: menuFade 0.25s ease; }
+@keyframes menuFade { from { opacity: 0; } to { opacity: 1; } }
+
+.menu-panel {
+  position: absolute; top: 0; right: 0; height: 100%; width: min(86%, 340px);
+  background: linear-gradient(165deg, rgba(22,28,40,0.97), rgba(13,17,25,0.98));
+  border-left: 1px solid rgba(120,160,220,0.25);
+  box-shadow: -12px 0 40px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);
+}
+.menu-overlay.show .menu-panel { transform: translateX(0); }
+.menu-head {
+  padding: 22px 22px 16px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.menu-title { font-size: 17px; font-weight: 800; letter-spacing: 0.14em; color: #eaf2fb; }
+.menu-title small { display: block; font-size: 9px; color: #6b7a8d; letter-spacing: 0.3em; font-weight: 400; margin-top: 3px; }
+.menu-close { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,0.06); border: none; color: #aab6c4; font-size: 18px; cursor: pointer; }
+.menu-close:active { background: rgba(255,255,255,0.14); }
+
+.menu-list { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+.menu-item {
+  display: flex; align-items: center; gap: 13px; padding: 15px 16px; border-radius: 13px;
+  background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer; transition: background 0.16s, transform 0.1s;
+}
+.menu-item:active { transform: scale(0.98); background: rgba(90,130,200,0.18); }
+.menu-item .mi-icon { font-size: 21px; width: 26px; text-align: center; }
+.menu-item .mi-text { flex: 1; }
+.menu-item .mi-name { font-size: 14px; font-weight: 700; color: #e8eef5; }
+.menu-item .mi-desc { font-size: 10px; color: #6b7a8d; margin-top: 2px; }
+.menu-item .mi-arrow { color: #4a5666; font-size: 15px; }
+.menu-foot { padding: 12px 22px 18px; font-size: 9px; color: #4a5666; text-align: center; letter-spacing: 0.1em; }
+
+/* サブ画面（セーブ/ロード/バックログ/コンフィグ） */
+.sub-screen {
+  position: absolute; inset: 0; z-index: 95; display: none; flex-direction: column;
+  background: linear-gradient(165deg, rgba(16,21,31,0.99), rgba(9,12,18,0.99));
+}
+.sub-screen.show { display: flex; animation: menuFade 0.22s ease; }
+.sub-head { padding: 20px 18px 14px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.sub-back { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.06); border: none; color: #cdd8e4; font-size: 18px; cursor: pointer; }
+.sub-back:active { background: rgba(255,255,255,0.14); }
+.sub-title { font-size: 16px; font-weight: 800; letter-spacing: 0.1em; color: #eaf2fb; }
+.sub-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+/* セーブ/ロードのスロット */
+.slot-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.slot {
+  display: flex; gap: 12px; padding: 11px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08);
+  transition: background 0.15s, transform 0.1s; align-items: center;
+}
+.slot:active { transform: scale(0.98); background: rgba(90,130,200,0.16); }
+.slot-thumb {
+  flex: 0 0 76px; height: 50px; border-radius: 7px; background: #0a0e14; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08);
+}
+.slot-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.slot-thumb.empty { color: #3a4453; font-size: 20px; }
+.slot-info { flex: 1; min-width: 0; }
+.slot-no { font-size: 10px; color: #5d6b7d; font-weight: 700; letter-spacing: 0.08em; }
+.slot-title { font-size: 12px; color: #dbe4ee; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 2px 0; }
+.slot-date { font-size: 9px; color: #5d6b7d; }
+.slot.empty-slot .slot-title { color: #4a5666; font-style: italic; }
+
+/* コンフィグ */
+.cfg-row { padding: 16px 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.cfg-label { font-size: 13px; color: #dbe4ee; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 10px; }
+.cfg-val { color: #5fd0c8; font-variant-numeric: tabular-nums; }
+.cfg-row input[type=range] { width: 100%; accent-color: #5fd0c8; }
+.cfg-seg { display: flex; gap: 6px; }
+.cfg-seg button { flex: 1; padding: 9px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #9aa7b6; font-size: 12px; cursor: pointer; }
+.cfg-seg button.active { background: rgba(95,208,200,0.2); border-color: #5fd0c8; color: #5fd0c8; }
+
+/* バックログ */
+.log-entry { padding: 13px 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.log-name { font-size: 11px; color: #5fd0c8; font-weight: 700; margin-bottom: 4px; }
+.log-text { font-size: 13px; color: #cdd8e4; line-height: 1.6; }
+.log-empty { text-align: center; color: #4a5666; padding: 40px 0; font-size: 13px; }
+
+/* トースト */
+.toast {
+  position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(20,28,40,0.95); border: 1px solid rgba(95,208,200,0.4); color: #eaf2fb;
+  padding: 11px 22px; border-radius: 22px; font-size: 13px; font-weight: 600; z-index: 120;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 <\/style>
 <\/head>
 <body>
@@ -2576,6 +2697,7 @@ async function showScene() {
     $('bg').innerHTML = s.bg ? `<img src="${imgUrl(s.bg)}">` : '';
     $('charName').textContent = s.name || ''; $('charName').style.display = s.name ? 'block' : 'none';
     $('dialogue').textContent = s.text || '';
+    if (typeof pushBacklog === 'function') pushBacklog(s.name || '', s.text || '');
     if (s.textMode === 'nvl') $('textDisplay').classList.add('nvl-mode'); else $('textDisplay').classList.remove('nvl-mode');
     if (isFadeType(s.transition)) coverOut(); else playSlide(s.transition);
     flashInfo();
@@ -2604,7 +2726,280 @@ function startGame() { idx = 0; flags = {}; lastChoiceId = null; charSlots = { l
 $('title').addEventListener('click', () => { $('title').classList.add('hidden'); startGame(); });
 $('replayBtn').addEventListener('click', () => { $('end').classList.remove('show'); startGame(); });
 
+
+// ===== ゲームメニューシステム =====
+const SAVE_SLOTS = (GAME_DATA.saveSlots || 20);
+let backlog = [];           // {name, text}
+let menuOpenCount = 0;      // 隠し：メニューを開いた回数（全体）
+let sceneMenuCount = {};    // 隠し：シーンごとのメニュー開閉回数 {sceneIdx: count}
+let textSpeed = 'normal', autoSpeed = 'normal';
+let menuStats = {};         // 隠し統計の入れ物（拡張用）
+
+// --- メニュー用 IndexedDB（書き出しゲーム内で独立） ---
+let menuDB = null;
+function openMenuDB() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('hoshinoyume_game_save', 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('saves')) db.createObjectStore('saves', { keyPath: 'slot' });
+      if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
+    };
+    req.onsuccess = () => { menuDB = req.result; resolve(menuDB); };
+    req.onerror = () => resolve(null);
+  });
+}
+function dbPut(store, obj) {
+  return new Promise((resolve) => {
+    if (!menuDB) return resolve(false);
+    try { const tx = menuDB.transaction(store, 'readwrite'); tx.objectStore(store).put(obj); tx.oncomplete = () => resolve(true); tx.onerror = () => resolve(false); }
+    catch (e) { resolve(false); }
+  });
+}
+function dbGet(store, key) {
+  return new Promise((resolve) => {
+    if (!menuDB) return resolve(null);
+    try { const tx = menuDB.transaction(store, 'readonly'); const r = tx.objectStore(store).get(key); r.onsuccess = () => resolve(r.result || null); r.onerror = () => resolve(null); }
+    catch (e) { resolve(null); }
+  });
+}
+function dbGetAll(store) {
+  return new Promise((resolve) => {
+    if (!menuDB) return resolve([]);
+    try { const tx = menuDB.transaction(store, 'readonly'); const r = tx.objectStore(store).getAll(); r.onsuccess = () => resolve(r.result || []); r.onerror = () => resolve([]); }
+    catch (e) { resolve([]); }
+  });
+}
+
+// --- メニュー開閉 ---
+function openMenu() {
+  menuOpenCount++;
+  sceneMenuCount[idx] = (sceneMenuCount[idx] || 0) + 1;
+  dbPut('meta', { key: 'menuOpenCount', value: menuOpenCount });
+  updateMenuFoot();
+  $('menuOverlay').classList.add('show');
+  // 隠し要素フック：将来 ONMENU コマンド等の判定をここに乗せる
+  onMenuOpenHook(idx, sceneMenuCount[idx], menuOpenCount);
+}
+
+// === 隠し要素フック（後付け用・今は何もしない） ===
+// 将来ここで、現在シーンのcmdに ONMENU:回数:アクション があれば判定して発火する
+function onMenuOpenHook(sceneIdx, countThisScene, countTotal) {
+  // 例（将来実装）:
+  //   const s = scenes[sceneIdx];
+  //   parseMenuTriggers(s.cmd).forEach(tr => {
+  //     if (countThisScene >= tr.count) runMenuAction(tr.action);
+  //   });
+}
+
+// === 隠しアクション実行ヘルパー（後付け用・先に用意） ===
+function runMenuAction(action) {
+  // action 例: {type:'goto', label:'強制エンド'} / {type:'end'} / {type:'flag', name:'xxx'}
+  if (!action) return;
+  if (action.type === 'end') { closeMenu(); endGame(); return; }
+  if (action.type === 'goto') { closeMenu(); const j = findSceneByLabel(action.label); if (j >= 0) { idx = j; showScene(); } return; }
+  if (action.type === 'flag') { flags[action.name] = true; return; }
+}
+function closeMenu() { $('menuOverlay').classList.remove('show'); closeAllSub(); }
+function updateMenuFoot() {
+  // 隠し：開いた回数を表示。条件で隠しメッセージ
+  let txt = `MENU OPENED: ${menuOpenCount}`;
+  if (menuOpenCount >= 50) txt += ' ★何かに目覚めた';
+  else if (menuOpenCount >= 20) txt += ' ☆常連';
+  $('menuFoot').textContent = txt;
+}
+function openSub(id) { $(id).classList.add('show'); }
+function closeAllSub() { document.querySelectorAll('.sub-screen').forEach(s => s.classList.remove('show')); }
+
+// --- トースト ---
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+// --- セーブ ---
+function currentThumb() {
+  const s = scenes[idx];
+  return (s && s.bg) ? imgUrl(s.bg) : '';
+}
+async function doSave(slot) {
+  const s = scenes[idx];
+  const data = {
+    slot, idx, flags: JSON.parse(JSON.stringify(flags)),
+    lastChoiceId, backlog: backlog.slice(-200), sceneMenuCount: JSON.parse(JSON.stringify(sceneMenuCount)),
+    title: (s && (s.name ? s.name + '：' : '') + (s.text || '').slice(0, 20)) || `シーン ${idx+1}`,
+    thumb: currentThumb(),
+    date: new Date().toLocaleString('ja-JP', { year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit' }),
+    sceneNo: idx + 1, total: scenes.length,
+  };
+  await dbPut('saves', data);
+  toast(`スロット ${slot+1} に保存しました`);
+  renderSlots('saveGrid', true);
+}
+async function doLoad(slot) {
+  const data = await dbGet('saves', slot);
+  if (!data) { toast('データがありません'); return; }
+  idx = data.idx; flags = data.flags || {}; lastChoiceId = data.lastChoiceId || null;
+  backlog = data.backlog || [];
+  sceneMenuCount = data.sceneMenuCount || {};
+  closeMenu();
+  showScene();
+  toast('ロードしました');
+}
+async function renderSlots(gridId, isSave) {
+  const grid = $(gridId); grid.innerHTML = '';
+  const saves = await dbGetAll('saves');
+  const map = {}; saves.forEach(s => map[s.slot] = s);
+  for (let i = 0; i < SAVE_SLOTS; i++) {
+    const d = map[i];
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (d ? '' : ' empty-slot');
+    slot.innerHTML = `
+      <div class="slot-thumb ${d && d.thumb ? '' : 'empty'}">${d && d.thumb ? `<img src="${d.thumb}">` : '—'}<\/div>
+      <div class="slot-info">
+        <div class="slot-no">SLOT ${i+1}<\/div>
+        <div class="slot-title">${d ? d.title : '（空き）'}<\/div>
+        <div class="slot-date">${d ? `${d.date}　${d.sceneNo}/${d.total}` : (isSave ? 'タップで保存' : '—')}<\/div>
+      <\/div>`;
+    slot.onclick = () => {
+      if (isSave) { if (!d || confirm(`スロット ${i+1} に${d ? '上書き' : ''}保存しますか？`)) doSave(i); }
+      else { if (d) doLoad(i); else toast('空きスロットです'); }
+    };
+    grid.appendChild(slot);
+  }
+}
+
+// --- バックログ ---
+function renderBacklog() {
+  const body = $('logBody');
+  if (!backlog.length) { body.innerHTML = '<div class="log-empty">まだ履歴がありません<\/div>'; return; }
+  body.innerHTML = backlog.map(e => `<div class="log-entry">${e.name ? `<div class="log-name">${e.name}<\/div>` : ''}<div class="log-text">${e.text}<\/div><\/div>`).join('');
+  body.scrollTop = body.scrollHeight;
+}
+function pushBacklog(name, text) {
+  if (!text) return;
+  const last = backlog[backlog.length - 1];
+  if (last && last.text === text && last.name === name) return;
+  backlog.push({ name: name || '', text });
+  if (backlog.length > 500) backlog.shift();
+}
+
+// --- コンフィグ ---
+function applyVolumes() {
+  const bgmV = (+$('cfgBgm').value) / 100, seV = (+$('cfgSe').value) / 100;
+  Object.values(bgmAudios).forEach(b => { if (b.audio) b.audio.volume = bgmV; });
+  Object.values(seAudios).forEach(s => { if (s.audio) s.audio.volume = seV; });
+  $('cfgBgmVal').textContent = $('cfgBgm').value + '%';
+  $('cfgSeVal').textContent = $('cfgSe').value + '%';
+  saveConfig();
+}
+function saveConfig() {
+  dbPut('meta', { key: 'config', value: { bgm: +$('cfgBgm').value, se: +$('cfgSe').value, textSpeed, autoSpeed } });
+}
+async function loadConfig() {
+  const c = await dbGet('meta', 'config');
+  if (c && c.value) {
+    $('cfgBgm').value = c.value.bgm ?? 100; $('cfgSe').value = c.value.se ?? 100;
+    textSpeed = c.value.textSpeed || 'normal'; autoSpeed = c.value.autoSpeed || 'normal';
+    document.querySelectorAll('#cfgSpeed button').forEach(b => b.classList.toggle('active', b.dataset.sp === textSpeed));
+    document.querySelectorAll('#cfgAuto button').forEach(b => b.classList.toggle('active', b.dataset.au === autoSpeed));
+    const spLabel = { slow:'ゆっくり', normal:'標準', fast:'速い', instant:'瞬間' };
+    $('cfgSpeedVal').textContent = spLabel[textSpeed]; $('cfgAutoVal').textContent = { slow:'ゆっくり', normal:'標準', fast:'速い' }[autoSpeed];
+    applyVolumes();
+  }
+  const mc = await dbGet('meta', 'menuOpenCount');
+  if (mc) menuOpenCount = mc.value || 0;
+}
+
+// --- 配線 ---
+function wireMenu() {
+  $('menuBtn').onclick = openMenu;
+  $('menuCloseBtn').onclick = closeMenu;
+  $('menuOverlay').onclick = (e) => { if (e.target === $('menuOverlay')) closeMenu(); };
+  $('miSave').onclick = () => { renderSlots('saveGrid', true); openSub('subSave'); };
+  $('miLoad').onclick = () => { renderSlots('loadGrid', false); openSub('subLoad'); };
+  $('miLog').onclick = () => { renderBacklog(); openSub('subLog'); };
+  $('miConfig').onclick = () => openSub('subConfig');
+  document.querySelectorAll('.sub-back').forEach(b => b.onclick = () => $(b.dataset.sub).classList.remove('show'));
+  $('cfgBgm').oninput = applyVolumes; $('cfgSe').oninput = applyVolumes;
+  document.querySelectorAll('#cfgSpeed button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#cfgSpeed button').forEach(x => x.classList.remove('active')); b.classList.add('active');
+    textSpeed = b.dataset.sp; $('cfgSpeedVal').textContent = b.textContent; saveConfig();
+  });
+  document.querySelectorAll('#cfgAuto button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#cfgAuto button').forEach(x => x.classList.remove('active')); b.classList.add('active');
+    autoSpeed = b.dataset.au; $('cfgAutoVal').textContent = b.textContent; saveConfig();
+  });
+}
+openMenuDB().then(() => { loadConfig(); wireMenu(); });
+
 <\/script>
+<div class="menu-btn" id="menuBtn"><span><\/span><\/div>
+
+<div class="menu-overlay" id="menuOverlay">
+  <div class="menu-panel">
+    <div class="menu-head">
+      <div class="menu-title">MENU<small>ホシノユメ<\/small><\/div>
+      <button class="menu-close" id="menuCloseBtn">×<\/button>
+    <\/div>
+    <div class="menu-list">
+      <div class="menu-item" id="miSave"><span class="mi-icon">💾<\/span><div class="mi-text"><div class="mi-name">セーブ<\/div><div class="mi-desc">進行状況を保存<\/div><\/div><span class="mi-arrow">›<\/span><\/div>
+      <div class="menu-item" id="miLoad"><span class="mi-icon">📂<\/span><div class="mi-text"><div class="mi-name">ロード<\/div><div class="mi-desc">保存から再開<\/div><\/div><span class="mi-arrow">›<\/span><\/div>
+      <div class="menu-item" id="miLog"><span class="mi-icon">📜<\/span><div class="mi-text"><div class="mi-name">バックログ<\/div><div class="mi-desc">これまでの履歴<\/div><\/div><span class="mi-arrow">›<\/span><\/div>
+      <div class="menu-item" id="miConfig"><span class="mi-icon">⚙️<\/span><div class="mi-text"><div class="mi-name">コンフィグ<\/div><div class="mi-desc">音量・文字速度<\/div><\/div><span class="mi-arrow">›<\/span><\/div>
+    <\/div>
+    <div class="menu-foot" id="menuFoot"><\/div>
+  <\/div>
+<\/div>
+
+<div class="sub-screen" id="subSave">
+  <div class="sub-head"><button class="sub-back" data-sub="subSave">‹<\/button><div class="sub-title">セーブ<\/div><\/div>
+  <div class="sub-body"><div class="slot-grid" id="saveGrid"><\/div><\/div>
+<\/div>
+
+<div class="sub-screen" id="subLoad">
+  <div class="sub-head"><button class="sub-back" data-sub="subLoad">‹<\/button><div class="sub-title">ロード<\/div><\/div>
+  <div class="sub-body"><div class="slot-grid" id="loadGrid"><\/div><\/div>
+<\/div>
+
+<div class="sub-screen" id="subLog">
+  <div class="sub-head"><button class="sub-back" data-sub="subLog">‹<\/button><div class="sub-title">バックログ<\/div><\/div>
+  <div class="sub-body" id="logBody"><\/div>
+<\/div>
+
+<div class="sub-screen" id="subConfig">
+  <div class="sub-head"><button class="sub-back" data-sub="subConfig">‹<\/button><div class="sub-title">コンフィグ<\/div><\/div>
+  <div class="sub-body">
+    <div class="cfg-row">
+      <div class="cfg-label">BGM音量 <span class="cfg-val" id="cfgBgmVal">100%<\/span><\/div>
+      <input type="range" id="cfgBgm" min="0" max="100" value="100">
+    <\/div>
+    <div class="cfg-row">
+      <div class="cfg-label">SE音量 <span class="cfg-val" id="cfgSeVal">100%<\/span><\/div>
+      <input type="range" id="cfgSe" min="0" max="100" value="100">
+    <\/div>
+    <div class="cfg-row">
+      <div class="cfg-label">文字送り速度 <span class="cfg-val" id="cfgSpeedVal">標準<\/span><\/div>
+      <div class="cfg-seg" id="cfgSpeed">
+        <button data-sp="slow">ゆっくり<\/button>
+        <button data-sp="normal" class="active">標準<\/button>
+        <button data-sp="fast">速い<\/button>
+        <button data-sp="instant">瞬間<\/button>
+      <\/div>
+    <\/div>
+    <div class="cfg-row" style="border:none">
+      <div class="cfg-label">オート速度 <span class="cfg-val" id="cfgAutoVal">標準<\/span><\/div>
+      <div class="cfg-seg" id="cfgAuto">
+        <button data-au="slow">ゆっくり<\/button>
+        <button data-au="normal" class="active">標準<\/button>
+        <button data-au="fast">速い<\/button>
+      <\/div>
+    <\/div>
+  <\/div>
+<\/div>
+
+<div class="toast" id="toast"><\/div>
+
 <\/body>
 <\/html>
 
