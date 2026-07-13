@@ -321,7 +321,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.29 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.30 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -329,6 +329,13 @@
                     <span class="arrow">▶</span><span class="section-icon">📁</span> プロジェクト
                 </div>
                 <div class="section-body">
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                        <input type="text" id="exportFileName" placeholder="ファイル名（未入力なら自動）" style="flex:1;background:#1e1e1e;border:1px solid #444;color:#eee;border-radius:6px;padding:9px 11px;font-size:13px">
+                        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#ccc;white-space:nowrap;cursor:pointer">
+                            <input type="checkbox" id="exportDateChk" style="width:16px;height:16px"> 日付を付ける
+                        </label>
+                    </div>
+                    <div id="exportNamePreview" style="font-size:11px;color:#777;margin-bottom:10px;min-height:14px"></div>
                     <div style="display:flex;gap:8px">
                         <button class="btn btn-zip" id="loadZip" style="flex:1">📁 ZIP読込</button>
                         <button class="btn btn-zip" id="saveZip" style="flex:1">💾 ZIP保存</button>
@@ -716,8 +723,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.29 =====
-// Change log: シーン更新後にエディタが閉じて一覧に戻る挙動を修正。更新時のresetEditorを廃止し、編集画面に留まって続けて編集できるように(更新フィードバックのみ表示)
+// ===== ホシノユメ v0.9.30 =====
+// Change log: 書き出しファイル名を指定可能に。ファイル名入力欄＋日付チェックボックス(YYMMDDHHmm形式を区切りなし連結)を追加。ZIP読込時はそのファイル名を書き出しに引き継ぐ。プレビュー表示付き
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -1690,8 +1697,31 @@ $('historyBtn').onclick = async () => { const list = await getHistoryList(); if 
 $('closeHistoryBtn').onclick = () => historyModal.classList.add('hidden');
 historyModal.onclick = e => { if (e.target === historyModal) historyModal.classList.add('hidden'); };
 
+// 書き出しファイル名まわり
+let loadedFileName = '';  // 読み込んだZIPの名前（拡張子なし）を記憶
+function dateSuffix() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    return String(d.getFullYear()).slice(-2) + p(d.getMonth()+1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes());
+}
+function buildExportName(kind) {
+    // 共通のファイル名入力＋日付チェックを使う
+    const inp = document.getElementById('exportFileName');
+    let base = (inp && inp.value.trim()) || loadedFileName || (kind === 'game' ? 'game' : 'vn-project');
+    const chk = document.getElementById('exportDateChk');
+    if (chk && chk.checked) base += dateSuffix();
+    return base + '.zip';
+}
+function updateExportPreview() {
+    const prev = document.getElementById('exportNamePreview'); if (!prev) return;
+    const inp = document.getElementById('exportFileName');
+    let base = (inp && inp.value.trim()) || loadedFileName || 'game';
+    const chk = document.getElementById('exportDateChk');
+    prev.textContent = '→ ' + base + (chk && chk.checked ? dateSuffix() : '') + '.zip';
+}
 $('loadZip').onclick = () => $('zipInput').click();
-$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]);
+{ const _ef = document.getElementById('exportFileName'), _ec = document.getElementById('exportDateChk'); if (_ef) _ef.oninput = updateExportPreview; if (_ec) _ec.onchange = updateExportPreview; updateExportPreview(); }
+$('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; loadedFileName = file.name.replace(/\.zip$/i, ''); const _ef = document.getElementById('exportFileName'); if (_ef) _ef.value = loadedFileName; if (typeof updateExportPreview === 'function') updateExportPreview(); try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]);
 const imgFolder = zip.folder('images'); if (imgFolder) { const files = []; imgFolder.forEach((p, f) => { if (!f.dir) files.push({ p, f }); }); for (const { p, f } of files) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); if (p.startsWith('ov')) { overlayBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > overlayCounter) overlayCounter = num; } else if (p.startsWith('ch')) { charBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > charCounter) charCounter = num; } else { const hash = await hashBlob(blob); imageBlobs[p] = { url, blob, hash }; imageHashes[hash] = p; const num = parseInt(p.split('.')[0]); if (!isNaN(num) && num > imageCounter) imageCounter = num; } } }
 const audioFolder = zip.folder('audio'); if (audioFolder) { const audioFiles = []; audioFolder.forEach((p, f) => { if (!f.dir) audioFiles.push({ p, f }); }); for (const { p, f } of audioFiles) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); const name = p.split('.')[0].toLowerCase(); if (name.startsWith('se')) { seAudios[name] = { audio: new Audio(url), url, blob, filename: p }; const num = parseInt(name.slice(2)); if (!isNaN(num) && num > seCounter) seCounter = num; } else if (name.startsWith('bgm')) { const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob, filename: p }; const num = parseInt(name.slice(3)); if (!isNaN(num) && num > bgmCounter) bgmCounter = num; } } }
 const dataFile = zip.file('data.json'); if (dataFile) { const data = JSON.parse(await dataFile.async('string')); scenes = (data.scenes || []).map(s => ({ ...s, uuid: s.uuid || crypto.randomUUID(), bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); chapters = data.chapters || []; if (data.projectWidth && data.projectHeight) applyProjectResolution(data.projectWidth, data.projectHeight); else { resolutionLocked = false; const firstBg = scenes.find(s => s.bg); if (firstBg && imageBlobs[firstBg.bg]) { const img = new Image(); img.onload = () => { if (!resolutionLocked) applyProjectResolution(img.width, img.height); }; img.src = imageBlobs[firstBg.bg].url; } } scenes.forEach(s => { if (s.choices) s.choices.forEach(c => { const m = c.id.match(/^A-(\d+)$/); if (m && +m[1] > choiceCounter) choiceCounter = +m[1]; }); }); }
@@ -1699,7 +1729,7 @@ packScripts = {}; const packsFolder = zip.folder('packs'); if (packsFolder) { co
 renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}\nPacks: ${Object.keys(packScripts).join(', ') || '(なし)'}`); } catch (err) { alert('読み込みエラー: ' + err.message); } };
 
 function getExt(filename) { return filename.split('.').pop() || 'mp3'; }
-$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, 'vn-project.zip'); } catch (err) { alert('保存エラー: ' + err.message); } };
+$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices })), chapters, projectWidth, projectHeight }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, buildExportName('project')); } catch (err) { alert('保存エラー: ' + err.message); } };
 
 const FONT_LICENSE_TEXT = `このゲームには以下のフォントが含まれています。
 これらは SIL Open Font License 1.1 のもとで使用・再配布されています。
@@ -2216,7 +2246,7 @@ $('exportGameBtn').onclick = async () => {
         zip.file('index.html', player);
         zip.file('licenses/FONT_LICENSE.txt', FONT_LICENSE_TEXT);
         const content = await zip.generateAsync({ type: 'blob' });
-        safeDownload(content, 'game.zip');
+        safeDownload(content, buildExportName('game'));
     } catch (err) { alert('書き出しエラー: ' + err.message); }
     btn.disabled = false; btn.textContent = orig;
 };
