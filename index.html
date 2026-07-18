@@ -344,10 +344,6 @@
                 <div class="preview-bg" id="editorBg"></div>
                 <canvas id="peGlCanvas" style="position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:5"></canvas>
                 <canvas id="peMaskCanvas" style="position:absolute;inset:0;width:100%;height:100%;display:none;touch-action:none;z-index:6"></canvas>
-                <div id="ovDragLayer" style="position:absolute;inset:0;display:none;z-index:20;touch-action:none;cursor:move;">
-                    <img id="ovDragImg" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:40%;height:auto;pointer-events:none;opacity:0.85;filter:drop-shadow(0 0 4px #4ecdc4);">
-                    <div id="ovDragHint" style="position:absolute;top:8px;left:0;right:0;text-align:center;font-size:11px;color:#4ecdc4;background:rgba(0,0,0,0.6);padding:4px;">指でドラッグして位置を決める → 離すと確定</div>
-                </div>
                 <div class="char-layer" id="editorCharLayer">
                     <div class="char-slot" data-slot="left"></div>
                     <div class="char-slot" data-slot="center"></div>
@@ -362,7 +358,7 @@
             </div>
         </div>
         <div class="control-area">
-            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.37 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
+            <div style="font-size:9px;color:#444;text-align:right;margin-bottom:4px;">v0.9.31 <label style="margin-left:8px;"><input type="checkbox" id="debugMode"> Debug</label></div>
 
             <!-- プロジェクト -->
             <div class="section" data-accordion>
@@ -407,21 +403,6 @@
                     </div>
                     <textarea id="textInput" placeholder="セリフ"></textarea>
                     <input type="text" id="labelInput" class="label-input" placeholder="ラベル（例: ルートB開始）" style="margin-top:4px">
-                    <div class="choice-toggle" style="margin-top:8px;padding-top:8px;border-top:1px solid #333">
-                        <input type="checkbox" id="isTitleCheck">
-                        <label for="isTitleCheck">🎬 このシーンをタイトル画面にする</label>
-                    </div>
-                    <div id="titleHint" class="hidden" style="font-size:10.5px;color:#8a8a8a;line-height:1.55;margin-top:6px;background:#1e1e1e;border-radius:6px;padding:8px 10px">
-                        起動時、タイトルシーンを上から順に見て<b style="color:#4ecdc4">最初に条件を満たした1枚</b>だけが表示されます。<br>
-                        ・背景＝このシーンの背景／タイトル名＝キャラ名欄／スタート文言＝セリフ欄<br>
-                        ・BGMやオーバーレイもコマンド欄に書けばタイトルで鳴る/出る<br>
-                        ・<b style="color:#4ecdc4">出す条件</b>はコマンド欄に：<br>
-                        &nbsp;&nbsp;<code>GNOTFLAG:クリア済:SKIP</code> → クリア済が立つ時だけ表示（＝真タイトル）<br>
-                        &nbsp;&nbsp;<code>GIFFLAG:クリア済:SKIP</code> → クリア前だけ表示（＝通常タイトル）<br>
-                        ・開始位置を変えたい時：<code>START:GOTO:ラベル</code><br>
-                        ・本編側でフラグを立てる：<code>GSETFLAG:クリア済</code>（周回をまたいで保存）<br>
-                        ・回想部屋を開く：どこかの選択肢のジャンプ先を<code>CALL:回想部屋</code>に（ツールバーの🎞で雛形を追加）
-                    </div>
                 </div>
             </div>
 
@@ -710,7 +691,6 @@
                                 <div class="cb-row" id="ovSpeedRow"><label>速度</label><select id="ovSpeed"><option value="500">標準(500ms)</option><option value="300">速い(300ms)</option><option value="800">ゆっくり(800ms)</option><option value="2000">とても遅い(2000ms)</option></select></div>
                                 <div class="cb-row" id="ovEaseRow"><label>動きの質</label><select id="ovEase"><option value="easeOut">自然(easeOut)</option><option value="easeInOut">なめらか</option><option value="bounce">バウンド</option><option value="linear">一定</option></select></div>
                                 <div class="cb-preview" id="ovPreview">画像を登録してください</div>
-                                <button class="cb-add" id="ovDragPlace" style="background:#4ecdc4;color:#000;margin-bottom:6px">📍 プレビュー上でドラッグして位置決め</button>
                                 <button class="cb-add" id="ovAdd">＋ コマンド欄に追加</button>
                             </div>
                         </div>
@@ -770,7 +750,6 @@
                 <button class="btn btn-history" id="historyBtn">📜 履歴</button>
                 <button class="btn" id="dedupeBtn" style="background:#f39c12;color:#000;font-size:11px;padding:6px 12px">🔍 重複チェック</button>
                 <button class="btn" id="exportAllPngBtn" style="background:#6c5ce7;color:#fff;font-size:11px;padding:6px 12px">📷 全PNG</button>
-                <button class="btn" id="insertKaisoBtn" style="background:#00b894;color:#fff;font-size:11px;padding:6px 12px" title="回想部屋＋サンプル回想シーンを末尾に追加">🎞 回想部屋テンプレ</button>
                 <button class="btn btn-clear" id="clearAll">全削除</button>
             </div>
         </div>
@@ -817,12 +796,6 @@
             <button class="btn" id="removeChapterBtn" style="background:#e74c3c;color:#fff">－ 末尾を削除</button>
         </div>
         <div class="section-title" style="margin:28px 0 16px">メニュー設定</div>
-        <p style="font-size:12px;color:#888;margin-bottom:12px">作品タイトルは書き出したゲームのセーブ保存先（作品ID）の元になります。<b style="color:#e17055">同名の別作品はセーブが混ざる</b>ので、作品ごとに違う名前にしてください。</p>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-            <label style="font-size:13px;color:#ccc;white-space:nowrap">作品タイトル</label>
-            <input type="text" id="gameTitleInput" placeholder="例: せいの6時間" style="flex:1;min-width:160px;background:#1e1e1e;border:1px solid #444;color:#eee;border-radius:6px;padding:8px 10px;font-size:14px">
-            <span id="gameIdPreview" style="font-size:11px;color:#00b894;font-family:monospace"></span>
-        </div>
         <p style="font-size:12px;color:#888;margin-bottom:12px">書き出したゲームのセーブ/ロード画面のスロット数です。容量が許す限り増やせます。</p>
         <div style="display:flex;align-items:center;gap:12px">
             <label style="font-size:13px;color:#ccc">セーブスロット数</label>
@@ -845,8 +818,8 @@
 <div class="pack-overlay" id="packOverlay"></div>
 
 <script>
-// ===== ホシノユメ v0.9.37 =====
-// Change log: [v0.9.42] タイトルメニューを実装。従来は画面タップで即・最初から開始のみだったが、「▶はじめから／つづきから／回想／設定」を追加（雰囲気重視の控えめなテキストメニュー）。つづきから＝ロード画面（スロット一覧）を開く。セーブが無い時は自動でグレーアウト。回想＝回想部屋(ラベル:回想部屋)があれば直行、無ければ非表示。設定＝コンフィグを開く。タイトルからロード/設定を開いた場合は戻る操作でタイトルへ直接戻る（menuFromTitle）。タイトルからのロード時はタイトルも隠す。スタート文言はタイトルシーンのセリフ欄を引き続き反映。 / [v0.9.41] セーブのデータ安全性を強化。①作品ID：タイトルから決定的に生成する作品ID(makeGameId)を導入し、書き出しゲームのセーブ用IndexedDBを作品ごとに分離(hoshinoyume_save_{ID})。従来は全作品が単一DBを共有していたため、同一端末で複数作品を遊ぶとセーブが混ざる不具合があった。これを解消。②ストレージ永続化：起動時にnavigator.storage.persist()を申請し、iOS SafariのITP等による自動消去からセーブ/永続フラグを保護。③セーブのファイル書き出し/読み込み：ロード画面から全セーブ＋永続フラグをJSONで外部保存/復元可能に。ファイルには作品IDを埋め込み、別作品のセーブ読込時は警告。④エディタに「作品タイトル」設定欄を追加(作品IDのプレビュー表示付き)。作品タイトルはエクスポート時のゲームタイトル兼セーブ保存先IDの元になる。⑤projectTitle/projectSaveSlots/chaptersをプロジェクト保存(IndexedDB/ZIP)に永続化。 / [v0.9.40] 回想の全開放（マスター解禁）を追加。GSETFLAG:全開放（またはALLUNLOCK）を立てると、選択肢のshowFlag判定を無視して全部表示する。本編をやり直さず全回想を見たい人・デバッグ用。回想部屋テンプレに「🔓 全開放」ボタン（押すとGSETFLAG:全開放して部屋に戻る／全開放中はhideFlagで自身を隠す）と全開放実行シーンを同梱。解除はGCLEARFLAG:全開放。表示判定の優先順位はhideFlag→全開放→showFlag。プレビューも同挙動。 / [v0.9.39] 回想機能を実装。①CALL/RETURN：CALL:GOTO:ラベル（またはタイトル/選択肢のジャンプ先 CALL:ラベル）で回想シーンを一時再生し、回想の終端に RETURN を書くと呼び出し元へ戻る（コールスタック式、多段対応）。②選択肢のフラグ出し分け：各選択肢に showFlag（このGフラグが立ってる時だけ表示）/hideFlag（立ってたら隠す）を追加。見た回想だけ部屋に並べる用途に。エディタ選択肢UIに「表示条件Gフラグ」欄と「▶回想（再生して戻る）」ジャンプ先を追加。③回想部屋テンプレ：ツールバー🎞ボタンで「回想部屋＋サンプル回想2本」を末尾に追加。部屋は選択肢でGSETFLAGで解禁済みの回想だけCALLする雛形。プレビューも CALL/RETURN・G系フラグ・showFlag/hideFlag に対応（previewGflags/previewCallStackで擬似再現）。 / [v0.9.38] フラグで丸ごと差し替わるタイトル画面を実装。①シーンに「🎬タイトルにする」チェックを追加。isTitleシーンは起動時に上から評価され、最初に条件を満たした1枚だけがタイトルとして表示される（背景=シーン背景/タイトル名=キャラ名欄/スタート文言=セリフ欄、BGM・オーバーレイ等のコマンドも実行）。本編再生中にisTitleシーンへ到達したら自動スキップ。②周回をまたぐ永続フラグ(G系)を新設：GSETFLAG:名前(IndexedDB metaに保存、startGameでリセットされない)/GCLEARFLAG/GIFFLAG:名前:SKIP|GOTO/GNOTFLAG:名前:SKIP|GOTO。タイトル選定条件はGNOTFLAG:クリア済:SKIP(=真タイトル)やGIFFLAG:クリア済:SKIP(=通常タイトル)で書く。③既存NOTFLAGに:SKIP形を追加、タイトル開始位置指定用のSTART:GOTO:ラベルを追加(本編では無視)。全てコマンド制御・エディタ側でも作成可能。「せいの6時間」の周回タイトル演出を想定。 / [v0.9.37] ホイール方向を一般的なVNと同じに修正：ホイール上=バックログ、ホイール下=スキップ。 / [v0.9.36] マウスホイールでバックログ／スキップを実装。ホイール下=バックログ(既存backlog機能を呼び出し、キャラ名+セリフ履歴を表示)、ホイール上=スキップ(140ms間隔で連続進行、「スキップ中」表示)。スキップはクリック/キー/タッチで停止、選択肢が開いたら自動停止、終端でendGame。将来の拡張(未読スキップ設定のオンオフ、指定シーン/選択肢前での自動停止)のフックをスキップループの停止条件に用意。 / [v0.9.35] WAITコマンドを追加し演出のタイミング制御が可能に。書式 WAIT:1000(ミリ秒)/WAIT:1.5s(秒)/WAIT:500ms。コマンドは元々行ごとに順次awaitで実行されるが、オーバーレイ等は発火即次行のため一斉に見えていた。WAITで間を挟むことで「オーバーレイ→待→ぷるぷる→待→吹き出し」のような時間差演出が可能に。オーバーレイ・PURU・WAIT混在の複合演出を検証。 / [v0.9.34] ぷるぷる塗り編集プレビューが反映されないバグを修正。①pz編集canvasをpreserveDrawingBuffer:trueに（iOSで描画バッファがコンポジット後にクリアされ表示が消える問題を回避）②pzRenderループの生存フラグ管理を追加し、塗りモードON時にループが止まっていれば再起動（rAF中断の保険）。 / [v0.9.33] バグ修正2件。①保存時ObjectNotFound(再起動で直る)を修正：ensureDBの生存確認を実トランザクション完了まで行い、iOS等でスリープ復帰後に接続が見せかけ生存する問題を排除。保存失敗時のリトライ条件を拡大し、接続切れをその場で再接続して保存(再起動不要に)。②サムネ読込失敗を修正：Blob URL失効時にimg.onerrorでblobから再生成(thumbReload)。 / [v0.9.32] オーバーレイ(吹き出し等の透過画像)にドラッグ位置決めUIを追加。「📍プレビュー上でドラッグして位置決め」でエディタプレビュー上に画像を出し、指でドラッグ→離した位置(x,y%)がコマンドに反映。登場アニメ(fade/focus/zoom)と組み合わせ可能。書式 OVERLAY:画像:fade:(x,y)。既存OVERLAY資産を活用しプレイヤー側改修不要、エディタ位置とプレイヤー表示位置の一致を検証。 / [v0.9.31] ぷるぷる背景演出を正式搭載。NovelAI等の一枚絵の一部を塗ってWebGLメッシュ変形で揺らせる。■コマンド作法 PURU:start:bg:キー（機能:動詞:対象:引数の共通作法）■エディタ コマンド一覧「🌊ぷるぷる」セクションでプレビュー上に直接マスクを塗る→「このシーンに適用」でシーンに紐づけ&コマンド自動挿入 ■3レイヤー(赤緑青)を別パターンで重ねられる。パターン:呼吸/ぷるん/なびき/上下/左右/ぷるぷる/びくっ ■レイヤーごとの再生タイミング制御(開始遅延・再生回数N回で静止、伝播演出が可能) ■びくっは開始直後に即発火 ■プリセット6種(呼吸ゆったり/浅い呼吸/ビクッ1回/ビクッ3回/ぷるん/なびき) ■データ最適化:マスク+設定のみ保持(元画像はシーンbgを参照、1個約16KB) ■揺れる箇所:塗り編集プレビュー/▶通し再生/一覧ここから再生/書き出しゲーム全対応
+// ===== ホシノユメ v0.9.31 =====
+// Change log: [v0.9.31] ぷるぷる背景演出を正式搭載。NovelAI等の一枚絵の一部を塗ってWebGLメッシュ変形で揺らせる。■コマンド作法 PURU:start:bg:キー（機能:動詞:対象:引数の共通作法）■エディタ コマンド一覧「🌊ぷるぷる」セクションでプレビュー上に直接マスクを塗る→「このシーンに適用」でシーンに紐づけ&コマンド自動挿入 ■3レイヤー(赤緑青)を別パターンで重ねられる。パターン:呼吸/ぷるん/なびき/上下/左右/ぷるぷる/びくっ ■レイヤーごとの再生タイミング制御(開始遅延・再生回数N回で静止、伝播演出が可能) ■びくっは開始直後に即発火 ■プリセット6種(呼吸ゆったり/浅い呼吸/ビクッ1回/ビクッ3回/ぷるん/なびき) ■データ最適化:マスク+設定のみ保持(元画像はシーンbgを参照、1個約16KB) ■揺れる箇所:塗り編集プレビュー/▶通し再生/一覧ここから再生/書き出しゲーム全対応
 
 // ===== IndexedDB Auto Save =====
 const DB_NAME = 'vn-editor-db';
@@ -872,19 +845,8 @@ async function initDB() {
 // スリープ等でIndexedDB接続が切れていても生きた接続を保証
 async function ensureDB() {
     if (!db) await initDB();
-    // 実際に読み取りトランザクションを「完了」させて生存確認（iOS復帰後の見せかけの生存を排除）
-    const alive = await new Promise((resolve) => {
-        try {
-            const tx = db.transaction('project', 'readonly');
-            const req = tx.objectStore('project').get('main');
-            let done = false;
-            req.onsuccess = () => { done = true; };
-            tx.oncomplete = () => resolve(done);
-            tx.onerror = () => resolve(false);
-            tx.onabort = () => resolve(false);
-        } catch (e) { resolve(false); }
-    });
-    if (!alive) { try { db.close(); } catch(_){} db = null; await initDB(); }
+    try { void db.objectStoreNames.length; const tx = db.transaction('project', 'readonly'); tx.abort(); }
+    catch (e) { try { db.close(); } catch(_){} db = null; await initDB(); }
     return db;
 }
 
@@ -894,8 +856,8 @@ async function saveToIndexedDB() {
         const tx1 = db.transaction('project', 'readwrite');
         tx1.objectStore('project').put({
             id: 'main',
-            scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru, isTitle: s.isTitle })),
-            imageCounter, choiceCounter, seCounter, bgmCounter, overlayCounter, charCounter, projectWidth, projectHeight, projectTitle, projectSaveSlots, chapters
+            scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru })),
+            imageCounter, choiceCounter, seCounter, bgmCounter, overlayCounter, charCounter, projectWidth, projectHeight
         });
         await new Promise((res, rej) => { tx1.oncomplete = res; tx1.onerror = () => rej(tx1.error); });
         for (const [filename, data] of Object.entries(imageBlobs)) {
@@ -908,37 +870,23 @@ async function saveToIndexedDB() {
         for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'overlay' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Overlay save error for ${filename}:`, e); } } }
         for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) { try { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').put({ id: filename, blob: data.blob, type: 'char' }); await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn(`Char save error for ${filename}:`, e); } } }
     } catch (e) {
-        // IndexedDB接続切れ系のエラーは、接続を作り直して1回だけ再試行
-        const msg = (e && (e.message || e.name)) || '';
-        const isConnErr = /not\s*be\s*found|NotFoundError|InvalidStateError|closing|closed|transaction|database|connection|AbortError|UnknownError/i.test(msg) || !db;
-        if (!saveToIndexedDB._retried && isConnErr) {
+        if (!saveToIndexedDB._retried && /not be found|InvalidStateError|closing|transaction/i.test(e.message || '')) {
             saveToIndexedDB._retried = true;
             try { if (db) db.close(); } catch(_){}
             db = null;
-            try {
-                await initDB();
-                await saveToIndexedDB();
-                saveToIndexedDB._retried = false;
-                return;
-            } catch (e2) {
-                saveToIndexedDB._retried = false;
-                console.error('Auto save retry failed:', e2);
-                alert('保存エラー: ' + (e2.message || e2.name || e2) + '\n（アプリを再起動すると直ることがあります）');
-                return;
-            }
+            try { await initDB(); await saveToIndexedDB(); saveToIndexedDB._retried = false; return; } catch (e2) { saveToIndexedDB._retried = false; }
         }
-        saveToIndexedDB._retried = false;
-        console.error('Auto save error:', e); alert('保存エラー: ' + msg);
+        console.error('Auto save error:', e); alert('保存エラー: ' + e.message);
     }
 }
 
-async function saveToHistory() { await ensureDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru, isTitle: s.isTitle })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
+async function saveToHistory() { await ensureDB(); if (scenes.length === 0) return; try { const historyImages = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.file || data.blob) historyImages[filename] = data.file || data.blob; } const tx = db.transaction('history', 'readwrite'); const store = tx.objectStore('history'); store.add({ timestamp: Date.now(), scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru })), images: historyImages, imageCounter, choiceCounter }); const getAllReq = store.getAll(); getAllReq.onsuccess = () => { const entries = getAllReq.result; if (entries.length > MAX_HISTORY) { entries.sort((a, b) => a.timestamp - b.timestamp); entries.slice(0, entries.length - MAX_HISTORY).forEach(e => store.delete(e.id)); } }; await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.warn('History save error:', e); } }
 
 async function getHistoryList() { await ensureDB(); try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').getAll(); return new Promise((res, rej) => { req.onsuccess = () => { const entries = req.result.sort((a, b) => b.timestamp - a.timestamp); res(entries.map(e => ({ id: e.id, timestamp: e.timestamp, sceneCount: e.scenes.length, date: new Date(e.timestamp).toLocaleString('ja-JP') }))); }; req.onerror = () => rej(req.error); }); } catch (e) { return []; } }
 
 async function restoreFromHistory(historyId) { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const tx = db.transaction('history', 'readonly'); const req = tx.objectStore('history').get(historyId); const entry = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); }); if (!entry) return false; imageCounter = entry.imageCounter || 0; choiceCounter = entry.choiceCounter || 0; imageBlobs = {}; for (const [filename, blob] of Object.entries(entry.images || {})) { const url = URL.createObjectURL(blob); imageBlobs[filename] = { url, blob }; } scenes = (entry.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); resetEditor(); await saveToIndexedDB(); return true; } catch (e) { return false; } }
 
-async function loadFromIndexedDB() { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; projectTitle = projectData.projectTitle || ''; projectSaveSlots = projectData.projectSaveSlots || 20; chapters = projectData.chapters || chapters; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); { const ti = document.getElementById('gameTitleInput'); if (ti) ti.value = projectTitle; const si = document.getElementById('saveSlotsInput'); if (si) si.value = projectSaveSlots; refreshGameIdPreview(); } } catch (e) { console.warn('Auto load error:', e); } }
+async function loadFromIndexedDB() { await ensureDB(); $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; try { const storeNames = db.objectStoreNames; const hasAudioStore = storeNames.contains('audio'); const tx = db.transaction(['project', 'images', ...(hasAudioStore ? ['audio'] : [])], 'readonly'); const projectReq = tx.objectStore('project').get('main'); const projectData = await new Promise((res, rej) => { projectReq.onsuccess = () => res(projectReq.result); projectReq.onerror = () => rej(projectReq.error); }); if (!projectData) return; imageCounter = projectData.imageCounter || 0; choiceCounter = projectData.choiceCounter || 0; seCounter = projectData.seCounter || 0; bgmCounter = projectData.bgmCounter || 0; overlayCounter = projectData.overlayCounter || 0; charCounter = projectData.charCounter || 0; if (projectData.projectWidth && projectData.projectHeight) applyProjectResolution(projectData.projectWidth, projectData.projectHeight); const imgReq = tx.objectStore('images').getAll(); const images = await new Promise((res, rej) => { imgReq.onsuccess = () => res(imgReq.result); imgReq.onerror = () => rej(imgReq.error); }); imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; for (const img of images) { const url = URL.createObjectURL(img.blob); if (img.type === 'char' || img.id.startsWith('ch')) { charBlobs[img.id] = { url, blob: img.blob }; } else if (img.type === 'overlay' || img.id.startsWith('ov')) { overlayBlobs[img.id] = { url, blob: img.blob }; } else { const hash = img.hash || await hashBlob(img.blob); imageBlobs[img.id] = { url, blob: img.blob, hash }; imageHashes[hash] = img.id; } } if (hasAudioStore) { const audioReq = tx.objectStore('audio').getAll(); const audioFiles = await new Promise((res, rej) => { audioReq.onsuccess = () => res(audioReq.result); audioReq.onerror = () => rej(audioReq.error); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); for (const af of audioFiles) { const url = URL.createObjectURL(af.blob); const audio = new Audio(url); if (af.type === 'bgm') { audio.loop = true; bgmAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } else { seAudios[af.id] = { audio, url, blob: af.blob, filename: af.filename }; } } renderSeList(); renderBgmList(); } scenes = (projectData.scenes || []).map(s => ({ ...s, bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); renderScenes(); renderOverlayList(); renderCharList(); } catch (e) { console.warn('Auto load error:', e); } }
 
 let isSaving = false, pendingSave = false;
 async function autoSave() { if (isSaving) { pendingSave = true; return; } isSaving = true; try { await saveToIndexedDB(); } catch (e) { console.error('Auto save failed:', e); } finally { isSaving = false; } if (pendingSave) { pendingSave = false; setTimeout(autoSave, 100); } }
@@ -951,21 +899,7 @@ let scenes = [], imageBlobs = {}, overlayBlobs = {}, charBlobs = {}, editingId =
 let charSlots = { left: null, center: null, right: null };
 let projectWidth = 832, projectHeight = 1216, resolutionLocked = false;
 let projectSaveSlots = 20;
-let projectTitle = '';
-// 作品ID生成（プレイヤー側 makeGameId と同一ロジック）
-function editorMakeGameId(title) {
-  const str = String(title || 'untitled');
-  let h = 5381; for (let i = 0; i < str.length; i++) { h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; }
-  let h2 = 52711; for (let i = str.length - 1; i >= 0; i--) { h2 = ((h2 << 5) + h2 + str.charCodeAt(i)) >>> 0; }
-  return 't_' + h.toString(36) + h2.toString(36);
-}
-function refreshGameIdPreview() {
-  const t = projectTitle || (scenes.find(s => s.isTitle)?.name) || (scenes[0]?.name) || 'ホシノユメ作品';
-  const el = document.getElementById('gameIdPreview'); if (el) el.textContent = 'ID: ' + editorMakeGameId(t);
-}
 let flags = {}, lastChoiceId = null;
-let previewCallStack = []; // プレビューでの CALL/RETURN 戻り先
-let previewGflags = {}; // プレビュー用の擬似永続フラグ（GSETFLAG等をその場で反映）
 const seAudios = {}, bgmAudios = {}, ambientTimers = {};
 let currentBgm = null, loopingSe = {}, bgmStopAtScene = null;
 
@@ -1023,8 +957,6 @@ const $ = id => document.getElementById(id);
 const editorCanvas = $('editorCanvas'), editorBg = $('editorBg'), editorFlash = $('editorFlash');
 const editorName = $('editorName'), editorText = $('editorText');
 const nameInput = $('nameInput'), textInput = $('textInput'), cmdInput = $('cmdInput'), labelInput = $('labelInput');
-const isTitleCheck = $('isTitleCheck');
-isTitleCheck.onchange = () => { $('titleHint').classList.toggle('hidden', !isTitleCheck.checked); };
 const imgBtn = $('imgBtn'), imgInput = $('imgInput'), saveBtn = $('saveBtn'), cancelBtn = $('cancelBtn');
 const isChoiceCheck = $('isChoiceCheck'), choiceEditor = $('choiceEditor'), choiceOptions = $('choiceOptions');
 const modeADVBtn = $('modeADV'), modeNVLBtn = $('modeNVL');
@@ -1086,8 +1018,6 @@ function renderChapters() { const list = $('chapterList'); list.innerHTML = ''; 
 $('addChapterBtn').onclick = () => { chapters.push({ sceneIndex: -1, comment: '' }); renderChapters(); saveWithHistory(); };
 const _slotsInput = document.getElementById('saveSlotsInput');
 if (_slotsInput) { _slotsInput.value = projectSaveSlots; _slotsInput.oninput = () => { projectSaveSlots = Math.max(1, Math.min(200, parseInt(_slotsInput.value) || 20)); saveWithHistory(); }; }
-const _titleInput = document.getElementById('gameTitleInput');
-if (_titleInput) { _titleInput.value = projectTitle; refreshGameIdPreview(); _titleInput.oninput = () => { projectTitle = _titleInput.value; refreshGameIdPreview(); saveWithHistory(); }; }
 $('removeChapterBtn').onclick = () => { if (chapters.length > 0) { chapters.pop(); renderChapters(); saveWithHistory(); } };
 
 nameInput.oninput = () => { editorName.textContent = nameInput.value; editorName.style.display = nameInput.value ? 'block' : 'none'; };
@@ -1109,8 +1039,8 @@ isChoiceCheck.onchange = () => { choiceEditor.classList.toggle('hidden', !isChoi
 $('isTimedCheck').onchange = () => { $('timedOptions').classList.toggle('hidden', !$('isTimedCheck').checked); updateTimeoutGotoOptions(); };
 function updateTimeoutGotoOptions() { const select = $('timeoutGoto'); const current = select.value; select.innerHTML = '<option value="">→ 次へ</option>' + scenes.map(s => `<option value="${s.label || s.id}">${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join(''); select.value = current; }
 $('addChoiceBtn').onclick = addChoice;
-function addChoice() { choiceCounter++; currentChoices.push({ id: 'A-' + choiceCounter, text: '', goto: '', timerDelta: 0, showFlag: '', hideFlag: '' }); renderChoices(); }
-function renderChoices() { choiceOptions.innerHTML = ''; const isTimed = $('isTimedCheck').checked; currentChoices.forEach((c, i) => { const div = document.createElement('div'); div.className = 'choice-option'; const labelOpts = scenes.map(s => `<option value="${s.label || s.id}" ${c.goto === (s.label || String(s.id)) ? 'selected' : ''}>${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join(''); const callOpts = scenes.filter(s => s.label).map(s => `<option value="CALL:${s.label}" ${c.goto === ('CALL:' + s.label) ? 'selected' : ''}>▶回想: ${s.label}</option>`).join(''); div.innerHTML = `<span class="choice-option-id">${c.id}</span><input type="text" placeholder="選択肢テキスト" value="${c.text}" data-idx="${i}" data-field="text"><select data-idx="${i}" data-field="goto"><option value="">→ 次へ</option>${labelOpts}${callOpts ? `<optgroup label="回想（再生して戻る）">${callOpts}</optgroup>` : ''}</select>${isTimed ? `<input type="number" placeholder="±秒" value="${c.timerDelta || 0}" data-idx="${i}" data-field="timerDelta" style="width:50px;font-size:11px" title="タイマー増減(正で増加)">` : ''}<input type="text" placeholder="表示条件Gフラグ(空=常時)" value="${c.showFlag || ''}" data-idx="${i}" data-field="showFlag" style="font-size:10.5px;flex:1;min-width:0" title="このGフラグが立ってる時だけ表示（回想の解禁に使う）"><button class="btn remove-choice-btn" data-idx="${i}">×</button>`; choiceOptions.appendChild(div); }); choiceOptions.querySelectorAll('input, select').forEach(el => { el.onchange = el.oninput = () => { const idx = +el.dataset.idx; currentChoices[idx][el.dataset.field] = el.dataset.field === 'timerDelta' ? +el.value : el.value; }; }); choiceOptions.querySelectorAll('.remove-choice-btn').forEach(btn => { btn.onclick = () => { currentChoices.splice(+btn.dataset.idx, 1); renderChoices(); }; }); updateTimeoutGotoOptions(); }
+function addChoice() { choiceCounter++; currentChoices.push({ id: 'A-' + choiceCounter, text: '', goto: '', timerDelta: 0 }); renderChoices(); }
+function renderChoices() { choiceOptions.innerHTML = ''; const isTimed = $('isTimedCheck').checked; currentChoices.forEach((c, i) => { const div = document.createElement('div'); div.className = 'choice-option'; div.innerHTML = `<span class="choice-option-id">${c.id}</span><input type="text" placeholder="選択肢テキスト" value="${c.text}" data-idx="${i}" data-field="text"><select data-idx="${i}" data-field="goto"><option value="">→ 次へ</option>${scenes.map(s => `<option value="${s.label || s.id}" ${c.goto === (s.label || String(s.id)) ? 'selected' : ''}>${s.label || '#' + (scenes.indexOf(s) + 1)}</option>`).join('')}</select>${isTimed ? `<input type="number" placeholder="±秒" value="${c.timerDelta || 0}" data-idx="${i}" data-field="timerDelta" style="width:50px;font-size:11px" title="タイマー増減(正で増加)">` : ''}<button class="btn remove-choice-btn" data-idx="${i}">×</button>`; choiceOptions.appendChild(div); }); choiceOptions.querySelectorAll('input, select').forEach(el => { el.onchange = el.oninput = () => { const idx = +el.dataset.idx; currentChoices[idx][el.dataset.field] = el.dataset.field === 'timerDelta' ? +el.value : el.value; }; }); choiceOptions.querySelectorAll('.remove-choice-btn').forEach(btn => { btn.onclick = () => { currentChoices.splice(+btn.dataset.idx, 1); renderChoices(); }; }); updateTimeoutGotoOptions(); }
 
 let seCounter = 0;
 function renderSeList() { const list = $('seList'); list.innerHTML = ''; Object.entries(seAudios).forEach(([name, data]) => { const row = document.createElement('div'); row.className = 'audio-row'; row.innerHTML = `<span class="audio-label">${name}</span><button class="audio-file loaded" style="flex:1">${data.filename || name}</button><button class="audio-play se-play-btn">▶</button><button class="audio-play" style="background:#e94560">×</button>`; const btns = row.querySelectorAll('button'); btns[0].onclick = () => { cmdInput.value = cmdInput.value ? cmdInput.value + '\nSE:' + name : 'SE:' + name; }; btns[1].onclick = () => { if (!data.audio.paused) { data.audio.pause(); data.audio.currentTime = 0; btns[1].textContent = '▶'; btns[1].style.background = ''; } else { data.audio.currentTime = 0; data.audio.play().catch(()=>{}); btns[1].textContent = '■'; btns[1].style.background = '#e9a020'; data.audio.onended = () => { btns[1].textContent = '▶'; btns[1].style.background = ''; }; } }; btns[2].onclick = () => { if (confirm(`${name} を削除しますか？`)) { data.audio.pause(); URL.revokeObjectURL(data.url); delete seAudios[name]; renderSeList(); } }; list.appendChild(row); }); refreshSoundBuilders(); }
@@ -1313,56 +1243,7 @@ function buildOverlay() {
     $('ovTarget').closest('.cb-row').style.display = motion === 'clear' ? 'none' : 'flex';
 }
 ['ovTarget','ovMotion','ovSpeed','ovEase'].forEach(id => $(id).addEventListener('change', buildOverlay));
-
-// --- オーバーレイ ドラッグ位置決め ---
-let ovDragPos = null;  // {x,y} %座標。nullなら中央(center)
-function buildOverlayWithPos() {
-    // fade/focus/zoom はドラッグ座標を反映（座標を受け付けるアニメ）
-    const target = $('ovTarget').value, motion = $('ovMotion').value;
-    if (ovDragPos && (motion === 'fade' || motion === 'focus' || motion === 'zoom') && target) {
-        const cmd = `OVERLAY:${target}:${motion}:(${ovDragPos.x},${ovDragPos.y})`;
-        $('ovPreview').textContent = cmd;
-        return cmd;
-    }
-    buildOverlay();
-    return $('ovPreview').textContent;
-}
-(function setupOvDrag(){
-    const btn = $('ovDragPlace'); if (!btn) return;
-    const layer = $('ovDragLayer'), img = $('ovDragImg'), canvas = $('editorCanvas');
-    let dragging = false;
-    btn.onclick = () => {
-        const target = $('ovTarget').value;
-        if (!target || !overlayBlobs[target]) { $('ovPreview').textContent = '※先に画像を登録・選択してください'; return; }
-        // 動きがfade系でなければfadeに寄せる（座標配置できるアニメ）
-        const motion = $('ovMotion').value;
-        if (!['fade','focus','zoom'].includes(motion)) { $('ovMotion').value = 'fade'; buildOverlay(); }
-        img.src = overlayBlobs[target].url;
-        // 現在位置（あれば復元、なければ中央）
-        const px = ovDragPos ? ovDragPos.x : 50, py = ovDragPos ? ovDragPos.y : 50;
-        img.style.left = px + '%'; img.style.top = py + '%';
-        layer.style.display = 'block';
-    };
-    function moveTo(clientX, clientY) {
-        const r = canvas.getBoundingClientRect();
-        let x = ((clientX - r.left) / r.width) * 100;
-        let y = ((clientY - r.top) / r.height) * 100;
-        x = Math.max(0, Math.min(100, x)); y = Math.max(0, Math.min(100, y));
-        img.style.left = x + '%'; img.style.top = y + '%';
-        ovDragPos = { x: Math.round(x), y: Math.round(y) };
-    }
-    layer.addEventListener('pointerdown', e => { dragging = true; moveTo(e.clientX, e.clientY); });
-    layer.addEventListener('pointermove', e => { if (dragging) moveTo(e.clientX, e.clientY); });
-    window.addEventListener('pointerup', () => {
-        if (dragging) {
-            dragging = false;
-            layer.style.display = 'none';
-            buildOverlayWithPos();  // 確定位置をコマンドに反映
-            $('ovPreview').textContent += '  📍配置OK';
-        }
-    });
-})();
-$('ovAdd').onclick = () => { const c = buildOverlayWithPos(); if (c && !c.startsWith('画像を') && !c.startsWith('※')) { cbInsert(c.replace('  📍配置OK','')); cbFlash($('ovAdd')); } };
+$('ovAdd').onclick = () => { buildOverlay(); const c = $('ovPreview').textContent; if (c && !c.startsWith('画像を')) { cbInsert(c); cbFlash($('ovAdd')); } };
 
 buildFlag(); buildCounter(); if (typeof buildOnoma === 'function') buildOnoma(); if (typeof renderOnomaChips === 'function') renderOnomaChips();
 $('overlayInput').onchange = async e => { for (const file of e.target.files) { overlayCounter++; const ext = file.name.split('.').pop(); overlayBlobs[`ov${String(overlayCounter).padStart(3, '0')}.${ext}`] = { url: URL.createObjectURL(file), blob: file }; } renderOverlayList(); e.target.value = ''; };
@@ -1423,17 +1304,7 @@ if (!isPreview) return null;
 m = cmd.match(/^SETFLAG:(.+)$/); if (m) { flags[m[1]] = true; return null; }
 m = cmd.match(/^IFFLAG:(.+):SKIP$/); if (m) { if (flags[m[1]]) return 'SKIP'; return null; }
 m = cmd.match(/^IFFLAG:(.+):GOTO:(.+)$/); if (m) { if (flags[m[1]]) return { goto: m[2] }; return null; }
-m = cmd.match(/^NOTFLAG:(.+):SKIP$/); if (m) { if (!flags[m[1]]) return 'SKIP'; return null; }
 m = cmd.match(/^NOTFLAG:(.+):GOTO:(.+)$/); if (m) { if (!flags[m[1]]) return { goto: m[2] }; return null; }
-m = cmd.match(/^START:GOTO:(.+)$/i); if (m) { return null; }
-m = cmd.match(/^GSETFLAG:(.+)$/); if (m) { previewGflags[m[1]] = true; return null; }
-m = cmd.match(/^GCLEARFLAG:(.+)$/); if (m) { delete previewGflags[m[1]]; return null; }
-m = cmd.match(/^GIFFLAG:(.+):SKIP$/); if (m) { if (previewGflags[m[1]]) return 'SKIP'; return null; }
-m = cmd.match(/^GIFFLAG:(.+):GOTO:(.+)$/); if (m) { if (previewGflags[m[1]]) return { goto: m[2] }; return null; }
-m = cmd.match(/^GNOTFLAG:(.+):SKIP$/); if (m) { if (!previewGflags[m[1]]) return 'SKIP'; return null; }
-m = cmd.match(/^GNOTFLAG:(.+):GOTO:(.+)$/); if (m) { if (!previewGflags[m[1]]) return { goto: m[2] }; return null; }
-m = cmd.match(/^CALL:GOTO:(.+)$/); if (m) { return { call: m[1] }; }
-if (cmd === 'RETURN') { return { ret: true }; }
 m = cmd.match(/^FROM:(.+):SKIP$/); if (m) { if (lastChoiceId === m[1]) return 'SKIP'; return null; }
 m = cmd.match(/^FROM:(.+):GOTO:(.+)$/); if (m) { if (lastChoiceId === m[1]) return { goto: m[2] }; return null; }
 return null; }
@@ -1590,7 +1461,7 @@ async function runCharCmd(cmd, charLayer) {
 
 function splitCmdLine(line){const parts=[];let cur='',depth=0;for(let i=0;i<line.length;i++){const c=line[i];if(c==='(')depth++;else if(c===')')depth--;if(c===','&&depth===0){if(line[i+1]==='('){cur+=c}else{const t=cur.trim();if(t)parts.push(t);cur=''}}else{cur+=c}}const t=cur.trim();if(t)parts.push(t);return parts}
 
-async function runCmdSequence(str, flashEl, shakeEl, isPreview = false, overlayContainer = null) { if (!str) return null; const lines = str.split('\n').map(l => l.trim()).filter(l => l); for (const line of lines) { const parts = splitCmdLine(line); for (let i = 0; i < parts.length; i++) { const group = [parts[i]]; while (i + 1 < parts.length && parts[i + 1].startsWith('@')) group.push(parts[++i]); const results = await Promise.all(group.map(c => overlayContainer ? runCmdWithOverlay(c, flashEl, shakeEl, overlayContainer, isPreview) : runCmd(c, flashEl, shakeEl, isPreview))); for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && (r.goto || r.call || r.ret)) return r; } } } return null; }
+async function runCmdSequence(str, flashEl, shakeEl, isPreview = false, overlayContainer = null) { if (!str) return null; const lines = str.split('\n').map(l => l.trim()).filter(l => l); for (const line of lines) { const parts = splitCmdLine(line); for (let i = 0; i < parts.length; i++) { const group = [parts[i]]; while (i + 1 < parts.length && parts[i + 1].startsWith('@')) group.push(parts[++i]); const results = await Promise.all(group.map(c => overlayContainer ? runCmdWithOverlay(c, flashEl, shakeEl, overlayContainer, isPreview) : runCmd(c, flashEl, shakeEl, isPreview))); for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && r.goto) return r; } } } return null; }
 
 document.addEventListener('click', e => { if (e.target.classList.contains('cmd-copy')) { const cmd = e.target.dataset.cmd; cmdInput.value = cmdInput.value ? cmdInput.value + '\n' + cmd : cmd; e.target.textContent = '✓'; setTimeout(() => e.target.textContent = '📋', 800); } });
 // FX演出ボタン: タップでcmdInputにコマンド追加（一発系）
@@ -1749,7 +1620,7 @@ cmdInput.addEventListener('input', function() { renderSoundChips(); const v = th
 
 saveBtn.onclick = () => {
     if (typeof window.puruPaintOff === 'function') window.puruPaintOff();
-    const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value, isTitle: isTitleCheck.checked, puru: (editingId ? (scenes.find(s=>s.id===editingId)?.puru) : undefined) };
+    const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value, puru: (editingId ? (scenes.find(s=>s.id===editingId)?.puru) : undefined) };
     if (editingId) {
         const scene = { ...baseProps, id: editingId, uuid: scenes.find(s => s.id === editingId)?.uuid || crypto.randomUUID(), text: textInput.value, label: labelInput.value };
         const idx = scenes.findIndex(s => s.id === editingId); if (idx >= 0) scenes[idx] = scene;
@@ -1774,7 +1645,7 @@ function commitCurrentEdit() {
     if (!editingId) return;
     const idx = scenes.findIndex(s => s.id === editingId);
     if (idx < 0) return;
-    scenes[idx] = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value, isTitle: isTitleCheck.checked, id: editingId, uuid: scenes[idx].uuid || crypto.randomUUID(), text: textInput.value, label: labelInput.value };
+    scenes[idx] = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? [...currentChoices] : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value, id: editingId, uuid: scenes[idx].uuid || crypto.randomUUID(), text: textInput.value, label: labelInput.value };
     renderScenes(); saveWithHistory();
 }
 // 前後シーンへ移動（移動前に自動保存）
@@ -1803,35 +1674,20 @@ function updateSceneNav() {
 }
 // 複製：今のエディタ内容を新規シーンとして末尾に追加（エディタはそのまま）
 $('dupBtn').onclick = () => {
-    const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? currentChoices.map(c => ({ ...c, id: 'choice_' + (++choiceCounter) })) : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value, isTitle: isTitleCheck.checked, puru: (editingId ? (scenes.find(s=>s.id===editingId)?.puru) : undefined) };
+    const baseProps = { name: nameInput.value, cmd: cmdInput.value, bg: currentBgFile, bgUrl: currentBgUrl, textMode: currentTextMode, transition: $('transitionSelect').value, isChoice: isChoiceCheck.checked, choices: isChoiceCheck.checked ? currentChoices.map(c => ({ ...c, id: 'choice_' + (++choiceCounter) })) : [], isTimed: $('isTimedCheck').checked, timedSeconds: +$('timedSeconds').value || 10, showTimer: $('showTimerCheck').checked, forceProgress: $('forceProgressCheck').checked, timeoutGoto: $('timeoutGoto').value, puru: (editingId ? (scenes.find(s=>s.id===editingId)?.puru) : undefined) };
     scenes.push({ ...baseProps, id: Date.now(), uuid: crypto.randomUUID(), text: textInput.value, label: '' });
     renderScenes(); saveWithHistory();
     const b = $('dupBtn'); b.textContent = '✓ 複製しました'; setTimeout(() => b.textContent = '⧉ これを新規シーンとして登録', 1000);
 };
 
-function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; isTitleCheck.checked = false; $('titleHint').classList.add('hidden'); $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); $('dupBtn').classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); if (typeof renderOnomaChips === 'function') { onomaEditLine = -1; const oa = $('onAdd'); if (oa) oa.textContent = '＋ 追加'; renderOnomaChips(); } if (typeof updateSceneNav === 'function') updateSceneNav(); }
+function resetEditor() { editingId = null; nameInput.value = ''; textInput.value = ''; cmdInput.value = ''; labelInput.value = ''; currentBgFile = null; currentBgUrl = null; editorName.textContent = ''; editorText.textContent = ''; editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); isChoiceCheck.checked = false; choiceEditor.classList.add('hidden'); currentChoices = []; choiceOptions.innerHTML = ''; $('isTimedCheck').checked = false; $('timedOptions').classList.add('hidden'); $('timedSeconds').value = 10; $('showTimerCheck').checked = true; $('forceProgressCheck').checked = true; $('timeoutGoto').value = ''; setTextMode('adv'); $('transitionSelect').value = 'none'; $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); $('dupBtn').classList.add('hidden'); seEditLine = -1; bgmEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); if (typeof renderOnomaChips === 'function') { onomaEditLine = -1; const oa = $('onAdd'); if (oa) oa.textContent = '＋ 追加'; renderOnomaChips(); } if (typeof updateSceneNav === 'function') updateSceneNav(); }
 
-function loadToEditor(scene) { if (typeof window.puruPaintOff === 'function') window.puruPaintOff(); $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; isTitleCheck.checked = scene.isTitle || false; $('titleHint').classList.toggle('hidden', !scene.isTitle); currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); $('dupBtn').classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; onomaEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); if (typeof renderOnomaChips === 'function') renderOnomaChips(); updateSceneNav(); document.querySelector('[data-tab="editor"]').click(); }
+function loadToEditor(scene) { if (typeof window.puruPaintOff === 'function') window.puruPaintOff(); $('editorOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; $('editorCharLayer').querySelectorAll('.char-slot img').forEach(img => img.remove()); editingId = scene.id; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = scene.label || ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg || '読込済'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? [...scene.choices] : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '✓ シーンを更新'; saveBtn.classList.add('btn-update'); saveBtn.classList.remove('btn-save'); cancelBtn.classList.remove('hidden'); $('dupBtn').classList.remove('hidden'); seEditLine = -1; bgmEditLine = -1; onomaEditLine = -1; if (typeof renderSoundChips === 'function') renderSoundChips(); if (typeof renderOnomaChips === 'function') renderOnomaChips(); updateSceneNav(); document.querySelector('[data-tab="editor"]').click(); }
 
-function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; isTitleCheck.checked = scene.isTitle || false; $('titleHint').classList.toggle('hidden', !scene.isTitle); currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
+function copySceneToEditor(scene) { editingId = null; nameInput.value = scene.name || ''; textInput.value = scene.text || ''; cmdInput.value = scene.cmd || ''; labelInput.value = ''; currentBgFile = scene.bg || null; currentBgUrl = scene.bgUrl || null; editorName.textContent = scene.name || ''; editorName.style.display = scene.name ? 'block' : 'none'; editorText.textContent = scene.text || ''; if (scene.bgUrl) { editorBg.innerHTML = `<img src="${scene.bgUrl}">`; imgBtn.textContent = scene.bg + ' (コピー)'; imgBtn.classList.add('loaded'); } else { editorBg.innerHTML = ''; imgBtn.textContent = '画像を選択'; imgBtn.classList.remove('loaded'); } setTextMode(scene.textMode || 'adv'); $('transitionSelect').value = scene.transition || 'none'; isChoiceCheck.checked = scene.isChoice || false; currentChoices = scene.choices ? scene.choices.map(c => ({...c, id: 'choice_' + (++choiceCounter)})) : []; choiceEditor.classList.toggle('hidden', !scene.isChoice); $('isTimedCheck').checked = scene.isTimed || false; $('timedOptions').classList.toggle('hidden', !scene.isTimed); $('timedSeconds').value = scene.timedSeconds || 10; $('showTimerCheck').checked = scene.showTimer !== false; $('forceProgressCheck').checked = scene.forceProgress !== false; $('timeoutGoto').value = scene.timeoutGoto || ''; renderChoices(); saveBtn.textContent = '＋ 新規シーン追加'; saveBtn.classList.remove('btn-update'); saveBtn.classList.add('btn-save'); cancelBtn.classList.add('hidden'); document.querySelector('[data-tab="editor"]').click(); }
 
-// 失効したBlob URLでサムネ読込に失敗したら、blobから作り直して再セット
-function thumbReload(img) {
-    try {
-        const bg = img.getAttribute('data-bg');
-        if (!bg || !imageBlobs[bg] || !imageBlobs[bg].blob) return;
-        // 無限ループ防止（1回だけ）
-        if (img.dataset.reloaded) return;
-        img.dataset.reloaded = '1';
-        const newUrl = URL.createObjectURL(imageBlobs[bg].blob);
-        imageBlobs[bg].url = newUrl;
-        const sc = scenes.find(s => s.bg === bg);
-        if (sc) sc.bgUrl = newUrl;
-        img.src = newUrl;
-    } catch(e) {}
-}
 function renderScenes() { sceneCount.textContent = scenes.length + ' シーン'; emptyMsg.classList.toggle('hidden', scenes.length > 0); sceneGrid.innerHTML = ''; scenes.forEach(s => { if (s.bg && imageBlobs[s.bg]) { if (imageBlobs[s.bg].blob && (!s.bgUrl || !imageBlobs[s.bg].url)) { try { const newUrl = URL.createObjectURL(imageBlobs[s.bg].blob); imageBlobs[s.bg].url = newUrl; s.bgUrl = newUrl; } catch(e) {} } else if (imageBlobs[s.bg].url) s.bgUrl = imageBlobs[s.bg].url; } });
-scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; const isFirst = i === 0, isLast = i === scenes.length - 1; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}" data-bg="${s.bg||''}" onerror="thumbReload(this)">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}<div class="scene-actions"><button class="scene-btn scene-edit" title="編集">✎</button><button class="scene-btn scene-del" title="削除">✕</button><button class="scene-btn scene-more" title="その他">⋯</button></div></div><div class="scene-menu"><button class="m-up" ${isFirst ? 'disabled' : ''}>⬆ 上へ移動</button><button class="m-down" ${isLast ? 'disabled' : ''}>⬇ 下へ移動</button><button class="m-play">▶ ここから再生</button><button class="m-copy">📋 コピー</button><button class="m-png">📷 PNG出力</button></div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span>`;
+scenes.forEach((s, i) => { const card = document.createElement('div'); card.className = 'scene-card' + (s.isChoice ? ' is-choice' : ''); card.draggable = true; card.dataset.idx = i; const isFirst = i === 0, isLast = i === scenes.length - 1; card.innerHTML = `<div class="scene-thumb">${s.bgUrl ? `<img src="${s.bgUrl}">` : ''}${s.isChoice ? '<span class="scene-choice-badge">選択肢</span>' : ''}<div class="scene-actions"><button class="scene-btn scene-edit" title="編集">✎</button><button class="scene-btn scene-del" title="削除">✕</button><button class="scene-btn scene-more" title="その他">⋯</button></div></div><div class="scene-menu"><button class="m-up" ${isFirst ? 'disabled' : ''}>⬆ 上へ移動</button><button class="m-down" ${isLast ? 'disabled' : ''}>⬇ 下へ移動</button><button class="m-play">▶ ここから再生</button><button class="m-copy">📋 コピー</button><button class="m-png">📷 PNG出力</button></div><div class="scene-info"><div class="scene-name">${s.name || '(名前なし)'}</div><div class="scene-text">${s.text || ''}</div>${s.label ? `<div class="scene-label">🏷 ${s.label}</div>` : ''}</div><span class="scene-num">#${i + 1}</span>`;
 card.ondragstart = e => { e.dataTransfer.setData('idx', i); card.classList.add('dragging'); }; card.ondragend = () => card.classList.remove('dragging'); card.ondragover = e => { e.preventDefault(); card.classList.add('drag-over'); }; card.ondragleave = () => card.classList.remove('drag-over'); card.ondrop = e => { e.preventDefault(); card.classList.remove('drag-over'); const from = +e.dataTransfer.getData('idx'); if (from !== i) { const [moved] = scenes.splice(from, 1); scenes.splice(i, 0, moved); renderScenes(); saveWithHistory(); } };
 const menu = card.querySelector('.scene-menu');
 card.querySelector('.scene-edit').onclick = e => { e.stopPropagation(); loadToEditor(s); };
@@ -1847,10 +1703,10 @@ sceneGrid.appendChild(card); });
 const addCard = document.createElement('div'); addCard.className = 'scene-add-card'; addCard.innerHTML = `<span class="add-plus">＋</span><span class="add-label">新規シーン</span>`; addCard.onclick = () => { resetEditor(); document.querySelector('[data-tab="editor"]').click(); nameInput.focus(); }; sceneGrid.appendChild(addCard); if (typeof refreshSoundBuilders === 'function') refreshSoundBuilders(); }
 
 editModeBtn.onclick = () => { editModeBtn.classList.add('active'); previewModeBtn.classList.remove('active'); sceneGrid.classList.remove('hidden'); previewView.classList.remove('active'); emptyMsg.classList.toggle('hidden', scenes.length > 0); };
-previewModeBtn.onclick = () => { stopAllSound(); previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; previewCallStack = []; previewGflags = {}; charSlots = { left: null, center: null, right: null }; previewIndex = 0; showPreview(); flashPreviewHint(); };
+previewModeBtn.onclick = () => { stopAllSound(); previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; previewIndex = 0; showPreview(); flashPreviewHint(); };
 
 function flashPreviewHint() { const h = $('previewHint'); if (!h) return; h.classList.add('show'); clearTimeout(flashPreviewHint._t); flashPreviewHint._t = setTimeout(() => h.classList.remove('show'), 2600); }
-function startPreviewFrom(idx) { stopAllSound(); previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; previewCallStack = []; previewGflags = {}; charSlots = { left: null, center: null, right: null }; previewIndex = idx; showPreview(); flashPreviewHint(); }
+function startPreviewFrom(idx) { stopAllSound(); previewModeBtn.classList.add('active'); editModeBtn.classList.remove('active'); sceneGrid.classList.add('hidden'); emptyMsg.classList.add('hidden'); previewView.classList.add('active'); flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; previewIndex = idx; showPreview(); flashPreviewHint(); }
 
 function findSceneByLabel(label) { const idx = scenes.findIndex(s => s.label === label || String(s.id) === label); return idx >= 0 ? idx : -1; }
 
@@ -1890,11 +1746,10 @@ function rebuildCharState(upToIndex, charLayer) {
     }
 }
 
-async function showPreview() { if (window.puruPreview) window.puruPreview.stopAll(); choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); if (bgmStopAtScene !== null && (previewIndex + 1) > bgmStopAtScene) stopBGM(); const s = scenes[previewIndex]; if (isFadeType(s.transition)) await coverIn(s.transition); const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { coverOut(); if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.call) { const j = findSceneByLabel(result.call); if (j >= 0) { previewCallStack.push(previewIndex + 1); previewIndex = j; showPreview(); } else coverOut(); return; } if (result && result.ret) { coverOut(); if (previewCallStack.length) { previewIndex = previewCallStack.pop(); } else if (previewIndex < scenes.length - 1) { previewIndex++; } previewIndex = Math.min(previewIndex, scenes.length - 1); showPreview(); return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } else { coverOut(); } return; } } catch (e) { coverOut(); } previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; { const keepCvs = previewBgEl.querySelectorAll('canvas[class^="pv-puru-"]'); previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; keepCvs.forEach(cv => previewBgEl.appendChild(cv)); } previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); if (isFadeType(s.transition)) coverOut(); else playSlide(s.transition); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
+async function showPreview() { if (window.puruPreview) window.puruPreview.stopAll(); choiceOverlay.classList.add('hidden'); $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; rebuildCharState(previewIndex, $('previewCharLayer')); if (!scenes.length) { previewInfo.textContent = '0 / 0'; previewBgEl.innerHTML = ''; previewName.textContent = ''; previewText.textContent = 'シーンがありません'; prevBtn.disabled = nextBtn.disabled = true; return; } previewIndex = Math.max(0, Math.min(previewIndex, scenes.length - 1)); if (bgmStopAtScene !== null && (previewIndex + 1) > bgmStopAtScene) stopBGM(); const s = scenes[previewIndex]; if (isFadeType(s.transition)) await coverIn(s.transition); const liveCmd = (editingId && s.id === editingId) ? cmdInput.value : s.cmd; try { const result = await runCmdSequence(liveCmd, previewFlash, previewCanvas, true, $('previewOverlayContainer')); if (result === 'SKIP') { coverOut(); if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } return; } if (result && result.goto) { const idx = findSceneByLabel(result.goto); if (idx >= 0) { previewIndex = idx; showPreview(); } else { coverOut(); } return; } } catch (e) { coverOut(); } previewInfo.textContent = `${previewIndex + 1} / ${scenes.length}`; { const keepCvs = previewBgEl.querySelectorAll('canvas[class^="pv-puru-"]'); previewBgEl.innerHTML = s.bgUrl ? `<img src="${s.bgUrl}">` : ''; keepCvs.forEach(cv => previewBgEl.appendChild(cv)); } previewName.textContent = s.name || ''; previewName.style.display = s.name ? 'block' : 'none'; previewText.textContent = s.text || ''; const previewTextDisplay = previewCanvas.querySelector('.text-display'); if (s.textMode === 'nvl') previewTextDisplay.classList.add('nvl-mode'); else previewTextDisplay.classList.remove('nvl-mode'); if (isFadeType(s.transition)) coverOut(); else playSlide(s.transition); if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices); }
 
-function showChoices(choices) { choiceOverlay.innerHTML = ''; const visible = choices.filter(c => previewChoiceVisible(c)); (visible.length ? visible : choices).forEach(c => { const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.textContent = c.text || c.id; btn.onclick = () => selectChoice(c); choiceOverlay.appendChild(btn); }); choiceOverlay.classList.remove('hidden'); }
-function previewChoiceVisible(c) { const g = k => flags[k] || previewGflags[k]; if (c.hideFlag && g(c.hideFlag)) return false; if (g('全開放') || g('ALLUNLOCK')) return true; if (c.showFlag && !g(c.showFlag)) return false; return true; }
-function selectChoice(choice) { lastChoiceId = choice.id; choiceOverlay.classList.add('hidden'); if (choice.goto) { const cm = String(choice.goto).match(/^CALL:(.+)$/i); if (cm) { const j = findSceneByLabel(cm[1]); if (j >= 0) { previewCallStack.push(previewIndex); previewIndex = j; showPreview(); return; } } const idx = findSceneByLabel(choice.goto); if (idx >= 0) { previewIndex = idx; showPreview(); return; } } if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } }
+function showChoices(choices) { choiceOverlay.innerHTML = ''; choices.forEach(c => { const btn = document.createElement('button'); btn.className = 'choice-btn'; btn.textContent = c.text || c.id; btn.onclick = () => selectChoice(c); choiceOverlay.appendChild(btn); }); choiceOverlay.classList.remove('hidden'); }
+function selectChoice(choice) { lastChoiceId = choice.id; choiceOverlay.classList.add('hidden'); if (choice.goto) { const idx = findSceneByLabel(choice.goto); if (idx >= 0) { previewIndex = idx; showPreview(); return; } } if (previewIndex < scenes.length - 1) { previewIndex++; showPreview(); } }
 
 // ===== シーン遷移トランジション（二段構え：先に覆う→中身差替→引く） =====
 function isFadeType(t) { return t === 'fade' || t === 'fadeBlack' || t === 'fadeWhite'; }
@@ -1969,30 +1824,6 @@ nextBtn.onclick = goNext;
 
 $('dedupeBtn').onclick = async () => { const hashMap = {}, fileHashes = {}; for (const [filename, data] of Object.entries(imageBlobs)) { if (data.blob || data.file) { const blob = data.blob || data.file; const hash = data.hash || await hashBlob(blob); fileHashes[filename] = hash; if (!hashMap[hash]) hashMap[hash] = []; hashMap[hash].push(filename); } } const duplicates = Object.entries(hashMap).filter(([h, files]) => files.length > 1); if (duplicates.length === 0) { alert('重複画像はありませんでした'); return; } let mergedCount = 0; for (const [hash, files] of duplicates) { files.sort((a, b) => (parseInt(a) || 999) - (parseInt(b) || 999)); const keepFile = files[0], removeFiles = files.slice(1); if (confirm(`重複画像を検出:\n保持: ${keepFile}\n削除: ${removeFiles.join(', ')}\n\n統合しますか？`)) { for (const scene of scenes) { if (removeFiles.includes(scene.bg)) { scene.bg = keepFile; scene.bgUrl = imageBlobs[keepFile]?.url || null; } } for (const rf of removeFiles) { if (imageBlobs[rf]?.url) URL.revokeObjectURL(imageBlobs[rf].url); delete imageBlobs[rf]; const h = fileHashes[rf]; if (h && imageHashes[h] === rf) imageHashes[h] = keepFile; } mergedCount += removeFiles.length; } } if (mergedCount > 0) { renderScenes(); await saveToIndexedDB(); alert(`${mergedCount}件の重複画像を統合しました`); } };
 
-$('insertKaisoBtn').onclick = () => {
-    if (!confirm('回想部屋＋サンプル回想を末尾に追加します。よろしいですか？')) return;
-    const mk = (o) => ({ id: Date.now() + Math.floor(Math.random()*100000), uuid: crypto.randomUUID(), name: '', text: '', cmd: '', bg: null, bgUrl: null, textMode: 'adv', transition: 'none', isChoice: false, choices: [], isTimed: false, timedSeconds: 10, showTimer: true, forceProgress: true, timeoutGoto: '', isTitle: false, label: '', ...o });
-    // 回想1（ラベル: 回想1 … 終端 RETURN で部屋に戻る）
-    const kaiso1 = mk({ name: '回想1', text: 'ここは回想1の中身。好きなだけシーンを続けて、最後のシーンのコマンド欄に RETURN と書けば部屋に戻る。', label: '回想1', cmd: 'RETURN' });
-    // 回想2
-    const kaiso2 = mk({ name: '回想2', text: 'これは回想2。GSETFLAG:回想2解禁 が立つまで部屋の選択肢に出てこない。', label: '回想2', cmd: 'RETURN' });
-    // 回想部屋（選択肢で各回想を CALL、showFlag で解禁済みだけ表示）
-    choiceCounter++; const c1 = 'A-' + choiceCounter;
-    choiceCounter++; const c2 = 'A-' + choiceCounter;
-    choiceCounter++; const c3 = 'A-' + choiceCounter;
-    choiceCounter++; const c4 = 'A-' + choiceCounter;
-    const room = mk({ name: '回想部屋', text: '見たい回想を選んでね', label: '回想部屋', isChoice: true, choices: [
-        { id: c1, text: '回想1を見る', goto: 'CALL:回想1', timerDelta: 0, showFlag: '回想1解禁', hideFlag: '' },
-        { id: c2, text: '回想2を見る', goto: 'CALL:回想2', timerDelta: 0, showFlag: '回想2解禁', hideFlag: '' },
-        { id: c4, text: '🔓 全開放（未見も全部出す）', goto: 'CALL:全開放実行', timerDelta: 0, showFlag: '', hideFlag: '全開放' },
-        { id: c3, text: '← 戻る', goto: '', timerDelta: 0, showFlag: '', hideFlag: '' }
-    ] });
-    // 全開放実行シーン：全開放フラグを立てて部屋に戻る
-    const unlockAll = mk({ name: '', text: 'すべての回想を開放しました。', label: '全開放実行', cmd: 'GSETFLAG:全開放\nRETURN' });
-    scenes.push(room, kaiso1, kaiso2, unlockAll);
-    renderScenes(); saveWithHistory();
-    alert('追加しました。\n\n▼使い方\n・本編で回想を解禁：コマンド欄に GSETFLAG:回想1解禁\n・任意の選択肢/タイトルから CALL:回想部屋 で部屋を開く\n・各回想の最後のシーンに RETURN を書くと部屋に戻る\n・「回想Nを見る」は showFlag=回想N解禁 が立ってる時だけ出る\n\n▼めんどくさい人用（全開放）\n・部屋の「🔓 全開放」を押す → 以降ぜんぶ表示（永続）\n・コマンドで直接立てるなら GSETFLAG:全開放\n・戻すなら GCLEARFLAG:全開放');
-};
 $('clearAll').onclick = async () => { if (!confirm('全削除しますか？')) return; scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; Object.values(seAudios).forEach(d => URL.revokeObjectURL(d.url)); Object.values(bgmAudios).forEach(d => { d.audio.pause(); URL.revokeObjectURL(d.url); }); Object.keys(seAudios).forEach(k => delete seAudios[k]); Object.keys(bgmAudios).forEach(k => delete bgmAudios[k]); seCounter = 0; bgmCounter = 0; currentBgm = null; charSlots = { left: null, center: null, right: null }; document.querySelectorAll('.char-slot img').forEach(img => img.remove()); packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]); renderScenes(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); if (db) { const tx = db.transaction(['project', 'images'], 'readwrite'); tx.objectStore('project').clear(); tx.objectStore('images').clear(); } };
 
 // ★ FIX: scale 4 + safeDownload + 不可視配置レンダリングに統一
@@ -2055,12 +1886,12 @@ $('loadZip').onclick = () => $('zipInput').click();
 $('zipInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; loadedFileName = file.name.replace(/\.zip$/i, ''); const _ef = document.getElementById('exportFileName'); if (_ef) _ef.value = loadedFileName; if (typeof updateExportPreview === 'function') updateExportPreview(); try { await saveToHistory(); const zip = await JSZip.loadAsync(file); scenes = []; imageBlobs = {}; imageHashes = {}; overlayBlobs = {}; charBlobs = {}; imageCounter = 0; overlayCounter = 0; charCounter = 0; choiceCounter = 0; $('editorOverlayContainer').innerHTML = ''; $('previewOverlayContainer').innerHTML = ''; editorActiveOverlays = {}; packScripts = {}; Object.keys(packRegistry).forEach(k => delete packRegistry[k]);
 const imgFolder = zip.folder('images'); if (imgFolder) { const files = []; imgFolder.forEach((p, f) => { if (!f.dir) files.push({ p, f }); }); for (const { p, f } of files) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); if (p.startsWith('ov')) { overlayBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > overlayCounter) overlayCounter = num; } else if (p.startsWith('ch')) { charBlobs[p] = { url, blob }; const num = parseInt(p.slice(2).split('.')[0]); if (!isNaN(num) && num > charCounter) charCounter = num; } else { const hash = await hashBlob(blob); imageBlobs[p] = { url, blob, hash }; imageHashes[hash] = p; const num = parseInt(p.split('.')[0]); if (!isNaN(num) && num > imageCounter) imageCounter = num; } } }
 const audioFolder = zip.folder('audio'); if (audioFolder) { const audioFiles = []; audioFolder.forEach((p, f) => { if (!f.dir) audioFiles.push({ p, f }); }); for (const { p, f } of audioFiles) { const blob = await f.async('blob'); const url = URL.createObjectURL(blob); const name = p.split('.')[0].toLowerCase(); if (name.startsWith('se')) { seAudios[name] = { audio: new Audio(url), url, blob, filename: p }; const num = parseInt(name.slice(2)); if (!isNaN(num) && num > seCounter) seCounter = num; } else if (name.startsWith('bgm')) { const audio = new Audio(url); audio.loop = true; bgmAudios[name] = { audio, url, blob, filename: p }; const num = parseInt(name.slice(3)); if (!isNaN(num) && num > bgmCounter) bgmCounter = num; } } }
-const dataFile = zip.file('data.json'); if (dataFile) { const data = JSON.parse(await dataFile.async('string')); scenes = (data.scenes || []).map(s => ({ ...s, uuid: s.uuid || crypto.randomUUID(), bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); chapters = data.chapters || []; projectTitle = data.projectTitle || ''; projectSaveSlots = data.projectSaveSlots || 20; { const ti = document.getElementById('gameTitleInput'); if (ti) ti.value = projectTitle; const si = document.getElementById('saveSlotsInput'); if (si) si.value = projectSaveSlots; if (typeof refreshGameIdPreview === 'function') refreshGameIdPreview(); } if (data.projectWidth && data.projectHeight) applyProjectResolution(data.projectWidth, data.projectHeight); else { resolutionLocked = false; const firstBg = scenes.find(s => s.bg); if (firstBg && imageBlobs[firstBg.bg]) { const img = new Image(); img.onload = () => { if (!resolutionLocked) applyProjectResolution(img.width, img.height); }; img.src = imageBlobs[firstBg.bg].url; } } scenes.forEach(s => { if (s.choices) s.choices.forEach(c => { const m = c.id.match(/^A-(\d+)$/); if (m && +m[1] > choiceCounter) choiceCounter = +m[1]; }); }); }
+const dataFile = zip.file('data.json'); if (dataFile) { const data = JSON.parse(await dataFile.async('string')); scenes = (data.scenes || []).map(s => ({ ...s, uuid: s.uuid || crypto.randomUUID(), bgUrl: s.bg && imageBlobs[s.bg] ? imageBlobs[s.bg].url : null })); chapters = data.chapters || []; if (data.projectWidth && data.projectHeight) applyProjectResolution(data.projectWidth, data.projectHeight); else { resolutionLocked = false; const firstBg = scenes.find(s => s.bg); if (firstBg && imageBlobs[firstBg.bg]) { const img = new Image(); img.onload = () => { if (!resolutionLocked) applyProjectResolution(img.width, img.height); }; img.src = imageBlobs[firstBg.bg].url; } } scenes.forEach(s => { if (s.choices) s.choices.forEach(c => { const m = c.id.match(/^A-(\d+)$/); if (m && +m[1] > choiceCounter) choiceCounter = +m[1]; }); }); }
 packScripts = {}; const packsFolder = zip.folder('packs'); if (packsFolder) { const packFiles = []; packsFolder.forEach((p, f) => { if (!f.dir && p.endsWith('.js')) packFiles.push({ p, f }); }); for (const { p, f } of packFiles) { const source = await f.async('string'); loadPackScript(p, source); } }
 renderScenes(); resetEditor(); renderOverlayList(); renderCharList(); renderSeList(); renderBgmList(); await saveToIndexedDB(); alert(`読み込み完了！\nSE: ${Object.keys(seAudios).join(', ') || '(なし)'}\nBGM: ${Object.keys(bgmAudios).join(', ') || '(なし)'}\nOverlays: ${Object.keys(overlayBlobs).join(', ') || '(なし)'}\n立ち絵: ${Object.keys(charBlobs).join(', ') || '(なし)'}\nPacks: ${Object.keys(packScripts).join(', ') || '(なし)'}`); } catch (err) { alert('読み込みエラー: ' + err.message); } };
 
 function getExt(filename) { return filename.split('.').pop() || 'mp3'; }
-$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru, isTitle: s.isTitle })), chapters, projectWidth, projectHeight, projectTitle, projectSaveSlots }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, buildExportName('project')); } catch (err) { alert('保存エラー: ' + err.message); } };
+$('saveZip').onclick = async () => { try { const zip = new JSZip(); const imgFolder = zip.folder('images'); const audioFolder = zip.folder('audio'); const usedImages = new Set(); scenes.forEach(s => { if (s.bg) usedImages.add(s.bg); }); for (const filename of usedImages) { const imgData = imageBlobs[filename]; if (imgData) { const blob = imgData.blob || imgData.file; if (blob) imgFolder.file(filename, blob); } } for (const [filename, data] of Object.entries(overlayBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [filename, data] of Object.entries(charBlobs)) { if (data.blob) imgFolder.file(filename, data.blob); } for (const [name, data] of Object.entries(seAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } for (const [name, data] of Object.entries(bgmAudios)) { audioFolder.file(`${name}.${data.filename ? getExt(data.filename) : 'mp3'}`, data.blob); } zip.file('data.json', JSON.stringify({ scenes: scenes.map(s => ({ id: s.id, uuid: s.uuid, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru })), chapters, projectWidth, projectHeight }, null, 2)); if (Object.keys(packScripts).length > 0) { const packsFolder = zip.folder('packs'); for (const [filename, source] of Object.entries(packScripts)) { packsFolder.file(filename, source); } } const content = await zip.generateAsync({ type: 'blob' }); safeDownload(content, buildExportName('project')); } catch (err) { alert('保存エラー: ' + err.message); } };
 
 const FONT_LICENSE_TEXT = `このゲームには以下のフォントが含まれています。
 これらは SIL Open Font License 1.1 のもとで使用・再配布されています。
@@ -2569,10 +2400,8 @@ $('exportGameBtn').onclick = async () => {
         for (const [name, data] of Object.entries(seAudios)) { const fn = name + '.' + (data.filename ? getExt(data.filename) : 'mp3'); audioFolder.file(fn, data.blob); seList.push({ id: name, filename: fn }); }
         for (const [name, data] of Object.entries(bgmAudios)) { const fn = name + '.' + (data.filename ? getExt(data.filename) : 'mp3'); audioFolder.file(fn, data.blob); bgmList.push({ id: name, filename: fn }); }
         // ゲームデータ
-        const firstTitleScene = scenes.find(s => s.isTitle);
-        const gameTitle = (projectTitle && projectTitle.trim()) || (firstTitleScene && firstTitleScene.name) || (scenes[0] && scenes[0].name) || 'ホシノユメ作品';
-        const gameData = { title: gameTitle, projectWidth, projectHeight, saveSlots: (typeof projectSaveSlots !== 'undefined' ? projectSaveSlots : 20), scenes: scenes.map(s => ({ id: s.id, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru, isTitle: s.isTitle })), se: seList, bgm: bgmList, puruData: (typeof scenePuruData !== 'undefined' ? scenePuruData : {}) };
-        const title = gameTitle;
+        const gameData = { projectWidth, projectHeight, saveSlots: (typeof projectSaveSlots !== 'undefined' ? projectSaveSlots : 20), scenes: scenes.map(s => ({ id: s.id, name: s.name, text: s.text, cmd: s.cmd, label: s.label, bg: s.bg, textMode: s.textMode, transition: s.transition, isChoice: s.isChoice, choices: s.choices, puru: s.puru })), se: seList, bgm: bgmList, puruData: (typeof scenePuruData !== 'undefined' ? scenePuruData : {}) };
+        const title = (scenes[0] && scenes[0].name) ? 'ホシノユメ作品' : 'ホシノユメ作品';
         // プレイヤーHTML生成
         let player = $('playerTemplate').textContent.split('<\/').join('</');
         player = player.split('__GAME_DATA__').join(JSON.stringify(gameData)).split('__GAME_TITLE__').join(title);
@@ -2656,7 +2485,6 @@ let pzLayerLoops = [0,0,0];    // 各レイヤーの再生回数（0=無限）
 let pzAmp = 14, pzSpeed = 28, pzBrush = 55, pzBikuAngle = 90, pzSync = false;
 let pzCurLayer = 0, pzDrawMode = 'draw', pzPaintStrength = 0.7;
 let pzActive = false; // 塗りモードか
-let pzLoopRunning = false; // pzRenderループが生きてるか
 
 const PZ_VS = `attribute vec2 a_pos;attribute vec2 a_uv;uniform float u_time,u_amp,u_speed,u_bikuAngle;uniform sampler2D u_mask;uniform int u_presetR,u_presetG,u_presetB,u_sync;uniform vec2 u_centerR,u_centerG,u_centerB;
 uniform float u_delayR,u_delayG,u_delayB,u_loopsR,u_loopsG,u_loopsB;varying vec2 v_uv;
@@ -2695,7 +2523,7 @@ void main(){vec4 c=texture2D(u_tex,v_uv);if(u_maskShow>0.001){vec4 m=texture2D(u
 function pzCompile(t,s){const sh=pzGl.createShader(t);pzGl.shaderSource(sh,s);pzGl.compileShader(sh);if(!pzGl.getShaderParameter(sh,pzGl.COMPILE_STATUS))console.error(pzGl.getShaderInfoLog(sh));return sh;}
 function pzInitGL(){
   const cv = document.getElementById('peGlCanvas');
-  pzGl = cv.getContext('webgl',{premultipliedAlpha:false,alpha:true,preserveDrawingBuffer:true});
+  pzGl = cv.getContext('webgl',{premultipliedAlpha:false,alpha:true});
   if(!pzGl) return false;
   pzProg = pzGl.createProgram();
   pzGl.attachShader(pzProg,pzCompile(pzGl.VERTEX_SHADER,PZ_VS));
@@ -2726,9 +2554,8 @@ function pzSetImage(imgEl, keepMask){
   pzTex=pzMakeTex(imgEl); pzUpdateMaskTex();
 }
 function pzRender(){
-  if(!pzActive){ pzLoopRunning=false; return; }  // 塗りモードOFFでループ停止（フラグ管理）
   requestAnimationFrame(pzRender);
-  if(!pzTex || !pzMaskTex) return;
+  if(!pzActive || !pzTex || !pzMaskTex) return;
   const t=(performance.now()-pzStartT)/1000;
   pzGl.viewport(0,0,document.getElementById('peGlCanvas').width,document.getElementById('peGlCanvas').height);
   pzGl.clearColor(0,0,0,0);pzGl.clear(pzGl.COLOR_BUFFER_BIT);
@@ -2803,9 +2630,7 @@ function pzSetPaintMode(on){
   tools.style.display=on?'block':'none';
   document.getElementById('puruPaintToggle').textContent=on?'✓ 塗り編集を終了':'✏️ プレビュー上で塗る';
   if(on){
-    if(!pzInited){pzInited=pzInitGL();}
-    // 描画ループが止まっていたら再起動（iOS等でrAFが中断した場合の保険）
-    if(!pzLoopRunning){ pzLoopRunning=true; pzRender(); }
+    if(!pzInited){pzInited=pzInitGL();pzRender();}
     // 現在シーンのbg画像を読み込む
     pzLoadCurrentBg();
   }
@@ -3080,12 +2905,7 @@ setTimeout(pzWire, 150);
     #title { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a0a center/cover no-repeat; cursor: pointer; }
     #title.hidden { display: none; }
     #title .t-name { color: #fff; font-size: 32px; font-weight: 700; text-shadow: 0 2px 12px rgba(0,0,0,0.9); text-align: center; padding: 0 24px; margin-bottom: 40px; }
-    #title .t-start { color: #fff; font-size: 17px; border: 1px solid rgba(255,255,255,0.6); border-radius: 30px; padding: 12px 36px; background: rgba(0,0,0,0.4); animation: pulse 2s ease-in-out infinite; cursor: pointer; }
-    #title .t-menu { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    #title .t-menu button { background: none; border: none; color: rgba(255,255,255,0.82); font-size: 13.5px; letter-spacing: 0.08em; padding: 7px 20px; cursor: pointer; font-family: inherit; text-shadow: 0 1px 6px rgba(0,0,0,0.9); transition: color .15s, letter-spacing .15s; }
-    #title .t-menu button:hover:not(:disabled) { color: #fff; letter-spacing: 0.16em; }
-    #title .t-menu button:disabled { color: rgba(255,255,255,0.28); cursor: default; }
-    #title .t-menu button.hidden { display: none; }
+    #title .t-start { color: #fff; font-size: 17px; border: 1px solid rgba(255,255,255,0.6); border-radius: 30px; padding: 12px 36px; background: rgba(0,0,0,0.4); animation: pulse 2s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
     #end { position: fixed; inset: 0; z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; background: #000; color: #fff; gap: 24px; }
     #end.show { display: flex; }
@@ -3198,18 +3018,12 @@ setTimeout(pzWire, 150);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-body.skipping::after { content: "\25b6\25b6 \30b9\30ad\30c3\30d7\4e2d"; position: fixed; top: 12px; right: 14px; background: rgba(78,205,196,0.9); color: #000; font-size: 12px; font-weight: bold; padding: 5px 10px; border-radius: 6px; z-index: 9999; pointer-events: none; }
 <\/style>
 <\/head>
 <body>
     <div id="title">
         <div class="t-name">__GAME_TITLE__<\/div>
-        <div class="t-start" id="tStart">▶ はじめから<\/div>
-        <div class="t-menu">
-            <button id="tContinue">つづきから<\/button>
-            <button id="tKaiso">回想<\/button>
-            <button id="tConfig">設定<\/button>
-        <\/div>
+        <div class="t-start">▶ タップでスタート<\/div>
     <\/div>
     <div id="stage">
         <div class="preview-canvas" id="canvas">
@@ -3259,9 +3073,6 @@ let currentBgm = null, bgmStopAtScene = null;
 
 /* 再生状態 */
 let idx = 0, flags = {}, lastChoiceId = null, charSlots = { left: null, center: null, right: null };
-let gflags = {}; // 周回をまたいで永続するフラグ（IndexedDB meta に保存）
-let callStack = []; // CALL/RETURN 用（回想シーンの戻り先 idx を積む）
-let menuFromTitle = false; // タイトルからメニュー（ロード/設定）を開いたか
 
 /* ===== サウンド ===== */
 async function playSE(name, count, vol) { const se = seAudios[name]; if (!se) return; se.audio.volume = (vol != null) ? Math.max(0, Math.min(1, vol/100)) : 1; if (count === 0) { se.audio.onended = () => { se.audio.currentTime = 0; se.audio.play(); }; se.audio.currentTime = 0; se.audio.play().catch(()=>{}); loopingSe[name] = true; return; } const times = (count && count > 1) ? count : 1; if (times === 1) { se.audio.currentTime = 0; se.audio.play().catch(()=>{}); return; } let played = 0; const once = () => { played++; se.audio.currentTime = 0; se.audio.play().catch(()=>{}); }; se.audio.onended = () => { if (played < times) once(); else se.audio.onended = null; }; once(); }
@@ -3356,7 +3167,6 @@ async function runCmd(cmd, flashEl, shakeEl) {
     m = cmd.match(/^SE:([^:,]+):ambient:(\d+)-(\d+)$/i); if (m) { startSeAmbient(m[1].toLowerCase(), +m[2], +m[3]); return null; }
     m = cmd.match(/^SE:([^:]+)(?::(\d+))?$/); if (m) { playSE(origCmd.trim().split(':')[1].toLowerCase(), m[2] !== undefined ? +m[2] : 1, __vol); return null; }
     m = cmd.match(/^([123])SE(\d+)$/); if (m) { playSE('se0' + m[1], +m[2], __vol); return null; }
-    m = cmd.match(/^WAIT:(\d+(?:\.\d+)?)(MS|S)?$/i); if (m) { let ms = parseFloat(m[1]); if ((m[2]||'').toUpperCase() === 'S') ms *= 1000; await sleep(ms); return null; }
     m = cmd.match(/^FLASH(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doFlash(flashEl); if (i < n-1) await sleep(150); } return null; }
     m = cmd.match(/^SHAKE(\d*)$/); if (m) { const n = +m[1] || 1; for (let i = 0; i < n; i++) { doShake(shakeEl); if (i < n-1) await sleep(300); } return null; }
     m = cmd.match(/^BGM:([^:]+):until:(\d+)$/i); if (m) { playBGM(m[1].toLowerCase(), +m[2], __vol); return null; }
@@ -3365,18 +3175,7 @@ async function runCmd(cmd, flashEl, shakeEl) {
     m = cmd.match(/^SETFLAG:(.+)$/); if (m) { flags[m[1]] = true; return null; }
     m = cmd.match(/^IFFLAG:(.+):SKIP$/); if (m) { if (flags[m[1]]) return 'SKIP'; return null; }
     m = cmd.match(/^IFFLAG:(.+):GOTO:(.+)$/); if (m) { if (flags[m[1]]) return { goto: m[2] }; return null; }
-    m = cmd.match(/^NOTFLAG:(.+):SKIP$/); if (m) { if (!flags[m[1]]) return 'SKIP'; return null; }
     m = cmd.match(/^NOTFLAG:(.+):GOTO:(.+)$/); if (m) { if (!flags[m[1]]) return { goto: m[2] }; return null; }
-    m = cmd.match(/^START:GOTO:(.+)$/i); if (m) { return null; } // タイトル用ディレクティブ（本編では無視）
-    // --- 永続フラグ（周回をまたぐ / G系）---
-    m = cmd.match(/^GSETFLAG:(.+)$/); if (m) { gflags[m[1]] = true; saveGFlags(); return null; }
-    m = cmd.match(/^GCLEARFLAG:(.+)$/); if (m) { delete gflags[m[1]]; saveGFlags(); return null; }
-    m = cmd.match(/^GIFFLAG:(.+):SKIP$/); if (m) { if (gflags[m[1]]) return 'SKIP'; return null; }
-    m = cmd.match(/^GIFFLAG:(.+):GOTO:(.+)$/); if (m) { if (gflags[m[1]]) return { goto: m[2] }; return null; }
-    m = cmd.match(/^GNOTFLAG:(.+):SKIP$/); if (m) { if (!gflags[m[1]]) return 'SKIP'; return null; }
-    m = cmd.match(/^GNOTFLAG:(.+):GOTO:(.+)$/); if (m) { if (!gflags[m[1]]) return { goto: m[2] }; return null; }
-    m = cmd.match(/^CALL:GOTO:(.+)$/); if (m) { return { call: m[1] }; }
-    if (cmd === 'RETURN') { return { ret: true }; }
     m = cmd.match(/^FROM:(.+):SKIP$/); if (m) { if (lastChoiceId === m[1]) return 'SKIP'; return null; }
     m = cmd.match(/^FROM:(.+):GOTO:(.+)$/); if (m) { if (lastChoiceId === m[1]) return { goto: m[2] }; return null; }
     return null;
@@ -3435,7 +3234,7 @@ async function runCmdSequence(str, flashEl, shakeEl, overlayContainer) {
         for (let i = 0; i < parts.length; i++) {
             const group = [parts[i]]; while (i + 1 < parts.length && parts[i + 1].startsWith('@')) group.push(parts[++i]);
             const results = await Promise.all(group.map(c => runCmdWithOverlay(c, flashEl, shakeEl, overlayContainer)));
-            for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && (r.goto || r.call || r.ret)) return r; }
+            for (const r of results) { if (r === 'SKIP') return 'SKIP'; if (r && r.goto) return r; }
         }
     }
     return null;
@@ -3456,16 +3255,12 @@ async function showScene() {
     rebuildCharState(idx, $('charLayer'));
     if (!scenes.length) return;
     idx = Math.max(0, Math.min(idx, scenes.length - 1));
-    // 本編再生中にタイトルシーンへ到達したら飛ばす（タイトルは起動時のみ表示）
-    if (scenes[idx] && scenes[idx].isTitle) { if (idx < scenes.length - 1) { idx++; return showScene(); } else return endGame(); }
     if (bgmStopAtScene !== null && (idx + 1) > bgmStopAtScene) stopBGM();
     const s = scenes[idx];
     if (isFadeType(s.transition)) await coverIn(s.transition);
     try {
         const result = await runCmdSequence(s.cmd, $('flash'), $('canvas'), $('overlayContainer'));
         if (result === 'SKIP') { coverOut(); if (idx < scenes.length - 1) { idx++; showScene(); } else endGame(); return; }
-        if (result && result.call) { const j = findSceneByLabel(result.call); if (j >= 0) { callStack.push(idx + 1); idx = j; showScene(); } else coverOut(); return; }
-        if (result && result.ret) { coverOut(); if (callStack.length) { idx = callStack.pop(); } else if (idx < scenes.length - 1) { idx++; } else { endGame(); return; } showScene(); return; }
         if (result && result.goto) { const j = findSceneByLabel(result.goto); if (j >= 0) { idx = j; showScene(); } else coverOut(); return; }
     } catch (e) { coverOut(); }
     $('info').textContent = `${idx + 1} / ${scenes.length}`;
@@ -3478,24 +3273,8 @@ async function showScene() {
     flashInfo();
     if (s.isChoice && s.choices && s.choices.length > 0) showChoices(s.choices);
 }
-function showChoices(choices) { const co = $('choiceOverlay'); co.innerHTML = ''; const visible = choices.filter(c => choiceVisible(c)); (visible.length ? visible : choices).forEach(c => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = c.text || c.id; b.onclick = (e) => { e.stopPropagation(); selectChoice(c); }; co.appendChild(b); }); co.classList.remove('hidden'); }
-// 選択肢の表示条件：showFlag(このGフラグが立ってる時だけ表示) / hideFlag(立ってたら隠す)
-function choiceVisible(c) {
-    if (c.hideFlag && gflags[c.hideFlag]) return false; // 隠す条件は最優先
-    if (gflags['全開放'] || gflags['ALLUNLOCK']) return true; // マスター解禁：showFlagを無視して全表示
-    if (c.showFlag && !gflags[c.showFlag]) return false;
-    return true;
-}
-function selectChoice(choice) {
-    lastChoiceId = choice.id; $('choiceOverlay').classList.add('hidden');
-    // goto が "CALL:ラベル" なら回想として一時再生（終端の RETURN で戻る）
-    if (choice.goto) {
-        const cm = String(choice.goto).match(/^CALL:(.+)$/i);
-        if (cm) { const j = findSceneByLabel(cm[1]); if (j >= 0) { callStack.push(idx); idx = j; showScene(); return; } }
-        const j = findSceneByLabel(choice.goto); if (j >= 0) { idx = j; showScene(); return; }
-    }
-    if (idx < scenes.length - 1) { idx++; showScene(); } else endGame();
-}
+function showChoices(choices) { const co = $('choiceOverlay'); co.innerHTML = ''; choices.forEach(c => { const b = document.createElement('button'); b.className = 'choice-btn'; b.textContent = c.text || c.id; b.onclick = (e) => { e.stopPropagation(); selectChoice(c); }; co.appendChild(b); }); co.classList.remove('hidden'); }
+function selectChoice(choice) { lastChoiceId = choice.id; $('choiceOverlay').classList.add('hidden'); if (choice.goto) { const j = findSceneByLabel(choice.goto); if (j >= 0) { idx = j; showScene(); return; } } if (idx < scenes.length - 1) { idx++; showScene(); } else endGame(); }
 function choicesOpen() { return !$('choiceOverlay').classList.contains('hidden'); }
 function flashInfo() { $('info').classList.add('show'); clearTimeout(flashInfo._t); flashInfo._t = setTimeout(() => $('info').classList.remove('show'), 1200); }
 
@@ -3510,160 +3289,16 @@ stage.addEventListener('touchstart', e => { if (e.target.closest('.choice-btn'))
 stage.addEventListener('touchmove', e => { const t = e.changedTouches[0]; if (Math.abs(t.clientX-tsx)>TM || Math.abs(t.clientY-tsy)>TM) moved=true; }, {passive:true});
 stage.addEventListener('touchend', e => { if (e.target.closest('.choice-btn')) return; const t = e.changedTouches[0]; const dx=t.clientX-tsx, dy=t.clientY-tsy, dt=Date.now()-tst, adx=Math.abs(dx), ady=Math.abs(dy); if (ady>SW && ady>adx) return; if (adx>SW && adx>ady) { if (dx<0) goNext(); else goPrev(); return; } if (!moved && dt<TT) goNext(); });
 stage.addEventListener('click', e => { if (e.target.closest('.choice-btn')) return; if ('ontouchstart' in window) return; goNext(); });
-/* ===== ホイール操作：下=バックログ / 上=スキップ ===== */
-let skipTimer = null;
-function stopSkip() { if (skipTimer) { clearInterval(skipTimer); skipTimer = null; document.body.classList.remove('skipping'); } }
-function startSkip() {
-    if (skipTimer) return;
-    document.body.classList.add('skipping');
-    skipTimer = setInterval(() => {
-        // 停止条件：選択肢が開いたら止める（将来:未読/指定シーンもここに追加）
-        if (choicesOpen()) { stopSkip(); return; }
-        if (idx < scenes.length - 1) { goNext(); }
-        else { stopSkip(); endGame(); }
-    }, 140);
-}
-stage.addEventListener('wheel', e => {
-    if (choicesOpen()) return;
-    e.preventDefault();
-    if (e.deltaY < 0) {           // ホイール上 → バックログ
-        stopSkip();
-        if (typeof renderBacklog === 'function') { renderBacklog(); openSub('subLog'); }
-    } else if (e.deltaY > 0) {    // ホイール下 → スキップ（早送り）
-        startSkip();
-    }
-}, { passive: false });
-// 何か操作したらスキップ停止
-['click','keydown','touchstart'].forEach(ev => document.addEventListener(ev, () => { if (ev !== 'wheel') stopSkip(); }, true));
 document.addEventListener('keydown', e => { if (choicesOpen()) return; if (e.key==='ArrowRight'||e.key===' '||e.key==='Enter') goNext(); if (e.key==='ArrowLeft') goPrev(); });
 
-/* ===== タイトルシーン（フラグでまるごと差し替え） ===== */
-const GAME_TITLE = (typeof GAME_DATA !== 'undefined' && GAME_DATA.title) || 'ホシノユメ作品';
-// タイトルシーンの cmd を評価し、SKIP されなければ「採用」。上から探して最初に採用された1枚を表示。
-// 判定には runCmd を直接使う（表示副作用のある行は無視し、SKIP/GOTO の分岐だけ見る）。
-function evalTitleCmd(cmd) {
-    // 戻り: 'SKIP'（このタイトルは使わない） / null（採用）
-    // タイトル選定はフラグ条件による SKIP だけを見る（GIFFLAG/GNOTFLAG/IFFLAG）。
-    if (!cmd) return null;
-    const lines = cmd.split('\n').map(l => l.trim()).filter(l => l);
-    for (const line of lines) {
-        const u = line.toUpperCase();
-        let m;
-        m = u.match(/^GIFFLAG:(.+):SKIP$/);  if (m) { if (gflags[m[1]]) return 'SKIP'; continue; }
-        m = u.match(/^GNOTFLAG:(.+):SKIP$/); if (m) { if (!gflags[m[1]]) return 'SKIP'; continue; }
-        m = u.match(/^IFFLAG:(.+):SKIP$/);   if (m) { if (flags[m[1]]) return 'SKIP'; continue; }
-        m = u.match(/^NOTFLAG:(.+):SKIP$/);  if (m) { if (!flags[m[1]]) return 'SKIP'; continue; }
-    }
-    return null;
-}
-// 採用されるタイトルシーンの index を返す。無ければ -1。
-function pickTitleScene() {
-    for (let i = 0; i < scenes.length; i++) {
-        if (!scenes[i].isTitle) continue;
-        if (evalTitleCmd(scenes[i].cmd) === 'SKIP') continue;
-        return i;
-    }
-    return -1;
-}
-// 本編の開始位置（最初の非タイトルシーン）
-function firstStoryIndex() {
-    for (let i = 0; i < scenes.length; i++) if (!scenes[i].isTitle) return i;
-    return 0;
-}
-
-// タイトル画面を（フラグに応じて）構築して表示する
-function buildTitle() {
-    const ti = pickTitleScene();
-    const titleEl = $('title');
-    const nameEl = titleEl.querySelector('.t-name');
-    const startEl = titleEl.querySelector('.t-start');
-    if (ti >= 0) {
-        const s = scenes[ti];
-        titleEl._sceneIdx = ti;
-        titleEl.style.backgroundImage = s.bg ? `url("${imgUrl(s.bg)}")` : '';
-        nameEl.textContent = s.name || GAME_TITLE || 'ホシノユメ作品';
-        startEl.textContent = s.text ? s.text : '▶ はじめから';
-        runTitleFx(s.cmd);
-    } else {
-        titleEl._sceneIdx = -1;
-        titleEl.style.backgroundImage = '';
-        nameEl.textContent = GAME_TITLE || 'ホシノユメ作品';
-        startEl.textContent = '▶ はじめから';
-    }
-    // 回想メニュー：回想部屋が無ければ隠す
-    const kaisoBtn = $('tKaiso'); if (kaisoBtn) kaisoBtn.classList.toggle('hidden', findSceneByLabel('回想部屋') < 0);
-    // つづきから：セーブが無ければ無効化
-    const contBtn = $('tContinue'); if (contBtn) { contBtn.disabled = true; dbGetAll('saves').then(sv => { contBtn.disabled = !(sv && sv.length); }); }
-    titleEl.classList.remove('hidden');
-}
-// タイトルの演出コマンド（BGM/OVERLAY 等）を実行。分岐(SKIP/GOTO/FLAG判定)は無視。
-async function runTitleFx(cmd) {
-    if (!cmd) return;
-    const lines = cmd.split('\n').map(l => l.trim()).filter(l => l);
-    for (const line of lines) {
-        const u = line.toUpperCase();
-        if (/^G?(IF|NOT)FLAG:/.test(u)) continue;   // 分岐は飛ばす
-        if (/^FROM:/.test(u)) continue;
-        if (/^GSETFLAG:|^GCLEARFLAG:|^SETFLAG:/.test(u)) continue; // タイトル選定時にフラグ変更はしない
-        try { await runCmd(line, $('flash'), $('canvas')); } catch (e) {}
-    }
-}
-
-function startGame() {
-    flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; callStack = [];
-    stopAllSound(); $('end').classList.remove('show');
-    // 採用中タイトルに goto 指定があればそこから、無ければ最初の本編シーンから
-    const titleEl = $('title'); const ti = titleEl._sceneIdx;
-    let start = firstStoryIndex();
-    if (ti != null && ti >= 0) {
-        const g = titleGoto(scenes[ti].cmd);
-        if (g) { const j = findSceneByLabel(g); if (j >= 0) start = j; }
-    }
-    idx = start; showScene();
-}
-// タイトルシーンの START:GOTO:ラベル を読む（開始位置の指定）
-function titleGoto(cmd) {
-    if (!cmd) return null;
-    const lines = cmd.split('\n').map(l => l.trim());
-    for (const line of lines) { const m = line.match(/^START:GOTO:(.+)$/i); if (m) return m[1]; }
-    return null;
-}
-
-// タイトルメニューの配線（はじめから/つづきから/回想/設定）
-function startFromTitle() { stopAllSound(); $('title').classList.add('hidden'); startGame(); }
-async function titleContinue() {
-  const saves = await dbGetAll('saves');
-  if (!saves.length) { toast('セーブデータがありません'); return; }
-  menuFromTitle = true; $('menuOverlay').classList.add('show'); await renderSlots('loadGrid', false); closeAllSub(); openSub('subLoad');
-}
-function titleKaiso() {
-  const j = findSceneByLabel('回想部屋'); if (j < 0) { toast('回想はまだありません'); return; }
-  stopAllSound(); $('title').classList.add('hidden');
-  flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; callStack = [];
-  $('end').classList.remove('show'); idx = j; showScene();
-}
-function titleConfig() { menuFromTitle = true; $('menuOverlay').classList.add('show'); closeAllSub(); openSub('subConfig'); }
-$('tStart').addEventListener('click', startFromTitle);
-$('tContinue').addEventListener('click', titleContinue);
-$('tKaiso').addEventListener('click', titleKaiso);
-$('tConfig').addEventListener('click', titleConfig);
-$('replayBtn').addEventListener('click', () => { $('end').classList.remove('show'); buildTitle(); });
+/* ===== タイトル→開始 ===== */
+function startGame() { idx = 0; flags = {}; lastChoiceId = null; charSlots = { left: null, center: null, right: null }; stopAllSound(); $('end').classList.remove('show'); showScene(); }
+$('title').addEventListener('click', () => { $('title').classList.add('hidden'); startGame(); });
+$('replayBtn').addEventListener('click', () => { $('end').classList.remove('show'); startGame(); });
 
 
 // ===== ゲームメニューシステム =====
 const SAVE_SLOTS = (GAME_DATA.saveSlots || 20);
-// --- 作品ID（タイトルから決定的に生成。同タイトル=同ID。日本語も安全） ---
-function makeGameId(title) {
-  const str = String(title || 'untitled');
-  let h = 5381; for (let i = 0; i < str.length; i++) { h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; }
-  let h2 = 52711; for (let i = str.length - 1; i >= 0; i--) { h2 = ((h2 << 5) + h2 + str.charCodeAt(i)) >>> 0; }
-  return 't_' + h.toString(36) + h2.toString(36);
-}
-const GAME_ID = makeGameId(GAME_TITLE);
-// --- ストレージ永続化を申請（iOS ITP等の自動消去からセーブを守る） ---
-async function requestPersistence() {
-  try { if (navigator.storage && navigator.storage.persist) { const already = await navigator.storage.persisted(); if (!already) await navigator.storage.persist(); } } catch (e) {}
-}
 let backlog = [];           // {name, text}
 let menuOpenCount = 0;      // 隠し：メニューを開いた回数（全体）
 let sceneMenuCount = {};    // 隠し：シーンごとのメニュー開閉回数 {sceneIdx: count}
@@ -3674,7 +3309,7 @@ let menuStats = {};         // 隠し統計の入れ物（拡張用）
 let menuDB = null;
 function openMenuDB() {
   return new Promise((resolve) => {
-    const req = indexedDB.open('hoshinoyume_save_' + GAME_ID, 1);
+    const req = indexedDB.open('hoshinoyume_game_save', 1);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('saves')) db.createObjectStore('saves', { keyPath: 'slot' });
@@ -3706,10 +3341,6 @@ function dbGetAll(store) {
   });
 }
 
-// --- 永続フラグ（周回をまたぐ）---
-function saveGFlags() { dbPut('meta', { key: 'gflags', value: gflags }); }
-async function loadGFlags() { const d = await dbGet('meta', 'gflags'); gflags = (d && d.value) ? d.value : {}; }
-
 // --- メニュー開閉 ---
 function openMenu() {
   menuOpenCount++;
@@ -3739,7 +3370,7 @@ function runMenuAction(action) {
   if (action.type === 'goto') { closeMenu(); const j = findSceneByLabel(action.label); if (j >= 0) { idx = j; showScene(); } return; }
   if (action.type === 'flag') { flags[action.name] = true; return; }
 }
-function closeMenu() { $('menuOverlay').classList.remove('show'); closeAllSub(); menuFromTitle = false; }
+function closeMenu() { $('menuOverlay').classList.remove('show'); closeAllSub(); }
 function updateMenuFoot() {
   // 隠し：開いた回数を表示。条件で隠しメッセージ
   let txt = `MENU OPENED: ${menuOpenCount}`;
@@ -3781,38 +3412,9 @@ async function doLoad(slot) {
   idx = data.idx; flags = data.flags || {}; lastChoiceId = data.lastChoiceId || null;
   backlog = data.backlog || [];
   sceneMenuCount = data.sceneMenuCount || {};
-  $('title').classList.add('hidden');
   closeMenu();
   showScene();
   toast('ロードしました');
-}
-// --- セーブのファイル書き出し/読み込み（作品IDで紐付け） ---
-async function exportSaves() {
-  const saves = await dbGetAll('saves');
-  const metaAll = await dbGetAll('meta');
-  const gf = (metaAll.find(m => m.key === 'gflags') || {}).value || {};
-  if (!saves.length && !Object.keys(gf).length) { toast('書き出すデータがありません'); return; }
-  const payload = { format: 'hoshinoyume-save', version: 1, gameId: GAME_ID, title: GAME_TITLE, savedAt: new Date().toISOString(), saves, gflags: gf };
-  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob); const a = document.createElement('a');
-  const safe = String(GAME_TITLE).replace(/[^\w\u3040-\u30ff\u4e00-\u9fff-]/g, '_').slice(0, 20);
-  a.href = url; a.download = `${safe || 'game'}_セーブ_${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('セーブを書き出しました');
-}
-async function importSaves(file) {
-  try {
-    const text = await file.text(); const p = JSON.parse(text);
-    if (!p || p.format !== 'hoshinoyume-save') { toast('対応していないファイルです'); return; }
-    if (p.gameId && p.gameId !== GAME_ID) {
-      if (!confirm(`これは別の作品「${p.title || '不明'}」のセーブデータです。\n読み込むと現在のセーブが上書きされる可能性があります。続けますか？`)) return;
-    }
-    const saves = p.saves || [];
-    for (const s of saves) { await dbPut('saves', s); }
-    if (p.gflags) { gflags = p.gflags; await dbPut('meta', { key: 'gflags', value: gflags }); }
-    toast(`${saves.length}件のセーブを読み込みました`);
-    renderSlots('loadGrid', false);
-  } catch (e) { toast('読み込みに失敗しました'); }
 }
 async function renderSlots(gridId, isSave) {
   const grid = $(gridId); grid.innerHTML = '';
@@ -3886,12 +3488,9 @@ function wireMenu() {
   $('menuOverlay').onclick = (e) => { if (e.target === $('menuOverlay')) closeMenu(); };
   $('miSave').onclick = () => { renderSlots('saveGrid', true); openSub('subSave'); };
   $('miLoad').onclick = () => { renderSlots('loadGrid', false); openSub('subLoad'); };
-  const esBtn = $('exportSavesBtn'); if (esBtn) esBtn.onclick = exportSaves;
-  const isBtn = $('importSavesBtn'), isInput = $('importSavesInput');
-  if (isBtn && isInput) { isBtn.onclick = () => isInput.click(); isInput.onchange = (e) => { const f = e.target.files[0]; if (f) importSaves(f); isInput.value = ''; }; }
   $('miLog').onclick = () => { renderBacklog(); openSub('subLog'); };
   $('miConfig').onclick = () => openSub('subConfig');
-  document.querySelectorAll('.sub-back').forEach(b => b.onclick = () => { if (menuFromTitle) { closeMenu(); } else { $(b.dataset.sub).classList.remove('show'); } });
+  document.querySelectorAll('.sub-back').forEach(b => b.onclick = () => $(b.dataset.sub).classList.remove('show'));
   $('cfgBgm').oninput = applyVolumes; $('cfgSe').oninput = applyVolumes;
   document.querySelectorAll('#cfgSpeed button').forEach(b => b.onclick = () => {
     document.querySelectorAll('#cfgSpeed button').forEach(x => x.classList.remove('active')); b.classList.add('active');
@@ -3902,7 +3501,7 @@ function wireMenu() {
     autoSpeed = b.dataset.au; $('cfgAutoVal').textContent = b.textContent; saveConfig();
   });
 }
-openMenuDB().then(async () => { await requestPersistence(); await loadGFlags(); loadConfig(); wireMenu(); buildTitle(); });
+openMenuDB().then(() => { loadConfig(); wireMenu(); });
 
 
 // ===== ぷるぷるモジュール =====
@@ -4133,16 +3732,12 @@ requestAnimationFrame(puruTick);
 
 <div class="sub-screen" id="subSave">
   <div class="sub-head"><button class="sub-back" data-sub="subSave">‹<\/button><div class="sub-title">セーブ<\/div><\/div>
-  <div class="sub-body"><div class="slot-grid" id="saveGrid"><\/div>
-    <div style="margin-top:14px;text-align:center"><button id="exportSavesBtn" style="background:#00b894;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;cursor:pointer">💾 全セーブをファイルに書き出し<\/button><\/div>
-  <\/div>
+  <div class="sub-body"><div class="slot-grid" id="saveGrid"><\/div><\/div>
 <\/div>
 
 <div class="sub-screen" id="subLoad">
   <div class="sub-head"><button class="sub-back" data-sub="subLoad">‹<\/button><div class="sub-title">ロード<\/div><\/div>
-  <div class="sub-body"><div class="slot-grid" id="loadGrid"><\/div>
-    <div style="margin-top:14px;text-align:center"><button id="importSavesBtn" style="background:#0984e3;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;cursor:pointer">📂 セーブファイルを読み込み<\/button><input type="file" id="importSavesInput" accept=".json,.hysave" style="display:none"><\/div>
-  <\/div>
+  <div class="sub-body"><div class="slot-grid" id="loadGrid"><\/div><\/div>
 <\/div>
 
 <div class="sub-screen" id="subLog">
